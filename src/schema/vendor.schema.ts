@@ -3,6 +3,9 @@ import { commonDTO } from "src/common/DTO/commonDTO";
 import { isVendorStatus } from "src/utils/constants";
 import { Connection, Document, Model } from "mongoose";
 import { CounterDocument } from "./counter.schema";
+import { admin } from "./admin.schema";
+import { region } from "./region.schema";
+import { category } from "./category.schema";
 export type vendorDetails = vendor & Document;
 @Schema()
 export class vendor extends commonDTO {
@@ -18,16 +21,10 @@ export class vendor extends commonDTO {
   mobileNumber: string
 
   @Prop()
-  BusinesSector: string
-
-  @Prop()
-  location: string
+  category: string
 
   @Prop()
   adress1: string
-
-  @Prop()
-  adress2: string
 
   @Prop()
   country: string
@@ -38,8 +35,6 @@ export class vendor extends commonDTO {
   @Prop()
   city: string
 
-  @Prop()
-  otherCity: string
 
   @Prop()
   postalCode: string
@@ -48,13 +43,17 @@ export class vendor extends commonDTO {
   uploadLogo: string
 
   @Prop()
-  companyOverview: string
+  gstNumber: string
 
-  @Prop()
-  financialOverview: string
+  @Prop({ type: String, ref: "admin" })
+  adminId: admin;
 
-  @Prop({ type: String, enum: isVendorStatus, default: isVendorStatus.ACTIVE })
-  vendorStatus: isVendorStatus;
+  @Prop({ type: String, ref: "region" })
+  regionId: region;
+
+  @Prop({ type: String, ref: "category" })
+  categoryId: category;
+
 }
 export const vendorSchemaFile = SchemaFactory.createForClass(vendor);
 
@@ -68,8 +67,6 @@ vendorSchemaFile.pre<vendorDetails>('save', async function (next) {
       { $inc: { sequenceValue: 1 } },
       { new: true, upsert: true }
     );
-
-    // this.vendorId = counter?.sequenceValue || 30000; 
     this.vendorId = `VEN3000${counter?.sequenceValue}`
   }
   next();

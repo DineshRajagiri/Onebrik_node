@@ -39,7 +39,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "figlet": "^1.8.0",
-    "firebase-admin": "^13.0.1",
+    "firebase-admin": "^13.6.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
     "mongoose-auto-increment": "^5.0.1",

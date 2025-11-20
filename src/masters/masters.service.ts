@@ -17,6 +17,10 @@ import { relationshipManagerDTO } from './DTO/realationshipManager.dto';
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { roleDTO } from './DTO/role.dto';
 import { admin } from 'src/schema/admin.schema';
+import { category, categoryDetails } from 'src/schema/category.schema';
+import { region, regionDetails } from 'src/schema/region.schema';
+import { categoryDTO } from './DTO/category.dto';
+import { regionDTO } from './DTO/region.dto';
 @Injectable()
 
 export class MastersService {
@@ -25,6 +29,13 @@ export class MastersService {
 
 
   constructor(
+
+    //one brik//
+    @InjectModel(category.name) private readonly category: Model<categoryDetails>,
+    @InjectModel(region.name) private readonly region: Model<regionDetails>,
+
+
+    //inovice traders//
     @InjectModel(relationship.name) private readonly relationship: Model<relationshipDetails>,
     @InjectModel(experience.name) private readonly experience: Model<experienceDetails>,
     @InjectModel(incomeRange.name) private readonly incomeRange: Model<incomeRangeDetails>,
@@ -35,6 +46,362 @@ export class MastersService {
 
 
   ) { }
+
+
+
+  //onebrik//
+  async createCategory(data: categoryDTO) {
+    try {
+      const exists = await this.category.findOne({
+        categoryName: data.categoryName,
+        isDeleted: false
+      });
+
+      if (exists) {
+        throw new HttpException(
+          {
+            success: false,
+            message: "category already exists",
+            statusCode: 409,
+            data: null
+          },
+          HttpStatus.CONFLICT
+        );
+      }
+
+      const createdCategory = await this.category.create(data);
+
+      return {
+        success: true,
+        message: "Category created successfully",
+        statusCode: 201,
+        data: createdCategory
+      };
+
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message || "Failed to create Category",
+          statusCode: 400,
+          data: null
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async getAllCategory(
+    page: number = 1,
+    limit: number = 10,
+    search: string = ''
+  ) {
+    try {
+      const skip = (page - 1) * limit;
+
+
+      const searchFilter = search
+        ? {
+          categoryName: {
+            $regex: search,
+            $options: 'i',
+          },
+        }
+        : {};
+
+      const total = await this.category.countDocuments(searchFilter);
+
+      const categoryList = await this.category
+        .find(searchFilter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+      return {
+        success: true,
+        message: "Category fetched successfully",
+        statusCode: 200,
+        data: {
+          vendor: categoryList,
+          total,
+          page,
+          limit,
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message || "Failed to fetch Category",
+          statusCode: 400,
+          data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  async updateCategory(id: string, updateData: Partial<categoryDTO>): Promise<{ success: boolean; message: string; statusCode: number; data?: any; }> {
+    try {
+
+      const existingCategory = await this.category.findById(id);
+      if (!existingCategory) {
+        return {
+          success: false,
+          message: "Category not found",
+          statusCode: 404
+        };
+      }
+
+
+      if (updateData.categoryName) {
+        const duplicateVendor = await this.category.findOne({
+          categoryName: updateData.categoryName,
+          _id: { $ne: id }
+        });
+
+        if (duplicateVendor) {
+          return {
+            success: false,
+            message: "Category name already exists",
+            statusCode: 409
+          };
+        }
+      }
+
+      const updateCategory = await this.category.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+      );
+
+      return {
+        success: true,
+        message: "Category updated successfully",
+        statusCode: 200,
+        data: updateCategory
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to update Category",
+        statusCode: 400
+      };
+    }
+  }
+
+  async deleteCategory(id: string): Promise<{success: boolean;message: string;statusCode: number}> {
+    try {
+      const CategoryData = await this.category.findById(id);
+
+      if (!CategoryData) {
+        return {
+          success: false,
+          message: "Category not found",
+          statusCode: 404
+        };
+      }
+
+      await this.category.findByIdAndUpdate(id, {
+        isDeleted: true,
+        isActive: false
+      });
+
+      return {
+        success: true,
+        message: "Category deleted successfully",
+        statusCode: 200
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete Category",
+        statusCode: 400
+      };
+    }
+  }
+
+
+
+  async createRegion(data: regionDTO) {
+    try {
+      const exists = await this.region.findOne({
+        regionName: data.regionName,
+        isDeleted: false
+      });
+
+      if (exists) {
+        throw new HttpException(
+          {
+            success: false,
+            message: "region already exists",
+            statusCode: 409,
+            data: null
+          },
+          HttpStatus.CONFLICT
+        );
+      }
+
+
+
+      const createdRegion = await this.region.create(data);
+
+      return {
+        success: true,
+        message: "region created successfully",
+        statusCode: 201,
+        data: createdRegion
+      };
+
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message || "Failed to create Region",
+          statusCode: 400,
+          data: null
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async getAllRegion(
+    page: number = 1,
+    limit: number = 10,
+    search: string = ''
+  ) {
+    try {
+      const skip = (page - 1) * limit;
+
+
+      const searchFilter = search
+        ? {
+          regionName: {
+            $regex: search,
+            $options: 'i',
+          },
+        }
+        : {};
+
+      const total = await this.region.countDocuments(searchFilter);
+
+      const regionList = await this.region
+        .find(searchFilter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+      return {
+        success: true,
+        message: "Region fetched successfully",
+        statusCode: 200,
+        data: {
+          vendor: regionList,
+          total,
+          page,
+          limit,
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message || "Failed to fetch Region",
+          statusCode: 400,
+          data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  async updateRegion(id: string, updateData: Partial<regionDTO>): Promise<{ success: boolean; message: string; statusCode: number; data?: any; }> {
+    try {
+
+      const existingRegion = await this.region.findById(id);
+      if (!existingRegion) {
+        return {
+          success: false,
+          message: "Region not found",
+          statusCode: 404
+        };
+      }
+
+
+      if (updateData.regionName) {
+        const duplicateRegion = await this.category.findOne({
+          regionName: updateData.regionName,
+          _id: { $ne: id }
+        });
+
+        if (duplicateRegion) {
+          return {
+            success: false,
+            message: "Region name already exists",
+            statusCode: 409
+          };
+        }
+      }
+
+      const updateRegion = await this.region.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+      );
+
+      return {
+        success: true,
+        message: "Region updated successfully",
+        statusCode: 200,
+        data: updateRegion
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to update Region",
+        statusCode: 400
+      };
+    }
+  }
+  
+  async deleteRegion(id: string): Promise<{success: boolean;message: string;statusCode: number}> {
+    try {
+      const regionDate = await this.region.findById(id);
+
+      if (!regionDate) {
+        return {
+          success: false,
+          message: "Region not found",
+          statusCode: 404
+        };
+      }
+
+      await this.region.findByIdAndUpdate(id, {
+        isDeleted: true,
+        isActive: false
+      });
+
+      return {
+        success: true,
+        message: "Region deleted successfully",
+        statusCode: 200
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete Region",
+        statusCode: 400
+      };
+    }
+  }
+
+
+  //invoice//
 
   //relationship//
   async createRelationship(realtionship) {
@@ -161,7 +528,7 @@ export class MastersService {
       if (!relationship) {
         return {
           success: false,
-          statusCode: HttpStatus.NOT_FOUND, 
+          statusCode: HttpStatus.NOT_FOUND,
           message: 'Relationship not found',
         };
       }
@@ -175,7 +542,7 @@ export class MastersService {
       throw new HttpException(
         {
           success: false,
-          statusCode: HttpStatus.BAD_REQUEST, 
+          statusCode: HttpStatus.BAD_REQUEST,
           message: e?.message || 'An error occurred',
         },
         HttpStatus.BAD_REQUEST,
@@ -309,7 +676,7 @@ export class MastersService {
       if (!experience) {
         return {
           success: false,
-          statusCode: HttpStatus.NOT_FOUND, 
+          statusCode: HttpStatus.NOT_FOUND,
           message: 'Experience not found',
         };
       }
@@ -323,7 +690,7 @@ export class MastersService {
       throw new HttpException(
         {
           success: false,
-          statusCode: HttpStatus.BAD_REQUEST, 
+          statusCode: HttpStatus.BAD_REQUEST,
           message: e?.message || 'An error occurred',
         },
         HttpStatus.BAD_REQUEST,
@@ -456,7 +823,7 @@ export class MastersService {
       if (!incomeRange) {
         return {
           success: false,
-          statusCode: HttpStatus.NOT_FOUND, 
+          statusCode: HttpStatus.NOT_FOUND,
           message: 'IncomeRange not found',
         };
       }
@@ -470,7 +837,7 @@ export class MastersService {
       throw new HttpException(
         {
           success: false,
-          statusCode: HttpStatus.BAD_REQUEST, 
+          statusCode: HttpStatus.BAD_REQUEST,
           message: e?.message || 'An error occurred',
         },
         HttpStatus.BAD_REQUEST,
@@ -575,14 +942,14 @@ export class MastersService {
   async deleteProfession(id: string) {
     try {
       const deletedProfession = await this.profession.findByIdAndDelete(id);
-  
+
       if (!deletedProfession) {
         return {
           success: false,
           message: 'Profession not found',
         };
       }
-  
+
       return {
         success: true,
         message: 'Profession deleted successfully',
@@ -603,7 +970,7 @@ export class MastersService {
       if (!profession) {
         return {
           success: false,
-          statusCode: HttpStatus.NOT_FOUND, 
+          statusCode: HttpStatus.NOT_FOUND,
           message: 'Profession not found',
         };
       }
@@ -617,7 +984,7 @@ export class MastersService {
       throw new HttpException(
         {
           success: false,
-          statusCode: HttpStatus.BAD_REQUEST, 
+          statusCode: HttpStatus.BAD_REQUEST,
           message: e?.message || 'An error occurred',
         },
         HttpStatus.BAD_REQUEST,
@@ -630,7 +997,7 @@ export class MastersService {
     try {
       // Remove the uniqueness check
       const xScoreCreated = await this.xScore.create(xScore);
-  
+
       if (!xScoreCreated) {
         return {
           success: false,
@@ -638,7 +1005,7 @@ export class MastersService {
           message: 'Unable to create xScore',
         };
       }
-  
+
       return {
         success: true,
         statusCode: HttpStatus.CREATED,
@@ -657,8 +1024,8 @@ export class MastersService {
       );
     }
   }
-  
-  
+
+
   async getAllxScore(page = 1, limit = 10, search = '') {
     try {
       const pageNumber = Math.max(1, page);
@@ -689,36 +1056,36 @@ export class MastersService {
 
   async updatexScore(id: string, updateData: xScoreDTO): Promise<{ success: boolean; message: string; xScore?: xScoreDTO }> {
     try {
-        const xScore = await this.xScore.findById(id);
-        if (!xScore) {
-            throw new NotFoundException(`xScore with ID ${id} not found`);
-        }
+      const xScore = await this.xScore.findById(id);
+      if (!xScore) {
+        throw new NotFoundException(`xScore with ID ${id} not found`);
+      }
 
-        const updatedxScore = await this.xScore.findByIdAndUpdate(id, updateData, { new: true });
+      const updatedxScore = await this.xScore.findByIdAndUpdate(id, updateData, { new: true });
 
-        if (!updatedxScore) {
-            throw new HttpException('xScore update failed', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+      if (!updatedxScore) {
+        throw new HttpException('xScore update failed', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
 
-        // Convert the Mongoose document to a plain JavaScript object
-        const transformedXScore: xScoreDTO = {
-          xScoreValue: updatedxScore.xScoreValue, // Ensure correct field name
-          xScoreName: updatedxScore.xScoreName,
+      // Convert the Mongoose document to a plain JavaScript object
+      const transformedXScore: xScoreDTO = {
+        xScoreValue: updatedxScore.xScoreValue, // Ensure correct field name
+        xScoreName: updatedxScore.xScoreName,
       };
-      
 
-        return {
-            success: true,
-            message: 'xScore updated successfully',
-            xScore: transformedXScore,
-        };
+
+      return {
+        success: true,
+        message: 'xScore updated successfully',
+        xScore: transformedXScore,
+      };
     } catch (error) {
-        throw new HttpException(
-            { success: false, message: error.message || 'Update failed' },
-            HttpStatus.BAD_REQUEST,
-        );
+      throw new HttpException(
+        { success: false, message: error.message || 'Update failed' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
-}
+  }
 
   async deletexScore(id: string) {
     try {
@@ -751,7 +1118,7 @@ export class MastersService {
       if (!xScore) {
         return {
           success: false,
-          statusCode: HttpStatus.NOT_FOUND, 
+          statusCode: HttpStatus.NOT_FOUND,
           message: 'xScore not found',
         };
       }
@@ -765,319 +1132,320 @@ export class MastersService {
       throw new HttpException(
         {
           success: false,
-          statusCode: HttpStatus.BAD_REQUEST, 
+          statusCode: HttpStatus.BAD_REQUEST,
           message: e?.message || 'An error occurred',
         },
         HttpStatus.BAD_REQUEST,
       );
     }
   }
-  
+
   async xScoreList() {
     try {
-        const xScore = await this.xScore
-            .find({}, { _id: 1, xScoreValue: 1 })
-            .lean();
+      const xScore = await this.xScore
+        .find({}, { _id: 1, xScoreValue: 1 })
+        .lean();
 
-        if (!xScore || xScore.length === 0) {
-            return {
-                success: true,
-                message: 'No xScores available',
-                data: [], 
-            };
-        }
-
-        const dropdownList = xScore.map((ent) => ({
-            id: ent._id,
-            value: ent.xScoreValue,
-        }));
-
+      if (!xScore || xScore.length === 0) {
         return {
-            success: true,
-            message: 'xScore List',
-            data: dropdownList,
+          success: true,
+          message: 'No xScores available',
+          data: [],
         };
+      }
+
+      const dropdownList = xScore.map((ent) => ({
+        id: ent._id,
+        value: ent.xScoreValue,
+      }));
+
+      return {
+        success: true,
+        message: 'xScore List',
+        data: dropdownList,
+      };
     } catch (error) {
-        throw new HttpException(
-            {
-                success: false,
-                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                message: error?.message || 'An unexpected error occurred',
-            },
-            HttpStatus.INTERNAL_SERVER_ERROR
-        );
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error?.message || 'An unexpected error occurred',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
-}
+  }
 
-//RealationshipManager
-async createRelationshipManager(reltionshipManagaer) {
-  try {
-    const exist = await this.relationshipManager.findOne({
-      Name: reltionshipManagaer?.Name,
-    });
+  //RealationshipManager
+  async createRelationshipManager(reltionshipManagaer) {
+    try {
+      const exist = await this.relationshipManager.findOne({
+        Name: reltionshipManagaer?.Name,
+      });
 
-    if (exist) {
+      if (exist) {
+        return {
+          success: false,
+          statusCode: HttpStatus.CONFLICT, // 409 Conflict
+          message: 'relationshipManager already exist',
+        };
+      }
+
+      const relationshipManagerCreated = await this.relationshipManager.create(reltionshipManagaer);
+      if (!relationshipManagerCreated) {
+        return {
+          success: false,
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR, // 500 Internal Server Error
+          message: 'Unable to create relationshipManager',
+        };
+      }
+
       return {
-        success: false,
-        statusCode: HttpStatus.CONFLICT, // 409 Conflict
-        message: 'relationshipManager already exist',
+        success: true,
+        statusCode: HttpStatus.CREATED, // 201 Created
+        message: 'relationshipManager created successfully',
+        relationship: relationshipManagerCreated,
       };
+    } catch (e) {
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.BAD_REQUEST, // 400 Bad Request
+          message: e?.message || 'An error occurred',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
+  }
 
-    const relationshipManagerCreated = await this.relationshipManager.create(reltionshipManagaer);
-    if (!relationshipManagerCreated) {
+  async getAllRelationshipManager(page = 1, limit = 10, search = '') {
+    try {
+      const pageNumber = Math.max(1, page);
+      const pageSize = Math.max(1, limit);
+      const skip = (pageNumber - 1) * pageSize;
+      const filter = search ? { Name: { $regex: search, $options: 'i' } } : {};
+      const total = await this.relationshipManager.countDocuments();
+      const getAllRelationshipManagerList = await this.relationshipManager.find(filter).skip(skip).limit(pageSize);
       return {
-        success: false,
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR, // 500 Internal Server Error
-        message: 'Unable to create relationshipManager',
+        success: true,
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        relationship: getAllRelationshipManagerList,
+
       };
+    } catch (e) {
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: e?.message || 'An error occurred',
+        },
+        HttpStatus.BAD_REQUEST
+      );
     }
-
-    return {
-      success: true,
-      statusCode: HttpStatus.CREATED, // 201 Created
-      message: 'relationshipManager created successfully',
-      relationship: relationshipManagerCreated,
-    };
-  } catch (e) {
-    throw new HttpException(
-      {
-        success: false,
-        statusCode: HttpStatus.BAD_REQUEST, // 400 Bad Request
-        message: e?.message || 'An error occurred',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
   }
-}
+  async updateRelationshipManager(id: string, updateData: Partial<relationshipManagerDTO>): Promise<{ success: boolean; message: string; relationshipManager?: relationshipManagerDTO }> {
+    try {
+      const relationshipManager = await this.relationshipManager.findById(id);
 
-async getAllRelationshipManager(page = 1, limit = 10, search = '') {
-  try {
-    const pageNumber = Math.max(1, page);
-    const pageSize = Math.max(1, limit);
-    const skip = (pageNumber - 1) * pageSize;
-    const filter = search ? { Name: { $regex: search, $options: 'i' } } : {};
-    const total = await this.relationshipManager.countDocuments();
-    const getAllRelationshipManagerList = await this.relationshipManager.find(filter).skip(skip).limit(pageSize);
-    return {
-      success: true,
-      total,
-      page: pageNumber,
-      limit: pageSize,
-      relationship: getAllRelationshipManagerList,
+      if (!relationshipManager) {
+        throw new NotFoundException(`RelationshipManager with ID ${id} not found`);
+      }
 
-    };
-  } catch (e) {
-    throw new HttpException(
-      {
-        success: false,
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: e?.message || 'An error occurred',
-      },
-      HttpStatus.BAD_REQUEST
-    );
-  }
-}
-async updateRelationshipManager(id: string, updateData: Partial<relationshipManagerDTO>): Promise<{ success: boolean; message: string; relationshipManager?: relationshipManagerDTO }> {
-  try {
-    const relationshipManager = await this.relationshipManager.findById(id);
+      const updatedRelationshipManager = await this.relationshipManager.findByIdAndUpdate(id, updateData, { new: true });
 
-    if (!relationshipManager) {
-      throw new NotFoundException(`RelationshipManager with ID ${id} not found`);
-    }
+      if (!updatedRelationshipManager) {
+        throw new NotFoundException(`RelationshipManager with ID ${id} not found`);
+      }
 
-    const updatedRelationshipManager = await this.relationshipManager.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!updatedRelationshipManager) {
-      throw new NotFoundException(`RelationshipManager with ID ${id} not found`);
-    }
-
-    return {
-      success: true,
-      message: 'RelationshipManager updated successfully',
-      relationshipManager: updatedRelationshipManager.toObject() as unknown as relationshipManagerDTO,
-    };
-  } catch (error) {
-    throw new HttpException(
-      { success: false, message: error.message || 'Update failed' },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-}
-
-async deleteRelationshipManager(id: string) {
-  try {
-    const deletedRelationshipManager = await this.relationshipManager.findByIdAndDelete(id);
-
-    if (!deletedRelationshipManager) {
       return {
-        success: false,
-        message: 'RelationshipManager not found',
+        success: true,
+        message: 'RelationshipManager updated successfully',
+        relationshipManager: updatedRelationshipManager.toObject() as unknown as relationshipManagerDTO,
       };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, message: error.message || 'Update failed' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
-
-    return {
-      success: true,
-      message: 'RelationshipManager deleted successfully',
-    };
-  } catch (error) {
-    throw new HttpException(
-      {
-        success: false,
-        message: error?.message || 'An error occurred while deleting the RelationshipManager',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
   }
-}
 
-//role
-async createRole(role) {
-  try {
-    
-    const roleCreated = await this.roles.create(role);
+  async deleteRelationshipManager(id: string) {
+    try {
+      const deletedRelationshipManager = await this.relationshipManager.findByIdAndDelete(id);
 
-    if (!roleCreated) {
+      if (!deletedRelationshipManager) {
+        return {
+          success: false,
+          message: 'RelationshipManager not found',
+        };
+      }
+
       return {
-        success: false,
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Unable to create Role',
+        success: true,
+        message: 'RelationshipManager deleted successfully',
       };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error?.message || 'An error occurred while deleting the RelationshipManager',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
-
-    return {
-      success: true,
-      statusCode: HttpStatus.CREATED,
-      message: 'Role created successfully',
-      role: roleCreated,
-    };
-  } catch (e) {
-    console.error("Error:", e.message); 
-    throw new HttpException(
-      {
-        success: false,
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: e?.message || 'An error occurred',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
   }
-}
-async getAllRoles(page = 1, limit = 10, search = '') {
-  try {
-    const pageNumber = Math.max(1, page);
-    const pageSize = Math.max(1, limit);
-    const skip = (pageNumber - 1) * pageSize;
-    const filter = search ? { xScoreTypeName: { $regex: search, $options: 'i' } } : {};
-    const total = await this.roles.countDocuments();
-    const roleList = await this.roles.find(filter).skip(skip).limit(pageSize);
-    return {
-      success: true,
-      total,
-      page: pageNumber,
-      limit: pageSize,
-      role: roleList,
 
-    };
-  } catch (e) {
-    throw new HttpException(
-      {
-        success: false,
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: e?.message || 'An error occurred',
-      },
-      HttpStatus.BAD_REQUEST
-    );
+  //role
+  async createRole(role) {
+    try {
+
+      const roleCreated = await this.roles.create(role);
+
+      if (!roleCreated) {
+        return {
+          success: false,
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Unable to create Role',
+        };
+      }
+
+      return {
+        success: true,
+        statusCode: HttpStatus.CREATED,
+        message: 'Role created successfully',
+        role: roleCreated,
+      };
+    } catch (e) {
+      console.error("Error:", e.message);
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: e?.message || 'An error occurred',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
-}
+  async getAllRoles(page = 1, limit = 10, search = '') {
+    try {
+      const pageNumber = Math.max(1, page);
+      const pageSize = Math.max(1, limit);
+      const skip = (pageNumber - 1) * pageSize;
+      const filter = search ? { xScoreTypeName: { $regex: search, $options: 'i' } } : {};
+      const total = await this.roles.countDocuments();
+      const roleList = await this.roles.find(filter).skip(skip).limit(pageSize);
+      return {
+        success: true,
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        role: roleList,
 
-async updateRole(id: string, updateData: roleDTO): Promise<{ success: boolean; message: string; role?: roleDTO }> {
-  try {
+      };
+    } catch (e) {
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: e?.message || 'An error occurred',
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async updateRole(id: string, updateData: roleDTO): Promise<{ success: boolean; message: string; role?: roleDTO }> {
+    try {
       const role = await this.roles.findById(id);
       if (!role) {
-          throw new NotFoundException(`Role with ID ${id} not found`);
+        throw new NotFoundException(`Role with ID ${id} not found`);
       }
 
       const updatedRole = await this.roles.findByIdAndUpdate(id, updateData, { new: true });
 
       if (!updatedRole) {
-          throw new HttpException('Role update failed', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException('Role update failed', HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
       const transformedRole: roleDTO = {
-        name: updatedRole.name, 
+        name: updatedRole.name,
         permissionId: updatedRole.permissionId,
         adminId: updatedRole.adminId,
         role: updatedRole.role,
-        Description:updatedRole.Description
+        Description: updatedRole.Description
 
       };
-    
+
 
       return {
-          success: true,
-          message: 'Role updated successfully',
-          role: transformedRole,
+        success: true,
+        message: 'Role updated successfully',
+        role: transformedRole,
       };
-  } catch (error) {
+    } catch (error) {
       throw new HttpException(
-          { success: false, message: error.message || 'Update failed' },
-          HttpStatus.BAD_REQUEST,
+        { success: false, message: error.message || 'Update failed' },
+        HttpStatus.BAD_REQUEST,
       );
-  }
-}
-
-async deleteRole(id: string) {
-  try {
-    const deletedRole = await this.roles.findByIdAndDelete(id);
-
-    if (!deletedRole) {
-      return {
-        success: false,
-        message: 'Role not found',
-      };
     }
+  }
 
-    return {
-      success: true,
-      message: 'Role deleted successfully',
-      role:deletedRole
-    };
-  } catch (error) {
-    throw new HttpException(
-      {
-        success: false,
-        message: error?.message || 'An error occurred while deleting the xScore',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-}
-async getRoleById(roleId: string) {
-  try {
-    const role = await this.roles.findById(roleId);
-    if (!role) {
+  async deleteRole(id: string) {
+    try {
+      const deletedRole = await this.roles.findByIdAndDelete(id);
+
+      if (!deletedRole) {
+        return {
+          success: false,
+          message: 'Role not found',
+        };
+      }
+
       return {
-        success: false,
-        statusCode: HttpStatus.NOT_FOUND, 
-        message: 'Role not found',
+        success: true,
+        message: 'Role deleted successfully',
+        role: deletedRole
       };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error?.message || 'An error occurred while deleting the xScore',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    return {
-      success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Role details retrieved successfully',
-      role,
-    };
-  } catch (e) {
-    throw new HttpException(
-      {
-        success: false,
-        statusCode: HttpStatus.BAD_REQUEST, 
-        message: e?.message || 'An error occurred',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
   }
-}
+  async getRoleById(roleId: string) {
+    try {
+      const role = await this.roles.findById(roleId);
+      if (!role) {
+        return {
+          success: false,
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'Role not found',
+        };
+      }
+      return {
+        success: true,
+        statusCode: HttpStatus.OK,
+        message: 'Role details retrieved successfully',
+        role,
+      };
+    } catch (e) {
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: e?.message || 'An error occurred',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
 }

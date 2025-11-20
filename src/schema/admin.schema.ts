@@ -19,11 +19,6 @@ export class admin extends commonDTO {
   @Prop({ type: String, enum: Roles })
   role: Roles;
 
-  // @Prop()
-  // companyDomain: string;
-
-  @Prop({ default: false })
-  rememberMe: boolean;
 
   @Prop({ default: null })
   passwordHash: string;

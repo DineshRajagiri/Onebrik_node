@@ -11,6 +11,7 @@ export class VendorController {
         @Inject(Services.VENDOR) private vendorService: IVendorService,
     ) { }
 
+
     @Post('createVendor')
     @UseInterceptors(
         FileInterceptor('uploadLogo', {
@@ -31,8 +32,32 @@ export class VendorController {
         @Body() body: vendorDTO,
     ) {
         const host = req.protocol + '://' + req.get('host');
-        const fileUrl = `${host}/uploads/${file.filename}`;
+        const fileUrl = file ? `${host}/uploads/${file.filename}` : null;
+
         return this.vendorService.createVendor(body, fileUrl);
+    }
+    @Get('getVendorById/:id')
+    async getVendorById(@Param('id') id: string) {
+        try {
+            return await this.vendorService.getVendorById(id);
+        } catch (error) {
+            throw new HttpException(
+                { success: false, message: error.message || 'Failed to fetch enterprise details' },
+                HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+    @Get('getAllVendor')
+    async getAllVendor(
+        @Query('page') page: number,
+        @Query('limit') limit: number,
+        @Query('search') search: string,
+    ) {
+        return this.vendorService.getAllVendor(
+            Number(page) || 1,
+            Number(limit) || 10,
+            search || ''
+        );
     }
 
     @Put('updateVendor/:id')
@@ -51,65 +76,30 @@ export class VendorController {
     )
     async updateVendor(
         @Param('id') id: string,
-        @Body() updateData: vendorDTO,
-        @UploadedFile() file?: Express.Multer.File
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: vendorDTO,
+        @Req() req: Request,
     ) {
-        return this.vendorService.updateVendor(id, updateData, file);
-    }
+        let fileUrl: string | undefined = undefined;
 
-
-    @Get('getAllVendor')
-    async getAllVendor(@Query('page') page?: number, @Query('limit') limit?: number, @Query('search') search?: string, @Query('status') status?: string) {
-        try {
-            return await this.vendorService.getAllVendor(
-                Number(page) || 1,
-                Number(limit) || 10,
-                search || '',
-                status || ''
-            );
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Failed to fetch enterprises' },
-                HttpStatus.BAD_REQUEST
-            );
+        if (file) {
+            const host = req.protocol + '://' + req.get('host');
+            fileUrl = `${host}/uploads/${file.filename}`;
         }
+
+        return this.vendorService.updateVendor(id, body, fileUrl);
     }
 
-    @Get('getVendorById/:id')
-    async getVendorById(@Param('id') id: string) {
-        try {
-            return await this.vendorService.getVendorById(id);
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Failed to fetch enterprise details' },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
-
-    @Delete('deleteVendor/:id')
+    @Delete('deleteVendor:id')
     async deleteVendor(@Param('id') id: string) {
-        try {
-            return await this.vendorService.deleteVendor(id);
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Failed to delete Vendor' },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
+        const response = await this.vendorService.deleteVendor(id);
 
-    @Post('updateStatus')
-    async updateVendorStatus(@Body() body: any) {
-        return await this.vendorService.updateVendorStatus(body);
+        return {
+            success: response.success,
+            message: response.message,
+            statusCode: response.statusCode
+        };
     }
+    
 
-    @Get('vendorList')
-    async getVendorList() {
-        return this.vendorService.vendorList();
-    }
-    @Get('dashboardStatus')
-    async getvendorStatus() {
-        return this.vendorService.getvendorStatus();
-    }
 }

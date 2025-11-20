@@ -3,370 +3,288 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { vendor, vendorDetails } from 'src/schema/vendor.schema';
 import { vendorDTO } from './DTO/vendor.dto';
-import { isVendorStatus } from 'src/utils/constants';
+import { category, categoryDetails } from 'src/schema/category.schema';
+import { admin, adminDetails } from 'src/schema/admin.schema';
+import { region, regionDetails } from 'src/schema/region.schema';
 
 @Injectable()
 export class VendorService {
     constructor(
         @InjectModel(vendor.name) private readonly vendor: Model<vendorDetails>,
+        @InjectModel(category.name) private readonly category: Model<categoryDetails>,
+        @InjectModel(admin.name) private readonly admin: Model<adminDetails>,
+        @InjectModel(region.name) private readonly region: Model<regionDetails>,
     ) { }
-    async createVendor(data: vendorDTO, file?: any) {
+
+    async createVendor(data: vendorDTO, fileUrl?: string) {
         try {
-            if (!file) {
+
+            const exists = await this.vendor.findOne({
+                vendorName: data.vendorName,
+                isDeleted: false
+            });
+
+            if (exists) {
                 throw new HttpException(
                     {
                         success: false,
-                        statusCode: HttpStatus.BAD_REQUEST,
-                        message: 'No file uploaded',
+                        message: "Vendor already exists",
+                        statusCode: 409,
+                        data: null
                     },
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.CONFLICT
                 );
             }
 
-            const existingVendor = await this.vendor.findOne({ vendorName: data.vendorName });
-
-            if (existingVendor) {
-                return {
-                    success: false,
-                    statusCode: HttpStatus.CONFLICT,
-                    message: 'Vendor already exists',
-                };
-            }
-
-            data.uploadLogo = file;
-
-            const savedVendor = await this.vendor.create(data);
-
-            if (!savedVendor) {
+            const adminExists = await this.admin.findById(data.adminId);
+            if (!adminExists) {
                 throw new HttpException(
-                    { success: false, message: 'Unable to create vendor' },
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    { success: false, message: "Invalid adminId", statusCode: 400, data: null },
+                    HttpStatus.BAD_REQUEST
                 );
             }
 
+
+            const regionExists = await this.region.findById(data.regionId);
+            if (!regionExists) {
+                throw new HttpException(
+                    { success: false, message: "Invalid regionId", statusCode: 400, data: null },
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+
+
+            const categoryExists = await this.category.findById(data.categoryId);
+            if (!categoryExists) {
+                throw new HttpException(
+                    { success: false, message: "Invalid categoryId", statusCode: 400, data: null },
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+
+            if (fileUrl) {
+                data.uploadLogo = fileUrl;
+            }
+
+            const createdVendor = await this.vendor.create(data);
+
+            const populatedVendor = await this.vendor
+                .findById(createdVendor._id)
+                .populate('adminId', 'name')
+                .populate('regionId', 'regionName')
+                .populate('categoryId', 'categoryName');
+
+            const responseData = {
+                // _id: populatedVendor._id,
+                vendorDetails: createdVendor,
+                adminName: populatedVendor.adminId?.fullName,
+                regionName: populatedVendor.regionId?.regionName,
+                categoryName: populatedVendor.categoryId?.categoryName,
+            };
             return {
                 success: true,
-                statusCode: HttpStatus.CREATED,
-                message: 'Vendor created successfully',
-                vendor: savedVendor,
+                message: "Vendor created successfully",
+                statusCode: 201,
+                data: responseData
+            };
+
+        } catch (error) {
+            throw new HttpException(
+                {
+                    success: false,
+                    message: error.message || "Failed to create vendor",
+                    statusCode: 400,
+                    data: null
+                },
+                HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    async getAllVendor( page: number = 1, limit: number = 10,search: string = ''
+    ) {
+        try {
+            const skip = (page - 1) * limit;
+            const searchFilter = search
+                ? {
+                    vendorName: {
+                        $regex: search,
+                        $options: 'i',
+                    },
+                }
+                : {};
+            const total = await this.vendor.countDocuments(searchFilter);
+            const vendorList = await this.vendor
+                .find(searchFilter)
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 })
+                .populate('adminId', 'name email')        
+                .populate('regionId', 'regionName city')  
+                .populate('categoryId', 'categoryName');; 
+            return {
+                success: true,
+                message: "Vendors fetched successfully",
+                statusCode: 200,
+                data: {
+                    vendor: vendorList,
+                    total,
+                    page,
+                    limit,
+                },
             };
         } catch (error) {
             throw new HttpException(
                 {
                     success: false,
-                    statusCode: HttpStatus.BAD_REQUEST,
-                    message: error.message || 'An error occurred',
+                    message: error.message || "Failed to fetch vendors",
+                    statusCode: 400,
+                    data: null,
                 },
                 HttpStatus.BAD_REQUEST,
             );
         }
     }
 
-    async updateVendor(id: string, updateData: Partial<vendorDTO>, file?: Express.Multer.File): Promise<{ success: boolean; message: string; vendor?: vendorDTO }> {
+    async getVendorById(id: string) {
         try {
             const vendor = await this.vendor.findById(id);
 
             if (!vendor) {
-                throw new NotFoundException(`Vendor with ID ${id} not found`);
-            }
-
-
-            const uploadLogoPath = file ? file.path : vendor.uploadLogo;
-
-
-            const updatedVendor = await this.vendor.findByIdAndUpdate(
-                id,
-                { ...updateData, uploadLogo: uploadLogoPath },
-                { new: true }
-            );
-
-            if (!updatedVendor) {
                 throw new HttpException(
-                    { success: false, message: 'Failed to update Vendor' },
-                    HttpStatus.INTERNAL_SERVER_ERROR
-                );
-            }
-
-            return {
-                success: true,
-                message: 'Vendor updated successfully',
-                vendor: updatedVendor,
-            };
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Update failed' },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
-
-    async updateVendorStatus(data: any) {
-        try {
-            const user = await this.vendor.findByIdAndUpdate(data?.userId);
-
-            if (!user) {
-                return {
-                    success: false,
-                    statusCode: HttpStatus.NOT_FOUND,
-                    message: 'Vendor not found',
-                };
-            }
-
-            const updatedUser = await this.vendor.findByIdAndUpdate(
-                data?.userId,
-                {
-                    $set: {
-                        vendorStatus: data.status
+                    {
+                        success: false,
+                        message: "Vendor not found",
+                        statusCode: 404,
+                        data: null
                     },
-                },
-                { new: true }
-            );
-
-            return {
-                success: true,
-                statusCode: HttpStatus.OK,
-                message: 'Enterprises status added successfully',
-                user: updatedUser,
-            };
-        } catch (e) {
-            throw new HttpException(
-                {
-                    success: false,
-                    statusCode: HttpStatus.BAD_REQUEST,
-                    message: e?.message || 'An error occurred',
-                },
-                HttpStatus.BAD_REQUEST,
-            );
-        }
-    }
-
-    async getVendorById(id: string): Promise<{ success: boolean; Vendor: any }> {
-        try {
-            const Vendor = await this.vendor.findById(id);
-
-            if (!Vendor) {
-                throw new HttpException(
-                    { success: false, message: 'Enterprise not found' },
                     HttpStatus.NOT_FOUND
                 );
             }
 
             return {
                 success: true,
-                Vendor
+                message: "Vendor fetched successfully",
+                statusCode: 200,
+                data: vendor
             };
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Failed to fetch enterprise details' },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
 
-    // async getAllVendor(
-    //     page = 1,
-    //     limit = 10,
-    //     search = '',
-    //     status = ''
-    // ): Promise<{
-    //     success: boolean;
-    //     vendor: any[];
-    //     total: number;
-    //     activeCount: number;
-    //     inactiveCount: number;
-    //     page: number;
-    //     limit: number;
-    // }> {
-    //     try {
-    //         const skip = (page - 1) * limit;
-
-    //         const searchFilter: any = {};
-
-    //         if (search) {
-    //             searchFilter.vendorName = { $regex: search, $options: 'i' };
-    //         }
-
-    //         if (status) {
-    //             searchFilter.vendorStatus = status;
-    //         }
-
-    //         const [vendor, total, activeCount, inactiveCount] = await Promise.all([
-    //             this.vendor.find(searchFilter).skip(skip).limit(limit),
-    //             this.vendor.countDocuments(),
-    //             this.vendor.countDocuments({ vendorStatus: 'Active' }),
-    //             this.vendor.countDocuments({ vendorStatus: 'Inactive' })
-    //         ]);
-
-    //         return {
-    //             success: true,
-    //             vendor,
-    //             total,
-    //             activeCount,
-    //             inactiveCount,
-    //             page,
-    //             limit,
-    //         };
-    //     } catch (error) {
-    //         throw new HttpException(
-    //             { success: false, message: error.message || 'Failed to fetch vendors' },
-    //             HttpStatus.BAD_REQUEST
-    //         );
-    //     }
-    // }
-
-    async getAllVendor(page = 1, limit = 10, search = '', status = ''): Promise<{ success: boolean; vendor: any[]; total: number; activeCount: number; inactiveCount: number; deletedCount: number; page: number; limit: number; }> {
-        try {
-            const skip = (page - 1) * limit;
-
-            const searchFilter: any = {};
-
-
-            if (status === isVendorStatus.DELETED) {
-                searchFilter.isDeleted = true;
-            } else {
-                searchFilter.isDeleted = false;
-                if (status === isVendorStatus.ACTIVE) {
-                    searchFilter.vendorStatus = isVendorStatus.ACTIVE;
-                } else if (status === isVendorStatus.INACTIVE) {
-                    searchFilter.vendorStatus = isVendorStatus.INACTIVE;
-                }
-            }
-
-            if (search) {
-                searchFilter.vendorName = { $regex: search, $options: 'i' };
-            }
-
-            const [vendor, total, activeCount, inactiveCount, deletedCount] = await Promise.all([
-                this.vendor.find(searchFilter).skip(skip).limit(limit),
-                this.vendor.countDocuments({ isDeleted: false }),
-                this.vendor.countDocuments({ vendorStatus: isVendorStatus.ACTIVE, isDeleted: false }),
-                this.vendor.countDocuments({ vendorStatus: isVendorStatus.INACTIVE, isDeleted: false }),
-                this.vendor.countDocuments({ isDeleted: true })
-            ]);
-
-            return {
-                success: true,
-                vendor,
-                total,
-                activeCount,
-                inactiveCount,
-                deletedCount,
-                page,
-                limit,
-            };
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Failed to fetch vendors' },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
-
-
-    async deleteVendor(id: string): Promise<{ success: boolean; message: string }> {
-        try {
-            const updatedVendor = await this.vendor.findByIdAndUpdate(
-                id,
-                {
-                    isDeleted: true,
-                    vendorStatus: isVendorStatus.DELETED
-                },
-                { new: true }
-            );
-
-            if (!updatedVendor) {
-                throw new HttpException(
-                    { success: false, message: 'Vendor not found' },
-                    HttpStatus.NOT_FOUND
-                );
-            }
-
-            return {
-                success: true,
-                message: 'Vendor deleted successfully (soft delete)',
-            };
-        } catch (error) {
-            throw new HttpException(
-                { success: false, message: error.message || 'Failed to delete Vendor' },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
-
-
-    async vendorList() {
-        try {
-            const vendor = await this.vendor
-                .find({ vendorStatus: 'Active' }, { _id: 1, vendorName: 1 }) // Fetch only active enterprises
-                .lean();
-
-            if (!vendor || vendor.length === 0) {
-                return {
-                    success: true,
-                    message: 'No active vendors available',
-                    data: [],
-                };
-            }
-
-            const dropdownList = vendor.map((ent) => ({
-                id: ent._id,
-                name: ent.vendorName,
-            }));
-
-            return {
-                success: true,
-                message: 'Active Vendor List',
-                data: dropdownList,
-            };
         } catch (error) {
             throw new HttpException(
                 {
                     success: false,
-                    statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                    message: error?.message || 'An unexpected error occurred',
+                    message: error.message || "Failed to fetch vendor details",
+                    statusCode: 400,
+                    data: null
                 },
-                HttpStatus.INTERNAL_SERVER_ERROR
+                HttpStatus.BAD_REQUEST
             );
         }
     }
-    async getvendorStatus(): Promise<{
+
+    async updateVendor(
+        id: string,
+        updateData: Partial<vendorDTO>,
+        fileUrl?: string
+    ): Promise<{
         success: boolean;
         message: string;
-        totalVendors: number;
-        activeVendors: number;
-        inactiveVendors: number;
-        newVendors: number;
+        statusCode: number;
+        data?: any;
     }> {
         try {
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            if (fileUrl) {
+                updateData.uploadLogo = fileUrl;
+            }
 
 
-            const [totalVendors, activeVendors, inactiveVendors, newVendors] = await Promise.all([
-                this.vendor.countDocuments(), // Count total vendors
-                this.vendor.countDocuments({ vendorStatus: 'Active' }),
-                this.vendor.countDocuments({ vendorStatus: 'Inactive' }),
-                this.vendor.countDocuments({ createdAt: { $gte: today } })
-            ]);
+            const existingVendor = await this.vendor.findById(id);
+            if (!existingVendor) {
+                return {
+                    success: false,
+                    message: "Vendor not found",
+                    statusCode: 404
+                };
+            }
+
+
+            if (updateData.vendorName) {
+                const duplicateVendor = await this.vendor.findOne({
+                    vendorName: updateData.vendorName,
+                    _id: { $ne: id }
+                });
+
+                if (duplicateVendor) {
+                    return {
+                        success: false,
+                        message: "Vendor name already exists",
+                        statusCode: 409
+                    };
+                }
+            }
+
+
+            const updatedVendor = await this.vendor.findByIdAndUpdate(
+                id,
+                updateData,
+                { new: true }
+            );
 
             return {
                 success: true,
-                message: 'Vendor statistics fetched successfully.',
-                totalVendors,
-                activeVendors,
-                inactiveVendors,
-                newVendors
+                message: "Vendor updated successfully",
+                statusCode: 200,
+                data: updatedVendor
             };
+
         } catch (error) {
             return {
                 success: false,
-                message: error.message || 'Failed to fetch enterprise statistics.',
-                totalVendors: 0,
-                activeVendors: 0,
-                inactiveVendors: 0,
-                newVendors: 0
+                message: error.message || "Failed to update vendor",
+                statusCode: 400
             };
         }
     }
+
+    async deleteVendor(id: string): Promise<{
+        success: boolean;
+        message: string;
+        statusCode: number
+    }> {
+        try {
+            const vendorData = await this.vendor.findById(id);
+
+            if (!vendorData) {
+                return {
+                    success: false,
+                    message: "Vendor not found",
+                    statusCode: 404
+                };
+            }
+
+
+            await this.vendor.findByIdAndUpdate(id, {
+                isDeleted: true,
+                isActive: false
+            });
+
+            return {
+                success: true,
+                message: "Vendor deleted successfully",
+                statusCode: 200
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || "Failed to delete vendor",
+                statusCode: 400
+            };
+        }
+    }
+
+
+
+
 }

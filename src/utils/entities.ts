@@ -1,5 +1,6 @@
 import { admin, adminSchemaFile } from "src/schema/admin.schema";
 import { blogs, blogsSchemaFile } from "src/schema/blogs.schema";
+import { category, categorySchemaFile } from "src/schema/category.schema";
 import { Counter, CounterSchema } from "src/schema/counter.schema";
 import { deals, dealsSchemaFile } from "src/schema/deals.schema";
 import { enterprise, enterpriseSchemaFile } from "src/schema/enterprise.schema";
@@ -11,6 +12,7 @@ import { notification, notificationSchemaFile } from "src/schema/notification.sc
 import { notificationToken, notificationTokenSchemaFile } from "src/schema/notificationToken.schema";
 import { permission, permissionSchemaFile } from "src/schema/permission.schema";
 import { profession, professionSchemaFile } from "src/schema/Profession.schema";
+import { region, regionSchemaFile } from "src/schema/region.schema";
 import { relationship, relationshipSchemaFile } from "src/schema/relationship.schema";
 import { relationshipManager, relationshipManagerSchemaFile } from "src/schema/relationshipManager";
 import { roles, rolesSchemaFile } from "src/schema/role.schema";
@@ -49,6 +51,9 @@ export const entities = [
     { name: blogs.name,schema:blogsSchemaFile},
     {name:wallet.name,schema:walletSchemaFile},
     { name:withdrawal.name,schema:withdrawalSchemaFile},
+    { name:category.name,schema:categorySchemaFile},
+    { name:region.name,schema:regionSchemaFile}
+
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},
     // { name: SubModulePermission.name,schema:SubModulePermissionSchema},

@@ -13,7 +13,8 @@ import { entities } from 'src/utils/entities';
     HttpModule,
     MongooseModule.forFeature(entities),
     NotificationModule,
-    CommonModule
+    CommonModule,
+    
   ],
   controllers: [VendorController],
   providers: [
