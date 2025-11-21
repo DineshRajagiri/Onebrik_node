@@ -23,6 +23,7 @@ import { AdminModule } from './admin/admin.module';
 import { NeftModule } from './neft/neft.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { WithdrawalModule } from './withdrawal/withdrawal.module';
+import { DeliveryModule } from './deliveryPartner/delivery.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { WithdrawalModule } from './withdrawal/withdrawal.module';
     NeftModule,
     BlogsModule,
     WithdrawalModule,
+    DeliveryModule
     
 
   ],

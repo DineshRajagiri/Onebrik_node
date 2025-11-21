@@ -13,6 +13,7 @@ export enum Services {
     NEFT = "NEFT",
     BLOGS="BLOGS",
     WITHDRAWAL="WITHDRAWAL",
+    DELIVERYBOY="DELIVERYBOY"
 }
 
 export enum Roles{
