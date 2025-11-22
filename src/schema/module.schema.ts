@@ -7,14 +7,21 @@ export type modulesDetails = modules & Document;
 
 @Schema()
 export class modules extends commonDTO {
+  @Prop({ required: true, unique: true })
+  key: string;  // NEW FIELD for permission keys (e.g., "user_management")
+
   @Prop()
   title: string;
+
   @Prop()
   type: string;
+
   @Prop()
   icon: string;
-  @Prop({type:Boolean,default:false})
+
+  @Prop({ type: Boolean, default: false })
   children: boolean;
+
   @Prop()
   order: number;
 }

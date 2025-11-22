@@ -9,6 +9,7 @@ import { VerifyOtpDto } from './DTO/verifyOtp.dto';
 import { Public } from 'src/decorators/public.decorator';
 import { AadharDTO } from './DTO/aadhar.dto';
 import { PanDTO } from './DTO/pan.dto';
+import { LoginDto } from './DTO/login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -50,10 +51,16 @@ export class AuthController {
     return await this.authService.verifyOtpAndSaveUser(otp, userData);
   }
 
+  // @Public()
+  // @Post('login')
+  // async initiateLogin(@Body('phoneNumber') phoneNumber: string) {
+  //   return await this.authService.initiateLogin(phoneNumber);
+  // }
+
   @Public()
   @Post('login')
-  async initiateLogin(@Body('phoneNumber') phoneNumber: string) {
-    return await this.authService.initiateLogin(phoneNumber);
+  async login(@Body() body: LoginDto) {
+    return await this.authService.login(body);
   }
 
   @Public()

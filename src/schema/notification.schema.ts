@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document} from 'mongoose';
-import { user } from './user.schema';
+import { User } from './user.schema';
 import { notificationToken } from './notificationToken.schema';
 import { commonDTO } from 'src/common/DTO/commonDTO';
 

@@ -1,4 +1,4 @@
-import { user } from "src/schema/user.schema";
+import { User } from "src/schema/user.schema";
 import { notification_token_Dto } from "./dto/createnotificationtoken.dto";
 export interface INotificationService {
   createNotificationToken(body:notification_token_Dto)

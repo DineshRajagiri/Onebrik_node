@@ -8,18 +8,11 @@ export type rolesDetails = roles & Document;
 
 @Schema()
 export class roles extends commonDTO {
-  @Prop()
+  @Prop({ required: true, unique: true })
   name: string;
-  @Prop({ type: String, ref:"permission"})
-  permissionId: permission;
 
-  @Prop({ type: String, ref:"admin"})
-  adminId: admin;
-
-  @Prop({ type: String, enum: Roles })
-    role: Roles;
-  @Prop()
-  Description:string;
+  @Prop({ type: [String], default: [] })
+  permissions: string[];
 }
 
 export const rolesSchemaFile = SchemaFactory.createForClass(roles);

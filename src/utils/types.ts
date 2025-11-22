@@ -1,4 +1,4 @@
-import { user } from 'src/schema/user.schema';
+import { User } from 'src/schema/user.schema';
 
 export type CreateUserDetails = {
     email: string;

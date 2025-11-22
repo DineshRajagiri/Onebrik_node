@@ -41,5 +41,6 @@ export interface IAuthService {
   >;
   initiateLogin(data: any)
   refreshToken(refreshToken: any): Promise<{ success: boolean; message: string; data: any }>;
+  login(data: any)
 }
 

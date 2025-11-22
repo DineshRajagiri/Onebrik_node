@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { user, UserDocument } from 'src/schema/user.schema';
+import { User, UserDocument } from 'src/schema/user.schema';
 import mongoose, { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { Roles, Services, userResponseMessage } from 'src/utils/constants';
@@ -14,9 +14,10 @@ import { AdminLoginDTO } from './DTO/adminLogin.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AadharDTO } from './DTO/aadhar.dto';
-import { PanDTO } from './DTO/pan.dto'; 
+import { PanDTO } from './DTO/pan.dto';
 import { STATUS_CODES } from 'src/utils/status-codes';
 import { RESPONSE_MESSAGES } from 'src/utils/response-messages';
+import { LoginDto } from './DTO/login.dto';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -24,7 +25,7 @@ export class AuthService implements IAuthService {
   constructor(
     // @Inject(Services.AUTH) 
     // private authService: IAuthService,
-    @InjectModel(user.name) private readonly user: Model<UserDocument>,
+    @InjectModel(User.name) private readonly user: Model<UserDocument>,
     @InjectModel(admin.name) private readonly admin: Model<adminDetails>,
     @Inject(Services.NOTIFICATION) private notificationService: INotificationService,
     private readonly jwtService: JwtService,
@@ -154,7 +155,7 @@ export class AuthService implements IAuthService {
           { mobileNumber: userData.mobileNumber },
         ],
       });
-  
+
       if (existingUser > 0) {
         throw new HttpException(
           {
@@ -165,7 +166,7 @@ export class AuthService implements IAuthService {
           STATUS_CODES.CONFLICT
         );
       }
-  
+
       const otpSent = await this.sendOtp(userData.mobileNumber);
       if (otpSent.success) {
         return {
@@ -192,7 +193,7 @@ export class AuthService implements IAuthService {
       if (error instanceof HttpException) {
         throw error; // Preserve status code (409, 400, etc.)
       }
-  
+
       throw new HttpException(
         {
           success: false,
@@ -203,7 +204,7 @@ export class AuthService implements IAuthService {
       );
     }
   }
-  
+
   async sendOtp(mobileNumber: string): Promise<{ success: boolean; message: string; logid?: string }> {
     try {
       const response = await axios.get('https://global.datagenit.com/API/generate_otp.php', {
@@ -271,7 +272,7 @@ export class AuthService implements IAuthService {
         421: 'OTP time limit exceeded. Please request a new OTP.',
         422: 'OTP has already been verified for this request.',
         429: 'Insufficient balance to process the request.',
-        443: 'Log ID not provided. Please ensure the log ID is included.', 
+        443: 'Log ID not provided. Please ensure the log ID is included.',
       };
 
       const failureMessage =
@@ -307,9 +308,9 @@ export class AuthService implements IAuthService {
         id: string;
         fullName: string;
         email: string;
-        mobileNumber: string;
-        logid: string;
-        referralCode: string;
+        // mobileNumber: string;
+        // logid: string;
+        // referralCode: string;
       };
     }
     | { success: false; message: string }
@@ -335,9 +336,9 @@ export class AuthService implements IAuthService {
             id: newUser._id.toString(),
             fullName: newUser.fullName,
             email: newUser.email,
-            mobileNumber: newUser.mobileNumber,
-            logid: newUser.logid,
-            referralCode: newUser.referralCode
+            // mobileNumber: newUser.mobileNumber,
+            // logid: newUser.logid,
+            // referralCode: newUser.referralCode
           },
         };
       } catch (error) {
@@ -446,16 +447,16 @@ export class AuthService implements IAuthService {
       profileImage: data?.profileImage,
     };
     const userInfo = {
-      ...data.toObject(), 
+      ...data.toObject(),
     };
-  
+
     delete userInfo.resetPasswordToken;
     delete userInfo.salt;
     delete userInfo.passwordHash;
     delete userInfo.createdAt;
     delete userInfo.isDeleted;
     delete userInfo.isVerified;
-  
+
     return {
       data: userInfo,
       success: true,
@@ -465,42 +466,42 @@ export class AuthService implements IAuthService {
       }),
     };
   }
-  
+
 
   async createRefreshToken(user: any) {
     const privateKey = process.env.JWT_REFRESH_TOKEN_SECRET;
     const expiresIn = process.env.JWT_REFRESH_TOKEN_EXPIRE || '7d';
-  
+
     const payload = {
       _id: user.id,
     };
-  
+
     return jwt.sign(payload, privateKey, {
       algorithm: 'HS256',
       expiresIn,
     });
   }
-  
+
 
   async refreshToken(refreshToken: string) {
     try {
       const decoded = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_REFRESH_TOKEN_SECRET,
       });
-  
+
       let user = await this.user.findOne({ _id: decoded._id, refreshToken });
       if (!user) {
         user = await this.admin.findOne({ _id: decoded._id, refreshToken });
       }
-  
+
       if (!user) {
         throw new HttpException("Invalid refresh token.", HttpStatus.UNAUTHORIZED);
       }
-  
+
       const newAccessToken = await this.createAccessToken(user);
       const newRefreshToken = await this.createRefreshToken(user);
       await user.updateOne({ refreshToken: newRefreshToken });
-  
+
       return {
         success: true,
         message: "Token refreshed successfully.",
@@ -515,8 +516,8 @@ export class AuthService implements IAuthService {
       throw new HttpException("Invalid refresh token.", HttpStatus.UNAUTHORIZED);
     }
   }
-  
-  
+
+
 
 
 
@@ -572,29 +573,55 @@ export class AuthService implements IAuthService {
     }
   }
 
+  async login(dto: LoginDto) {
+    const user = await this.user.findOne({ email: dto.email });
+
+    if (!user) {
+      throw new HttpException("Invalid email or password", HttpStatus.UNAUTHORIZED);
+    }
+
+    const match = await bcrypt.compare(dto.password, user.password);
+
+    if (!match) {
+      throw new HttpException("Invalid email or password", HttpStatus.UNAUTHORIZED);
+    }
+
+    const payload = {
+      userId: user._id,
+      roleId: user.roleId
+    };
+
+    const token = await this.jwtService.signAsync(payload);
+
+    return {
+      success: true,
+      token,
+      user
+    };
+  }
 
   async adminLogin(data: AdminLoginDTO) {
     try {
       const checkAdmin: any = await this.admin.findOne({ email: data.username.toLowerCase() });
-  
+
       if (!checkAdmin || checkAdmin?.isDeleted == true) {
         return { success: false, message: 'Incorrect adminname or password' };
       }
-  
+
       if (checkAdmin?.isActive == false) {
         return { success: false, message: 'Your credentials have been deactivated by the superadmin' };
       }
-  
+
       const mathPassword = bcrypt.compareSync(data?.password, checkAdmin?.passwordHash);
       if (mathPassword === false) {
         return { success: false, message: 'Incorrect adminname or password' };
       }
-  
+
       const accessToken = await this.createAccessToken(checkAdmin);
       const refreshToken = await this.createRefreshToken({ id: checkAdmin._id });
-  
+
       await this.admin.updateOne({ _id: checkAdmin._id }, { refreshToken: refreshToken });
-  
+
       return {
         success: true,
         isadminExists: true,
@@ -609,7 +636,7 @@ export class AuthService implements IAuthService {
             rememberMe: accessToken.data.rememberMe,
             fullName: accessToken.data.fullName,
             adminProfile: accessToken.data.adminProfile,
-                        },
+          },
         },
       };
     } catch (e) {
@@ -619,7 +646,7 @@ export class AuthService implements IAuthService {
       );
     }
   }
-  
+
 
   async getStoredRefreshToken() {
     return 'your-refresh-token';
@@ -630,7 +657,7 @@ export class AuthService implements IAuthService {
   }
 
 
-  
-  
+
+
 
 }
