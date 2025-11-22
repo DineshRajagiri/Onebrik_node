@@ -6,6 +6,7 @@ import {  UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { Services } from 'src/utils/constants';
 import { AuthModule } from 'src/auth/auth.module';
+import { SuperAdminSeeder } from 'src/seeder/super-admin.seeder';
 
 @Module({
     imports: [
@@ -19,6 +20,7 @@ import { AuthModule } from 'src/auth/auth.module';
         provide: Services.USERS,
         useClass: UsersService,
       },
+      SuperAdminSeeder   
     ],
     controllers: [UsersController],
     exports: [

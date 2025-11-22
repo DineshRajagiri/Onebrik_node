@@ -3,7 +3,7 @@ import { withdrawalDTO } from './dto/withdrawal.dto';
 import { withdrawal, withdrawalDetails } from 'src/schema/withdrawal.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { user, UserDocument } from 'src/schema/user.schema';
+import { User, UserDocument } from 'src/schema/user.schema';
 import { wallet, walletDetails } from 'src/schema/wallet.schema';
 import { withdrawalStatus } from 'src/utils/constants';
 
@@ -12,7 +12,7 @@ export class WithdrawalService {
  private readonly logger = new Logger(WithdrawalService.name);
  constructor(
     @InjectModel(wallet.name) private wallet: Model<walletDetails>,
-    @InjectModel(user.name) private readonly user: Model<UserDocument>,
+    @InjectModel(User.name) private readonly user: Model<UserDocument>,
     @InjectModel(withdrawal.name) private readonly withdrawal: Model<withdrawalDetails>,
   ) { }
 

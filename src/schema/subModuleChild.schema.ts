@@ -7,22 +7,32 @@ export type subModuleChildDetails = subModuleChild & Document;
 
 @Schema()
 export class subModuleChild extends commonDTO {
+  @Prop({ required: true })
+  key: string; // NEW → e.g. “add”, “edit”, “view”
+
   @Prop()
   title: string;
+
   @Prop()
   type: string;
+
   @Prop()
   icon: string;
+
   @Prop()
   url: string;
+
   @Prop()
   order: string;
-  @Prop({type:Boolean,default:false})
+
+  @Prop({ type: Boolean, default: false })
   children: boolean;
-  @Prop({ type: String, ref:"subModules"})
+
+  @Prop({ type: String, ref: "subModules" })
   subModuleId: subModules;
+
   @Prop()
-  breadcrumbs:string;
+  breadcrumbs: string;
 }
 
 export const subModuleChildSchemaFile = SchemaFactory.createForClass(subModuleChild);

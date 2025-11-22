@@ -12,24 +12,24 @@ import { neft, neftSchemaFile } from "src/schema/neft.schema";
 import { notification, notificationSchemaFile } from "src/schema/notification.schema";
 import { notificationToken, notificationTokenSchemaFile } from "src/schema/notificationToken.schema";
 import { permission, permissionSchemaFile } from "src/schema/permission.schema";
-import { profession, professionSchemaFile } from "src/schema/Profession.schema";
 import { region, regionSchemaFile } from "src/schema/region.schema";
-import { relationship, relationshipSchemaFile } from "src/schema/relationship.schema";
 import { relationshipManager, relationshipManagerSchemaFile } from "src/schema/relationshipManager";
 import { roles, rolesSchemaFile } from "src/schema/role.schema";
 import { subModules, subModulesSchemaFile } from "src/schema/subModule.schema";
 import { subModuleChild, subModuleChildSchemaFile } from "src/schema/subModuleChild.schema";
-import { user, userSchemaFile } from "src/schema/user.schema";
+import { User, UserSchema } from "src/schema/user.schema";
+import { UserProfile, UserProfileSchema } from "src/schema/userProfile.schema";
 import { vendor, vendorSchemaFile } from "src/schema/vendor.schema";
 import { wallet, walletSchemaFile } from "src/schema/wallet.schema";
 import { withdrawal, withdrawalSchemaFile } from "src/schema/withdrawal.schema";
-import { xScore, xScoreSchemaFile } from "src/schema/xScore.schema";
+
 
 
 
 export const entities = [
-    { name: user.name, schema: userSchemaFile },
+    { name: User.name, schema: UserSchema },
     { name: admin.name, schema: adminSchemaFile },
+     { name: UserProfile.name, schema: UserProfileSchema },
     { name: modules.name, schema: modulesSchemaFile },
     { name: subModules.name, schema: subModulesSchemaFile },
     { name: subModuleChild.name, schema: subModuleChildSchemaFile },
@@ -38,13 +38,10 @@ export const entities = [
     { name: notificationToken.name, schema: notificationTokenSchemaFile },
     { name: notification.name, schema: notificationSchemaFile },
     { name: wallet.name, schema: walletSchemaFile },
-    { name: relationship.name, schema: relationshipSchemaFile },
     { name: experience.name, schema: experienceSchemaFile },
     { name: incomeRange.name, schema: incomeRangeSchemaFile },
-    { name: profession.name, schema: professionSchemaFile },
     { name: enterprise.name, schema: enterpriseSchemaFile },
     { name: vendor.name, schema: vendorSchemaFile },
-    { name: xScore.name, schema: xScoreSchemaFile },
     { name: Counter.name, schema: CounterSchema },
     { name: deals.name, schema: dealsSchemaFile },
     { name: relationshipManager.name, schema: relationshipManagerSchemaFile },
