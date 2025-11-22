@@ -1,11 +1,12 @@
-import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { IsNotEmpty } from "class-validator";
 import { commonDTO } from "src/common/DTO/commonDTO";
 import { region } from "./region.schema";
 
-export type deliveryDetails = devliery & Document;
+export type deliveryBoyDetails = deliveryBoy & Document;
 @Schema()
-export class devliery extends commonDTO {
+export class deliveryBoy extends commonDTO {
+
     @Prop()
     devlieryBoyName: string
 
@@ -16,7 +17,7 @@ export class devliery extends commonDTO {
     phoneNO: string
 
     @Prop({ type: String, ref: "region" })
-    regionId: region
+    regionId: region;
 
     @Prop()
     idProof: string
@@ -48,8 +49,11 @@ export class devliery extends commonDTO {
     @Prop()
     branchName: string
 
-
-
+    @Prop()
+    profilePicture: string
 
 }
-export const devlierySchemaFile = SchemaFactory.createForClass(devliery);
+export const deliveryBoySchemaFile = SchemaFactory.createForClass(deliveryBoy);
+
+
+

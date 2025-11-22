@@ -54,7 +54,7 @@ export class AdminService {
             delete data.password;
 
             data.adminProfile = file;
-            data.adminStatus = isAdminStatus.ACTIVE;
+            // data.adminStatus = isAdminStatus.ACTIVE;
 
             const savedAdmin = await this.admin.create(data);
 
@@ -158,7 +158,7 @@ export class AdminService {
                 mobileNo: updatedAdmin.mobileNo,
                 role: updatedAdmin.role,
                 adminProfile: updatedAdmin.adminProfile,
-                adminStatus: updatedAdmin.adminStatus,
+                // adminStatus: updatedAdmin.adminStatus,
             };
 
             return {

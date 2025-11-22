@@ -3,6 +3,7 @@ import { blogs, blogsSchemaFile } from "src/schema/blogs.schema";
 import { category, categorySchemaFile } from "src/schema/category.schema";
 import { Counter, CounterSchema } from "src/schema/counter.schema";
 import { deals, dealsSchemaFile } from "src/schema/deals.schema";
+import { deliveryBoy, deliveryBoySchemaFile } from "src/schema/deliveryBoy.schema";
 import { enterprise, enterpriseSchemaFile } from "src/schema/enterprise.schema";
 import { experience, experienceSchemaFile } from "src/schema/experience.schema";
 import { incomeRange, incomeRangeSchemaFile } from "src/schema/IncomeRange.schema";
@@ -45,19 +46,21 @@ export const entities = [
     { name: vendor.name, schema: vendorSchemaFile },
     { name: xScore.name, schema: xScoreSchemaFile },
     { name: Counter.name, schema: CounterSchema },
-    { name: deals.name,schema: dealsSchemaFile},
-    { name: relationshipManager.name,schema:relationshipManagerSchemaFile},
-    { name: neft.name,schema:neftSchemaFile},
-    { name: blogs.name,schema:blogsSchemaFile},
-    {name:wallet.name,schema:walletSchemaFile},
-    { name:withdrawal.name,schema:withdrawalSchemaFile},
-    { name:category.name,schema:categorySchemaFile},
-    { name:region.name,schema:regionSchemaFile}
+    { name: deals.name, schema: dealsSchemaFile },
+    { name: relationshipManager.name, schema: relationshipManagerSchemaFile },
+    { name: neft.name, schema: neftSchemaFile },
+    { name: blogs.name, schema: blogsSchemaFile },
+    { name: wallet.name, schema: walletSchemaFile },
+    { name: withdrawal.name, schema: withdrawalSchemaFile },
+    { name: category.name, schema: categorySchemaFile },
+    { name: region.name, schema: regionSchemaFile },
+    { name: deliveryBoy.name, schema: deliveryBoySchemaFile },
+
 
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},
     // { name: SubModulePermission.name,schema:SubModulePermissionSchema},
     // { name: SubModuleChildPermission.name,schema:SubModuleChildPermissionSchema},
 
- 
+
 ]
