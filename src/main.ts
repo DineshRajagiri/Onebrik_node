@@ -59,7 +59,7 @@ async function bootstrap() {
 
   const figlet = require('figlet');
 
-  figlet('I N V O I C E T R A D E S', function (err, data) {
+  figlet('O N E B R I K', function (err, data) {
     if (err) {
       console.log('Something went wrong...');
       console.dir(err);
