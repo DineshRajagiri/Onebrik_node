@@ -1,12 +1,15 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { moduleDTO } from './DTO/module.dto';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model, isValidObjectId, Types } from 'mongoose';
+// import { Menu, MenuDocument } from 'src/schema/menu.schema';
+import { CreateMenuDto } from './dto/create-menu.dto';
+import { UpdateMenuDto } from './dto/update-menu.dto';
+import { Menu, MenuDocument } from 'src/schema/menu.schema';
 import { modules, modulesDetails } from 'src/schema/module.schema';
-import { Model } from 'mongoose';
 import { subModules, subModulesDetails } from 'src/schema/subModule.schema';
 import { subModuleChild, subModuleChildDetails } from 'src/schema/subModuleChild.schema';
-import { subModuleDTO } from './DTO/submodule.dto';
-import { subModuleChildDTO } from './DTO/subModuleChild.dto';
+import { User, UserDocument } from 'src/schema/user.schema';
+import { Permission, permissionDetails } from 'src/schema/permission.schema';
 
 @Injectable()
 export class RbacService {
@@ -14,121 +17,108 @@ export class RbacService {
     constructor(
         @InjectModel(modules.name) private readonly modules: Model<modulesDetails>,
         @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
-        @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>
+        @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>,
+          @InjectModel(User.name) private userModel: Model<UserDocument>,
+           @InjectModel(Permission.name) private permissionModel: Model<permissionDetails>,
+        //  @InjectModel(Menu.name) private readonly menuModel: Model<MenuDocument>
     ) { }
-    //Module Section
-    async createModule(data: moduleDTO) {
-        try {
-            // Check if module already exists
-            const exists = await this.modules.findOne({
-                $or: [{ key: data.key }, { title: data.title }]
-            });
 
-            if (exists) {
-                return {
-                    success: false,
-                    statusCode: HttpStatus.CONFLICT,
-                    message: "Module already exists"
-                };
-            }
+   async getMenuForUser(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
 
-            // Create module
-            const createdModule = await this.modules.create(data);
+    const roleId = user.roleId.toString();
 
-            return {
-                success: true,
-                statusCode: HttpStatus.CREATED,
-                message: "Module created successfully",
-                module: createdModule
-            };
+    const permissions = await this.permissionModel
+      .find({ roleId, canView: true })
+      .lean();
 
-        } catch (error) {
-            throw new HttpException(
-                {
-                    success: false,
-                    statusCode: HttpStatus.BAD_REQUEST,
-                    message: error?.message || "Something went wrong"
-                },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
+    if (!permissions.length) return [];
 
-    //SubModule Section
+    const moduleIds = [...new Set(permissions.map((p) => p.moduleId.toString()))];
+    const subModuleIds = [...new Set(permissions.filter(p => p.subModuleId).map((p) => p.subModuleId.toString()))];
+    const childIds = [...new Set(permissions.filter(p => p.subModuleChildId).map((p) => p.subModuleChildId.toString()))];
 
-    async createSubModule(data: subModuleDTO) {
-        try {
-            const exist = await this.subModules.findOne({
-                $or: [{ key: data.key }, { title: data.title }],
-            });
+    const [modules, subModules, children] = await Promise.all([
+      this.modules.find({ _id: { $in: moduleIds }, isActive: true }).lean(),
+      this.subModules.find({ _id: { $in: subModuleIds }, isActive: true }).lean(),
+      this.subModuleChild.find({ _id: { $in: childIds }, isActive: true }).lean(),
+    ]);
 
-            if (exist) {
-                return {
-                    success: false,
-                    statusCode: HttpStatus.CONFLICT,
-                    message: "Submodule already exists",
-                };
-            }
+    const menu: any[] = [];
 
-            const created = await this.subModules.create(data);
-
-            return {
-                success: true,
-                statusCode: HttpStatus.CREATED,
-                message: "Submodule created successfully",
-                submodule: created,
-            };
-
-        } catch (error) {
-            throw new HttpException(
-                {
-                    success: false,
-                    statusCode: HttpStatus.BAD_REQUEST,
-                    message: error?.message || "Something went wrong",
-                },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-    }
-
-     //SubModuleChild Section
-    async createSubModuleChild(data: subModuleChildDTO) {
-  try {
-    const exist = await this.subModuleChild.findOne({
-      $or: [{ key: data.key }, { title: data.title }],
-      subModuleId: data.subModuleId
-    });
-
-    if (exist) {
-      return {
-        success: false,
-        statusCode: HttpStatus.CONFLICT,
-        message: "Child entry already exists",
+    for (const m of modules.sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const moduleNode: any = {
+        id: m.key,
+        title: m.title,
+        type: 'group',
+        icon: m.icon,
+        url: m.url,
+        children: [],
       };
+
+      const modulePermissions = permissions.filter(
+        (p) => p.moduleId.toString() === m._id.toString(),
+      );
+
+      const subIdsForModule = [
+        ...new Set(
+          modulePermissions
+            .filter((p) => p.subModuleId)
+            .map((p) => p.subModuleId.toString()),
+        ),
+      ];
+
+      const subsForModule = subModules.filter((s) =>
+        subIdsForModule.includes(s._id.toString()),
+      );
+
+      for (const s of subsForModule.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        const subNode: any = {
+          id: s.key,
+          title: s.title,
+          type: 'collapse',
+          icon: s.icon,
+          url: s.url,
+          children: [],
+        };
+
+        const childIdsForSub = [
+          ...new Set(
+            modulePermissions
+              .filter(
+                (p) =>
+                  p.subModuleId &&
+                  p.subModuleId.toString() === s._id.toString() &&
+                  p.subModuleChildId,
+              )
+              .map((p) => p.subModuleChildId.toString()),
+          ),
+        ];
+
+        const childrenForSub = children.filter((c) =>
+          childIdsForSub.includes(c._id.toString()),
+        );
+
+        for (const c of childrenForSub.sort(
+          (a, b) => a.sortOrder - b.sortOrder,
+        )) {
+          subNode.children.push({
+            id: c.key,
+            title: c.title,
+            type: 'item',
+            url: c.url,
+          });
+        }
+
+        moduleNode.children.push(subNode);
+      }
+
+      menu.push(moduleNode);
     }
 
-    const created = await this.subModuleChild.create(data);
-
-    return {
-      success: true,
-      statusCode: HttpStatus.CREATED,
-      message: "Submodule child created successfully",
-      submoduleChild: created,
-    };
-
-  } catch (error) {
-    throw new HttpException(
-      {
-        success: false,
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: error?.message || "Something went wrong",
-      },
-      HttpStatus.BAD_REQUEST
-    );
+    return menu;
   }
-}
-
-
 
 
 }

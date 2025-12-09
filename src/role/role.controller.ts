@@ -1,25 +1,48 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
-import { Public } from 'src/decorators/public.decorator';
+import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { RoleService } from './role.service';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
 import { Services } from 'src/utils/constants';
-import { CreateRoleDTO } from './DTO/role.dto';
-import { AssignPermissionDTO } from './DTO/assign-permission.dto';
 import { IRoleService } from './role';
+import { Public } from 'src/decorators/public.decorator';
+import { BaseResponse } from 'src/common/DTO/base-response.dto';
 
 @Controller('role')
 export class RoleController {
-    constructor(
-        @Inject(Services.ROLE) private roleService: IRoleService,
-    ) { }
+  constructor(
+    @Inject(Services.ROLE) private service: IRoleService,
+  ) { }
 
-    @Public()
-    @Post('create')
-    createRole(@Body() body: CreateRoleDTO) {
-        return this.roleService.createRole(body);
-    }
+  @Public()
+  @Post('createRole')
+  async create(@Body() dto: CreateRoleDto) {
+    const role = await this.service.create(dto);
+    return BaseResponse.ok(role, 'Role created successfully');
+  }
 
-    @Public()
-    @Post('assign-permissions')
-    assignPermissions(@Body() body: AssignPermissionDTO) {
-        return this.roleService.assignPermissions(body);
-    }
+  @Get()
+  async findAll() {
+    const roles = await this.service.findAll();
+    return BaseResponse.ok(roles);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const role = await this.service.findOne(id);
+    return BaseResponse.ok(role);
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
+    const role = await this.service.update(id, dto);
+    return BaseResponse.ok(role, 'Role updated successfully');
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    await this.service.remove(id);
+    return BaseResponse.ok(null, 'Role deleted successfully');
+  }
+
+
 }

@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './auth/guards/jwt.guard';
 // import { initializeFirebase } from './notification/config/firebase-init';
 // import { initializeFirebase } from './notification/config/firebase.config';
 import './notification/config/firebase-init';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe());
   app.use(passport.initialize());
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(new ValidationPipe());
   const config = new DocumentBuilder()
     .addBearerAuth()

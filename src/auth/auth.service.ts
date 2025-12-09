@@ -334,7 +334,7 @@ export class AuthService implements IAuthService {
           message: 'User registered successfully.',
           userDetails: {
             id: newUser._id.toString(),
-            fullName: newUser.fullName,
+            fullName: newUser.name,
             email: newUser.email,
             // mobileNumber: newUser.mobileNumber,
             // logid: newUser.logid,
@@ -402,14 +402,14 @@ export class AuthService implements IAuthService {
       await this.user.updateOne({ _id: user._id }, { refreshToken: refreshToken });
       return {
         success: true,
-        message: `Hi ${user.fullName}, you logged in successfully.`,
+        message: `Hi ${user.name}, you logged in successfully.`,
         isadminExists: false,
         data: {
           accessToken: accessToken.accessToken,
           refreshToken: refreshToken,
           userDetails: {
             _id: accessToken.data._id,
-            fullName: user.fullName,
+            fullName: user.name,
             email: accessToken.data.email,
             role: accessToken.data.role,
             rememberMe: accessToken.data.rememberMe,
@@ -434,53 +434,59 @@ export class AuthService implements IAuthService {
   //   });
   // }
 
-  async createAccessToken(data: any) {
-    const privateKey = process.env.JWT_ACCESS_TOKEN_SECRET;
-    const expiresIn = process.env.JWT_ACCESS_TOKEN_EXPIRE;
-    const payload = {
-      email: data.email,
-      _id: data._id,
-      mobileNo: data.mobileNo,
-      role: data.role,
-      isVerifiedByAdmin: data.isVerifiedByAdmin,
-      displayName: data?.fullName,
-      profileImage: data?.profileImage,
-    };
-    const userInfo = {
-      ...data.toObject(),
-    };
+async createAccessToken(user: any) {
+  const secret =
+    this.configService.get<string>('JWT_ACCESS_SECRET') ||
+    process.env.JWT_ACCESS_SECRET ||
+    'default_access_secret';
 
-    delete userInfo.resetPasswordToken;
-    delete userInfo.salt;
-    delete userInfo.passwordHash;
-    delete userInfo.createdAt;
-    delete userInfo.isDeleted;
-    delete userInfo.isVerified;
+  const expiresIn =
+    this.configService.get<string>('JWT_ACCESS_EXPIRE') ||
+    process.env.JWT_ACCESS_EXPIRE ||
+    '1d';
 
-    return {
-      data: userInfo,
-      success: true,
-      accessToken: jwt.sign(payload, privateKey, {
-        algorithm: 'HS256',
-        expiresIn,
-      }),
-    };
-  }
+  const payload = {
+    id: user._id.toString(),         
+    email: user.email,
+    role: user.role,
+    isVerifiedByAdmin: user.isVerifiedByAdmin ?? true,
+  };
 
+  const userInfo =
+    typeof user.toObject === 'function' ? user.toObject() : { ...user };
+  delete userInfo.passwordHash;
+  delete userInfo.salt;
+  delete userInfo.resetPasswordToken;
+  delete userInfo.refreshToken;
 
-  async createRefreshToken(user: any) {
-    const privateKey = process.env.JWT_REFRESH_TOKEN_SECRET;
-    const expiresIn = process.env.JWT_REFRESH_TOKEN_EXPIRE || '7d';
-
-    const payload = {
-      _id: user.id,
-    };
-
-    return jwt.sign(payload, privateKey, {
-      algorithm: 'HS256',
+  return {
+    data: userInfo,
+    success: true,
+    accessToken: this.jwtService.sign(payload, {
+      secret,
       expiresIn,
-    });
-  }
+    }),
+  };
+}
+
+
+
+async createRefreshToken(user: any) {
+  const secret =
+    this.configService.get<string>('JWT_REFRESH_SECRET') ||
+    process.env.JWT_REFRESH_SECRET ||
+    'default_refresh_secret';
+
+  const expiresIn =
+    this.configService.get<string>('JWT_REFRESH_EXPIRE') ||
+    process.env.JWT_REFRESH_EXPIRE ||
+    '7d';
+
+  return this.jwtService.sign(
+    { id: user._id.toString() },
+    { secret, expiresIn },
+  );
+}
 
 
   async refreshToken(refreshToken: string) {
@@ -580,7 +586,7 @@ export class AuthService implements IAuthService {
       throw new HttpException("Invalid email or password", HttpStatus.UNAUTHORIZED);
     }
 
-    const match = await bcrypt.compare(dto.password, user.password);
+    const match = await bcrypt.compare(dto.password, user.passwordHash);
 
     if (!match) {
       throw new HttpException("Invalid email or password", HttpStatus.UNAUTHORIZED);
@@ -600,52 +606,63 @@ export class AuthService implements IAuthService {
     };
   }
 
-  async adminLogin(data: AdminLoginDTO) {
-    try {
-      const checkAdmin: any = await this.admin.findOne({ email: data.username.toLowerCase() });
+ async adminLogin(data: AdminLoginDTO) {
+  try {
+    const { username, password } = data;
 
-      if (!checkAdmin || checkAdmin?.isDeleted == true) {
-        return { success: false, message: 'Incorrect adminname or password' };
-      }
+    const admin = await this.admin.findOne({ email: username.toLowerCase() });
 
-      if (checkAdmin?.isActive == false) {
-        return { success: false, message: 'Your credentials have been deactivated by the superadmin' };
-      }
-
-      const mathPassword = bcrypt.compareSync(data?.password, checkAdmin?.passwordHash);
-      if (mathPassword === false) {
-        return { success: false, message: 'Incorrect adminname or password' };
-      }
-
-      const accessToken = await this.createAccessToken(checkAdmin);
-      const refreshToken = await this.createRefreshToken({ id: checkAdmin._id });
-
-      await this.admin.updateOne({ _id: checkAdmin._id }, { refreshToken: refreshToken });
-
-      return {
-        success: true,
-        isadminExists: true,
-        message: 'Admin exists',
-        data: {
-          accessToken: accessToken.accessToken,
-          refreshToken: refreshToken,
-          userDetails: {
-            _id: accessToken.data._id,
-            email: accessToken.data.email,
-            role: accessToken.data.role,
-            rememberMe: accessToken.data.rememberMe,
-            fullName: accessToken.data.fullName,
-            adminProfile: accessToken.data.adminProfile,
-          },
-        },
-      };
-    } catch (e) {
-      throw new HttpException(
-        { success: false, message: e?.message },
-        HttpStatus.BAD_REQUEST,
-      );
+    if (!admin || admin.isDeleted) {
+      return { success: false, message: 'Incorrect adminname or password' };
     }
+
+    if (!admin.isActive) {
+      return {
+        success: false,
+        message: 'Your credentials have been deactivated by the superadmin',
+      };
+    }
+
+    const match = await bcrypt.compare(password, admin.passwordHash);
+    if (!match) {
+      return { success: false, message: 'Incorrect adminname or password' };
+    }
+
+    // 🔥 Generate tokens
+    const accessToken = await this.createAccessToken(admin);
+    const refreshToken = await this.createRefreshToken(admin);
+
+    // Save refresh token
+    await this.admin.updateOne(
+      { _id: admin._id },
+      { refreshToken: refreshToken },
+    );
+
+    return {
+      success: true,
+      isadminExists: true,
+      message: 'Admin exists',
+      data: {
+        accessToken: accessToken.accessToken,
+        refreshToken: refreshToken,
+        userDetails: {
+          _id: accessToken.data._id,
+          email: accessToken.data.email,
+          role: accessToken.data.role,
+          rememberMe: accessToken.data.rememberMe,
+          fullName: accessToken.data.fullName,
+          adminProfile: accessToken.data.adminProfile,
+        },
+      },
+    };
+  } catch (e) {
+    throw new HttpException(
+      { success: false, message: e?.message },
+      HttpStatus.BAD_REQUEST,
+    );
   }
+}
+
 
 
   async getStoredRefreshToken() {

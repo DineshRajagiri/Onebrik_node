@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
-import { SidebarController } from './sidebar.controller';
-import { Services } from 'src/utils/constants';
-import { SidebarService } from './sidebar.service';
+import { PermissionController } from './permission.controller';
+import { PermissionService } from './permission.service';
 import { HttpModule } from '@nestjs/axios';
-import { UsersModule } from 'src/users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
-import { entities } from 'src/utils/entities';
 import { NotificationModule } from 'src/notification/notification.module';
+import { entities } from 'src/utils/entities';
 import { CommonModule } from 'src/common/common.module';
+import { Services } from 'src/utils/constants';
 
 @Module({
   imports: [
@@ -16,18 +15,18 @@ import { CommonModule } from 'src/common/common.module';
     NotificationModule,
     CommonModule
   ],
-  controllers: [SidebarController],
+  controllers: [PermissionController],
   providers: [
     {
-      provide: Services.SIDEBAR,
-      useClass: SidebarService
+      provide: Services.PERMISSION,
+      useClass: PermissionService
     }
   ],
   exports: [
     {
-      provide: Services.SIDEBAR,
-      useClass: SidebarService
+      provide: Services.PERMISSION,
+      useClass: PermissionService
     }
   ]
 })
-export class SidebarModule { }
+export class PermissionModule {}

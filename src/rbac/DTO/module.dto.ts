@@ -7,11 +7,6 @@ export class moduleDTO {
   @Prop()
   @IsNotEmpty()
   @IsString()
-  key: string;   // required for permission keys (e.g. "user_management")
-
-  @Prop()
-  @IsNotEmpty()
-  @IsString()
   title: string;
 
   @Prop()

@@ -7,11 +7,12 @@ import { deliveryBoy, deliveryBoySchemaFile } from "src/schema/deliveryBoy.schem
 import { enterprise, enterpriseSchemaFile } from "src/schema/enterprise.schema";
 import { experience, experienceSchemaFile } from "src/schema/experience.schema";
 import { incomeRange, incomeRangeSchemaFile } from "src/schema/IncomeRange.schema";
+import { Menu, MenuSchema } from "src/schema/menu.schema";
 import { modules, modulesSchemaFile } from "src/schema/module.schema";
 import { neft, neftSchemaFile } from "src/schema/neft.schema";
 import { notification, notificationSchemaFile } from "src/schema/notification.schema";
 import { notificationToken, notificationTokenSchemaFile } from "src/schema/notificationToken.schema";
-import { permission, permissionSchemaFile } from "src/schema/permission.schema";
+import { Permission, permissionSchemaFile } from "src/schema/permission.schema";
 import { region, regionSchemaFile } from "src/schema/region.schema";
 import { relationshipManager, relationshipManagerSchemaFile } from "src/schema/relationshipManager";
 import { roles, rolesSchemaFile } from "src/schema/role.schema";
@@ -27,13 +28,14 @@ import { withdrawal, withdrawalSchemaFile } from "src/schema/withdrawal.schema";
 
 
 export const entities = [
+    { name: Menu.name, schema: MenuSchema },
     { name: User.name, schema: UserSchema },
     { name: admin.name, schema: adminSchemaFile },
      { name: UserProfile.name, schema: UserProfileSchema },
     { name: modules.name, schema: modulesSchemaFile },
     { name: subModules.name, schema: subModulesSchemaFile },
     { name: subModuleChild.name, schema: subModuleChildSchemaFile },
-    { name: permission.name, schema: permissionSchemaFile },
+    { name: Permission.name, schema: permissionSchemaFile },
     { name: roles.name, schema: rolesSchemaFile },
     { name: notificationToken.name, schema: notificationTokenSchemaFile },
     { name: notification.name, schema: notificationSchemaFile },
