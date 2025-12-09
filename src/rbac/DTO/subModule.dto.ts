@@ -2,11 +2,6 @@ import { Prop } from '@nestjs/mongoose';
 import { IsNotEmpty, IsOptional, IsString, IsBoolean, IsNumber } from 'class-validator';
 
 export class subModuleDTO {
-  
-  @Prop()
-  @IsNotEmpty()
-  @IsString()
-  key: string;   // required: "users"
 
   @Prop()
   @IsNotEmpty()
@@ -41,7 +36,7 @@ export class subModuleDTO {
   @Prop()
   @IsNotEmpty()
   @IsString()
-  moduleId: string;   // parent module
+  moduleId: string;   
 
   @Prop()
   @IsOptional()

@@ -1,19 +1,22 @@
-import { IsEmail, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsMongoId, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
-export class SaveUserDto {
-  @IsOptional()
-  userId?: string;     // If present → update mode
-
-  @IsNotEmpty()
-  fullName: string;
+export class CreateUserDto {
+   @IsString()
+  @MinLength(2)
+  name: string;
 
   @IsEmail()
   email: string;
 
-  @IsOptional()
+  @IsString()
   @MinLength(6)
-  password?: string;   // Not required in update, only in create
+  password: string;
+
+  @IsMongoId()
+  roleId: string;
 
   @IsOptional()
-  roleId?: string;     // May be assigned at any time
+  @IsBoolean()
+  isActive?: boolean;
+
 }
