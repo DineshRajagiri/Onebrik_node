@@ -45,10 +45,10 @@ export class admin extends commonDTO {
   adminProfile: string;
   @Prop({ type: String, enum: isAdminStatus, default: isAdminStatus.ACTIVE })
   adminStatus: isAdminStatus;
-@Prop()
-oldPassword:string;
-@Prop()
-newPassword:string;
+  @Prop()
+  oldPassword: string;
+  @Prop()
+  newPassword: string;
 }
 export const adminSchemaFile = SchemaFactory.createForClass(admin);
 
