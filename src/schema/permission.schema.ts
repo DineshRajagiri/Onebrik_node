@@ -1,38 +1,31 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
-export type permissionDetails = permission & Document;
+export type permissionDetails = Permission & Document;
 
-class PermissionEntry {
-  @Prop({ required: true, type: String }) 
-  modulesId: string;
+export class Permission {
+ @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
+  roleId: Types.ObjectId;
 
-  @Prop({ type: String }) 
-  subModuleId?: string;
+  @Prop({ type: Types.ObjectId, ref: 'AppModule', required: true })
+  moduleId: Types.ObjectId;
 
-  @Prop({ type: String }) 
-  subModuleChildId?: string;
+  @Prop({ type: Types.ObjectId, ref: 'SubModule' })
+  subModuleId?: Types.ObjectId;
 
-  @Prop({ required: true, type: Boolean }) 
-  isAdd: boolean;
+  @Prop({ type: Types.ObjectId, ref: 'SubModuleChild' })
+  subModuleChildId?: Types.ObjectId;
 
-  @Prop({ required: true, type: Boolean }) 
-  isEdit: boolean;
+  @Prop({ default: false })
+  canView: boolean;
 
-  @Prop({ required: true, type: Boolean }) 
-  isDelete: boolean;
+  @Prop({ default: false })
+  canCreate: boolean;
 
-  @Prop({ required: true, type: Boolean }) 
-  isRead: boolean;
+  @Prop({ default: false })
+  canUpdate: boolean;
+
+  @Prop({ default: false })
+  canDelete: boolean;
 }
-
-@Schema()
-export class permission extends Document {
-  @Prop({ required: true, type: String }) 
-  adminId: string;
-
-  @Prop({ type: [PermissionEntry], default: [] }) 
-  permissions: PermissionEntry[];
-}
-
-export const permissionSchemaFile = SchemaFactory.createForClass(permission);
+export const permissionSchemaFile = SchemaFactory.createForClass(Permission);

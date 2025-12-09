@@ -1,7 +1,12 @@
-import { AssignPermissionDTO } from "./DTO/assign-permission.dto";
-import { CreateRoleDTO } from "./DTO/role.dto";
+
+import { CreateRoleDto } from "./dto/create-role.dto";
+import { UpdateRoleDto } from "./dto/update-role.dto";
 
 export interface IRoleService {
-    createRole(collectionName: CreateRoleDTO): Promise<string>;
-    assignPermissions(collectionName: AssignPermissionDTO): Promise<string>;
+  create(dto: CreateRoleDto): Promise<any>;
+  findAll(page?: number, limit?: number, search?: string): Promise<any>;
+  findOne(id: string): Promise<any>;
+  update(id: string, dto: UpdateRoleDto): Promise<any>;
+  remove(id: string): Promise<any>;
+
 }

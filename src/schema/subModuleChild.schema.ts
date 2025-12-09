@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document} from 'mongoose';
+import { Document, Types} from 'mongoose';
 import { commonDTO } from 'src/common/DTO/commonDTO';
 import { subModules } from './subModule.schema';
 
@@ -7,32 +7,23 @@ export type subModuleChildDetails = subModuleChild & Document;
 
 @Schema()
 export class subModuleChild extends commonDTO {
-  @Prop({ required: true })
-  key: string; // NEW → e.g. “add”, “edit”, “view”
+   @Prop({ type: Types.ObjectId, ref: 'SubModule', required: true })
+  subModuleId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ required: true })
   title: string;
 
-  @Prop()
-  type: string;
+  @Prop({ required: true, unique: true })
+  key: string;
 
   @Prop()
-  icon: string;
+  url?: string;
 
-  @Prop()
-  url: string;
+  @Prop({ default: 1 })
+  sortOrder: number;
 
-  @Prop()
-  order: string;
-
-  @Prop({ type: Boolean, default: false })
-  children: boolean;
-
-  @Prop({ type: String, ref: "subModules" })
-  subModuleId: subModules;
-
-  @Prop()
-  breadcrumbs: string;
+  @Prop({ default: true })
+  isActive: boolean;
 }
 
 export const subModuleChildSchemaFile = SchemaFactory.createForClass(subModuleChild);

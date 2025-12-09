@@ -1,66 +1,85 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
+import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from 'src/schema/user.schema';
-import { Logger } from '@nestjs/common';
-import { SaveUserDto } from './DTO/create-user.dto';
-import { AssignRoleDto } from './DTO/assign-role.dto';
+import { Model } from 'mongoose';
+import { CreateUserDto } from './dto/create-user.dto';
+import * as bcrypt from 'bcrypt';
+import { UpdateUserDto } from './DTO/update-user.dto';
+import { roles, rolesDetails } from 'src/schema/role.schema';
 @Injectable()
 export class UsersService {
-  private readonly logger = new Logger(UsersService.name);
+  // private readonly logger = new Logger(UsersService.name);
 
 
   constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+     @InjectModel(roles.name) private roleModel: Model<rolesDetails>,
   ) { }
 
 
-  async save(dto: SaveUserDto) {
-    // UPDATE MODE
-    if (dto.userId) {
-      const user = await this.userModel.findById(dto.userId);
-
-      if (!user) {
-        throw new HttpException("User not found", HttpStatus.NOT_FOUND);
-      }
-
-      if (dto.password) {
-        dto.password = await bcrypt.hash(dto.password, 10);
-      }
-
-      Object.assign(user, dto);
-      await user.save();
-
-      return {
-        success: true,
-        statusCode: 200,
-        message: "User updated successfully",
-        user
-      };
-    }
-
-    // CREATE MODE
+ async create(dto: CreateUserDto): Promise<User> {
     const exists = await this.userModel.findOne({ email: dto.email });
+    if (exists) throw new ConflictException('Email already in use');
 
-    if (exists) {
-      throw new HttpException("Email already exists", HttpStatus.CONFLICT);
-    }
+    const role = await this.roleModel.findById(dto.roleId);
+    if (!role) throw new NotFoundException('Role not found');
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const created = await this.userModel.create({
-      fullName: dto.fullName,
+      name: dto.name,
       email: dto.email,
-      password: hashedPassword,
-      roleId: dto.roleId || null
+      passwordHash,
+      roleId: dto.roleId,
+      isActive: dto.isActive ?? true,
     });
 
-    return {
-      success: true,
-      statusCode: 201,
-      message: "User created successfully",
-      user: created
-    };
+    return created.toObject();
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.userModel
+      .find()
+      .populate('roleId', 'name')
+      .lean();
+  }
+
+  async findOne(id: string): Promise<User> {
+    const user = await this.userModel
+      .findById(id)
+      .populate('roleId', 'name')
+      .lean();
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async update(id: string, dto: UpdateUserDto): Promise<User> {
+    const user = await this.userModel.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+
+    if (dto.email && dto.email !== user.email) {
+      const exists = await this.userModel.findOne({ email: dto.email });
+      if (exists) throw new ConflictException('Email already in use');
+      user.email = dto.email;
+    }
+
+    if (dto.name) user.name = dto.name;
+    if (dto.isActive !== undefined) user.isActive = dto.isActive;
+    if (dto.roleId) {
+      const role = await this.roleModel.findById(dto.roleId);
+      if (!role) throw new NotFoundException('Role not found');
+      user.roleId = dto.roleId as any;
+    }
+    if (dto.password) {
+      user.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    await user.save();
+    return user.toObject();
+  }
+
+  async remove(id: string): Promise<void> {
+    const res = await this.userModel.findByIdAndDelete(id);
+    if (!res) throw new NotFoundException('User not found');
   }
 }

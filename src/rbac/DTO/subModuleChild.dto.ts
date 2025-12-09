@@ -3,10 +3,7 @@ import { IsNotEmpty, IsOptional, IsString, IsBoolean, IsNumber } from 'class-val
 
 export class subModuleChildDTO {
   
-  @Prop()
-  @IsNotEmpty()
-  @IsString()
-  key: string;  // required: "add", "edit", "view", etc.
+
 
   @Prop()
   @IsNotEmpty()

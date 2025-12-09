@@ -7,20 +7,26 @@ import { ConfigService } from '@nestjs/config';
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private configService: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), 
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET'), 
+      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET'),
     });
   }
 
-  async validate(payload?: any) {
-    // console.log('🔹 Decoded Payload:', payload); 
+  async validate(payload: any) {
+    // payload will come from createAccessToken()
+    // We expect: { id, email, role, isVerifiedByAdmin }
 
     if (!payload || !payload.id) {
-      console.log('❌ Invalid Token or Payload Missing'); 
       throw new UnauthorizedException('Invalid Token');
     }
 
-    return { userId: payload.id };
+    // This object becomes request.user
+    return {
+      id: payload.id,
+      email: payload.email,
+      role: payload.role,
+      isVerifiedByAdmin: payload.isVerifiedByAdmin ?? false,
+    };
   }
 }

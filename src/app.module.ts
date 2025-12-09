@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { SidebarModule } from './sidebar/sidebar.module';
+// import { SidebarModule } from './sidebar/sidebar.module';
 import { UsersModule } from './users/users.module';
 import { HttpModule } from '@nestjs/axios';
 import { NotificationModule } from './notification/notification.module';
@@ -18,12 +18,14 @@ import { CoreModule } from './core/core/core.module';
 import { RoleModule } from './role/role.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { SuperAdminSeeder } from './seeder/super-admin.seeder';
+import { PermissionModule } from './permission/permission.module';
+import { TableModule } from './table/table.module';
 
 @Module({
   imports: [
     CoreModule,
     AuthModule,
-    SidebarModule,
+    // SidebarModule,
     UsersModule,
     MastersModule,
     VendorModule,
@@ -36,7 +38,9 @@ import { SuperAdminSeeder } from './seeder/super-admin.seeder';
     DeliveryModule,
     RbacModule,
     RoleModule,
-    UserProfileModule
+    UserProfileModule,
+    PermissionModule,
+    TableModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,76 +1,48 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { modules, modulesDetails } from 'src/schema/module.schema';
-import { subModules, subModulesDetails } from 'src/schema/subModule.schema';
-import { subModuleChild, subModuleChildDetails } from 'src/schema/subModuleChild.schema';
-import { CreateRoleDTO } from './DTO/role.dto';
 import { roles, rolesDetails } from 'src/schema/role.schema';
-import { AssignPermissionDTO } from './DTO/assign-permission.dto';
+import { Model } from 'mongoose';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { Permission, permissionDetails } from 'src/schema/permission.schema';
 
 
 @Injectable()
 export class RoleService {
+
     constructor(
-        @InjectModel(roles.name) private readonly roles: Model<rolesDetails>,
-        @InjectModel(modules.name) private readonly modules: Model<modulesDetails>,
-        @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
-        @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>
+        @InjectModel(roles.name) private roleModel: Model<rolesDetails>,
+        @InjectModel(Permission.name) private permissionModel: Model<permissionDetails>
     ) { }
 
-    async createRole(data: CreateRoleDTO) {
-        const exist = await this.roles.findOne({ name: data.name });
-        if (exist) {
-            return {
-                success: false,
-                statusCode: HttpStatus.CONFLICT,
-                message: 'Role already exists',
-            };
-        }
-
-        const created = await this.roles.create({ name: data.name });
-
-        return {
-            success: true,
-            statusCode: HttpStatus.CREATED,
-            message: 'Role created successfully',
-            role: created,
-        };
+  async create(dto: CreateRoleDto): Promise<roles> {
+    const exists = await this.roleModel.findOne({ name: dto.name.trim() });
+    if (exists) {
+      throw new ConflictException('Role with this name already exists');
     }
+    return this.roleModel.create(dto);
+  }
 
-    async generatePermissionKey(moduleId: string, subModuleId: string, childId: string) {
-        const module = await this.modules.findById(moduleId);
-        const submodule = await this.subModules.findById(subModuleId);
-        const child = await this.subModuleChild.findById(childId);
+  async findAll(): Promise<roles[]> {
+    return this.roleModel.find().sort({ createdAt: -1 }).lean();
+  }
 
-        if (!module || !submodule || !child) {
-            throw new HttpException('Invalid module/submodule/child', HttpStatus.BAD_REQUEST);
-        }
+  async findOne(id: string): Promise<roles> {
+    const role = await this.roleModel.findById(id).lean();
+    if (!role) throw new NotFoundException('Role not found');
+    return role;
+  }
 
-        return `${module.key}.${submodule.key}.${child.key}`;
-    }
+  async update(id: string, dto: UpdateRoleDto): Promise<roles> {
+    const updated = await this.roleModel
+      .findByIdAndUpdate(id, dto, { new: true })
+      .lean();
+    if (!updated) throw new NotFoundException('Role not found');
+    return updated;
+  }
 
-    async assignPermissions(dto: AssignPermissionDTO) {
-        const role = await this.roles.findById(dto.roleId);
-        if (!role) {
-            throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
-        }
-
-        const permissionKeys = [];
-
-        for (const p of dto.permissions) {
-            const key = await this.generatePermissionKey(p.moduleId, p.subModuleId, p.childId);
-            permissionKeys.push(key);
-        }
-
-        role.permissions = permissionKeys;
-        await role.save();
-
-        return {
-            success: true,
-            statusCode: 200,
-            message: 'Permissions assigned successfully',
-            permissions: permissionKeys,
-        };
-    }
+  async remove(id: string): Promise<void> {
+    const res = await this.roleModel.findByIdAndDelete(id);
+    if (!res) throw new NotFoundException('Role not found');
+  }
 }

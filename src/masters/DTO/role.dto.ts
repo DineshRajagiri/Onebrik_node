@@ -1,7 +1,7 @@
 import { Prop } from "@nestjs/mongoose";
 import { IsNotEmpty } from "class-validator";
 import { admin } from "src/schema/admin.schema";
-import { permission } from "src/schema/permission.schema";
+import { Permission } from "src/schema/permission.schema";
 import { Roles } from "src/utils/constants";
 
 export class roleDTO {
@@ -9,7 +9,7 @@ export class roleDTO {
     @IsNotEmpty()
     name: string;
     @Prop()
-    permissionId: permission;
+    permissionId: Permission;
   
     @Prop()
     adminId: admin;
