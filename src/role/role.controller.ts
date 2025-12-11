@@ -6,6 +6,7 @@ import { Services } from 'src/utils/constants';
 import { IRoleService } from './role';
 import { Public } from 'src/decorators/public.decorator';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
+import { UpsertRoleDto } from './DTO/upsert-role.dto';
 
 @Controller('role')
 export class RoleController {
@@ -20,9 +21,16 @@ export class RoleController {
     return BaseResponse.ok(role, 'Role created successfully');
   }
 
+  @Public()
+  @Post('role')
+  async upsertRole(@Body() dto: UpsertRoleDto) {
+    const role = await this.service.upsertRole(dto);
+    return BaseResponse.ok(role, dto.id ? 'Role updated successfully' : 'Role created successfully');
+  }
+
   @Get()
   async findAll() {
-    const roles = await this.service.findAll();
+    const roles = await this.service.getPaginatedRoles();
     return BaseResponse.ok(roles);
   }
 

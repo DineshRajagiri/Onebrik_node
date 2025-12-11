@@ -29,7 +29,8 @@ getSuperAdminSidebar() {
               id: 'dashboard',
               title: 'Dashboard',
               url: '/admin/dashboard',
-              type: 'item'
+              type: 'item',
+              routeType: 'custom'   // <-- CUSTOM PAGE
             }
           ]
         },
@@ -48,22 +49,25 @@ getSuperAdminSidebar() {
                   id: 'modules',
                   title: 'Modules',
                   type: 'item',
-                  url: '/admin/masters/modules',
-                  tableKey: 'modules'
+                  tableKey: 'modules',
+                  routeType: 'master',   // <-- MASTER PAGE
+                  url: '/admin/masters/modules'
                 },
                 {
                   id: 'submodules',
                   title: 'Sub Module',
                   type: 'item',
-                  url: '/admin/masters/submodule',
-                  tableKey: 'submodules'
+                  tableKey: 'submodules',
+                  routeType: 'master',   // <-- MASTER PAGE
+                  url: '/admin/masters/submodules'
                 },
                 {
-                  id: 'submodule_child',
+                  id: 'submodulechild',
                   title: 'Sub Module Child',
                   type: 'item',
-                  url: '/admin/masters/submodule_child',
-                  tableKey: 'submodule_child'
+                  tableKey: 'submodulechild',
+                  routeType: 'master',   // <-- MASTER PAGE
+                  url: '/admin/masters/submodulechild'
                 }
               ]
             }
@@ -83,16 +87,25 @@ getSuperAdminSidebar() {
                 {
                   id: 'roles',
                   title: 'Roles',
-                  url: '/admin/masters/roles',
                   type: 'item',
-                  tableKey: 'roles'
+                  tableKey: 'roles',
+                  routeType: 'master',   // <-- MASTER PAGE
+                  url: '/admin/masters/roles'
+                },
+                {
+                  id: 'access-permission',
+                  title: 'User Roles Menu',
+                  type: 'item',
+                  routeType: 'custom',   // <-- CUSTOM PAGE
+                  url: '/admin/access-permission'
                 },
                 {
                   id: 'users_new',
                   title: 'Users',
-                  url: '/admin/masters/users_new',
                   type: 'item',
-                  tableKey: 'users_new'
+                  tableKey: 'users_new',
+                  routeType: 'master',   // <-- MASTER PAGE
+                  url: '/admin/masters/users_new'
                 }
               ]
             }
@@ -102,6 +115,7 @@ getSuperAdminSidebar() {
     }
   };
 }
+
 
 
 }

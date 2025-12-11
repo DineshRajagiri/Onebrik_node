@@ -20,6 +20,12 @@ export class PermissionController {
   }
 
   @Public()
+  @Get('list/:entity')
+  async getList(@Param('entity') entity: string) {
+    return this.service.getList(entity);
+  }
+
+  @Public()
   @Get('sidebar')
   async getSidebarMenu() {
     return this.service.getSidebarMenu();
@@ -41,8 +47,8 @@ export class PermissionController {
 
   @Public()
   @Post('submodule')
-  async createSubModule(@Body() body: any) {
-    const sub = await this.service.createSubModule(body);
+  async upsertSubModule(@Body() body: any) {
+    const sub = await this.service.upsertSubModule(body);
     return BaseResponse.ok(sub, 'SubModule created');
   }
 
@@ -60,8 +66,8 @@ export class PermissionController {
 
   @Public()
   @Post('submodule-child')
-  async createSubModuleChild(@Body() body: any) {
-    const child = await this.service.createSubModuleChild(body);
+  async upsertSubModuleChild(@Body() body: any) {
+    const child = await this.service.upsertSubModuleChild(body);
     return BaseResponse.ok(child, 'SubModuleChild created');
   }
 
