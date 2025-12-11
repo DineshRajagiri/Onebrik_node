@@ -2,17 +2,18 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { TableMetadataMap } from 'src/common/table-metadata/table-index';
 import { IPermissionService } from 'src/permission/permission';
 import { PermissionService } from 'src/permission/permission.service';
+import { RoleService } from 'src/role/role.service';
 import { Services } from 'src/utils/constants';
 
 @Injectable()
 export class TableService {
 
-    constructor(
-        // @Inject(Services.PERMISSION) private modulesService: IPermissionService
-        private readonly service: PermissionService
-    ) { }
+  constructor(
+    private readonly service: PermissionService,
+      private readonly roleService: RoleService
+  ) { }
 
-      async buildTable(tableKey: string, page: number, limit: number) {
+  async buildTable(tableKey: string, page: number, limit: number) {
 
     if (page <= 0 || limit <= 0) {
       throw new BadRequestException("Invalid page or limit");
@@ -32,6 +33,14 @@ export class TableService {
 
       case "submodules":
         result = await this.service.getPaginatedSubModules(page, limit);
+        break;
+
+      case "submodulechild":
+        result = await this.service.getPaginatedSubModuleChild(page, limit);
+        break;
+
+         case "roles":
+        result = await this.roleService.getPaginatedRoles(page, limit);
         break;
 
       default:

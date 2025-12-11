@@ -3,8 +3,10 @@ import { CreateAppModuleDto } from "./DTO/create-module.dto";
 export interface IPermissionService {
   upsertModule(dto: CreateAppModuleDto): Promise<any>;
   getModules(): Promise<any>;
+  getList(data: any): Promise<any>;
   deleteModule(id: string): Promise<any>;
-  createSubModule(dto: any): Promise<any>;
+  upsertSubModule(dto: any): Promise<any>;
+  upsertSubModuleChild(dto: any): Promise<any>;
   getSubModules(moduleId?: any): Promise<any>;
   deleteSubModule(id: string): Promise<any>;
   createSubModuleChild(dto: any): Promise<any>;
