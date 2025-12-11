@@ -7,6 +7,7 @@ import { CommonModule } from 'src/common/common.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { entities } from 'src/utils/entities';
 import { PermissionService } from 'src/permission/permission.service';
+import { InventoryService } from 'src/inventory/inventory.service';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { PermissionService } from 'src/permission/permission.service';
       provide: Services.TABLE,
       useClass: TableService,
     },
-    PermissionService
+    PermissionService,
+    InventoryService
   ],
   controllers: [TableController],
   exports: [

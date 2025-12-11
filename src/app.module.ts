@@ -20,6 +20,7 @@ import { UserProfileModule } from './user-profile/user-profile.module';
 import { SuperAdminSeeder } from './seeder/super-admin.seeder';
 import { PermissionModule } from './permission/permission.module';
 import { TableModule } from './table/table.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { TableModule } from './table/table.module';
     RoleModule,
     UserProfileModule,
     PermissionModule,
-    TableModule
+    TableModule,
+    InventoryModule
   ],
   controllers: [AppController],
   providers: [AppService],

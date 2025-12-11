@@ -1,11 +1,8 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { commonDTO } from "src/common/DTO/commonDTO";
 import mongoose, { Document, } from "mongoose";
+import { inventoryCategory } from "src/schema/inventoryCategory.schema";
 
-export type inventoryCategoryDocument = inventoryCategory & Document;
-
-@Schema()
-export class inventoryCategory extends commonDTO {
+export class inventoryCategoryDTO {
     @Prop({ required: true })
     categoryName: string;
 
@@ -15,6 +12,4 @@ export class inventoryCategory extends commonDTO {
     @Prop({ type: String, enum: ["MAIN", "SUB", "SUBCHILD"], required: true })
     level: string;
 
-
 }
-export const inventoryCategorySchemaFile = SchemaFactory.createForClass(inventoryCategory);

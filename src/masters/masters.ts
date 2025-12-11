@@ -21,7 +21,7 @@ export interface IMasterService {
      updateCategory(id: string, updateData: Partial<categoryDTO>): Promise<{ success: boolean; message: string; statusCode: number; data?: any; }>;
      updateRegion(id: string, updateData: Partial<regionDTO>): Promise<{ success: boolean; message: string; statusCode: number; data?: any; }>;
 
-     deleteCategory(id: string): Promise<{ success: boolean; message: string;statusCode: number  }>;
-     deleteRegion(id: string): Promise<{ success: boolean; message: string;statusCode: number  }>;
+     deleteCategory(id: string): Promise<{ success: boolean; message: string; statusCode: number }>;
+     deleteRegion(id: string): Promise<{ success: boolean; message: string; statusCode: number }>;
 
 } 
