@@ -3,6 +3,7 @@ import { TableMetadataMap } from 'src/common/table-metadata/table-index';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { IPermissionService } from 'src/permission/permission';
 import { PermissionService } from 'src/permission/permission.service';
+import { RoleService } from 'src/role/role.service';
 import { Services } from 'src/utils/constants';
 
 @Injectable()
@@ -10,8 +11,10 @@ export class TableService {
 
   constructor(
     // @Inject(Services.PERMISSION) private modulesService: IPermissionService
+    // private readonly service: PermissionService,
+    private readonly inventoryService: InventoryService,
     private readonly service: PermissionService,
-    private readonly inventoryService: InventoryService
+    private readonly roleService: RoleService
   ) { }
 
   async buildTable(tableKey: string, page: number, limit: number) {
@@ -37,29 +40,37 @@ export class TableService {
         break;
 
       case "attributes":
-        result = await this.inventoryService.getAllAttributes({page, limit,search:""});
+        result = await this.inventoryService.getAllAttributes({ page, limit, search: "" });
         break;
 
       case "attributesValues":
-        result = await this.inventoryService.getAllAttributeValues({page, limit,search:""});
+        result = await this.inventoryService.getAllAttributeValues({ page, limit, search: "" });
         break;
 
       case "inventoryCategory":
-        result = await this.inventoryService.getAllInventoryCategories({page, limit,search:""});
+        result = await this.inventoryService.getAllInventoryCategories({ page, limit, search: "" });
         break;
 
       case "products":
-        result = await this.inventoryService.getAllProducts({page, limit,search:""});
+        result = await this.inventoryService.getAllProducts({ page, limit, search: "" });
         break;
 
       case "productVarients":
-        result = await this.inventoryService.getAllProductVariants({page, limit,search:""});
+        result = await this.inventoryService.getAllProductVariants({ page, limit, search: "" });
         break;
 
       case "varientAttributeValues":
-        result = await this.inventoryService.getAllVariantAttributeValues({page, limit,search:""});
+        result = await this.inventoryService.getAllVariantAttributeValues({ page, limit, search: "" });
         break;
 
+
+      case "submodulechild":
+        result = await this.service.getPaginatedSubModuleChild(page, limit);
+        break;
+
+      case "roles":
+        result = await this.roleService.getPaginatedRoles(page, limit);
+        break;
 
       default:
         throw new NotFoundException(`No service for table ${tableKey}`);

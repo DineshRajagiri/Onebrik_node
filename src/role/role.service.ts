@@ -1,10 +1,11 @@
-import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { Model } from 'mongoose';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Permission, permissionDetails } from 'src/schema/permission.schema';
+import { UpsertRoleDto } from './DTO/upsert-role.dto';
 
 
 @Injectable()
@@ -23,9 +24,127 @@ export class RoleService {
     return this.roleModel.create(dto);
   }
 
-  async findAll(): Promise<roles[]> {
-    return this.roleModel.find().sort({ createdAt: -1 }).lean();
+  async upsertRole(dto: UpsertRoleDto) {
+  try {
+    if (!dto.name || !dto.name.trim()) {
+      throw new BadRequestException('Role name is required');
+    }
+
+    const name = dto.name.trim();
+    if (dto.id) {
+      const role = await this.roleModel.findById(dto.id);
+
+      if (!role) {
+        throw new NotFoundException('Role not found');
+      }
+
+      if (role.name !== name) {
+        const exists = await this.roleModel.findOne({ name }).lean();
+        if (exists) {
+          throw new ConflictException(`Role '${name}' already exists`);
+        }
+      }
+
+      role.name = name;
+      role.description = dto.description ?? role.description;
+      role.isActive = dto.isActive ?? role.isActive;
+      role.updatedAt = new Date();
+
+      await role.save();
+
+      return {
+        success: true,
+        message: 'Role updated successfully',
+        data: role
+      };
+    }
+    const exists = await this.roleModel.findOne({ name }).lean();
+    if (exists) {
+      throw new ConflictException(`Role '${name}' already exists`);
+    }
+
+    const created = await this.roleModel.create({
+      name,
+      description: dto.description || '',
+      isActive: dto.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      message: 'Role created successfully',
+      data: created
+    };
+
+  } catch (err) {
+    console.error('Error in upsertRole:', err);
+
+    if (
+      err instanceof BadRequestException ||
+      err instanceof ConflictException ||
+      err instanceof NotFoundException
+    ) {
+      throw err;
+    }
+
+    throw new HttpException(
+      'Unexpected error occurred while creating/updating the role',
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
+}
+
+
+async getPaginatedRoles(page: number, limit: number): Promise<any> {
+  try {
+    page = Number(page) || 1;
+    limit = Number(limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const filter = { isDeleted: { $ne: true } };
+
+    const [data, total] = await Promise.all([
+      this.roleModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      this.roleModel.countDocuments(filter)
+    ]);
+
+    return {
+      success: true,
+      message: "Roles fetched successfully",
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      data
+    };
+
+  } catch (error) {
+    console.error("Role Fetch Error →", error);
+
+    return {
+      success: false,
+      message: "Failed to fetch role data",
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0
+      },
+      data: []
+    };
+  }
+}
+
 
   async findOne(id: string): Promise<roles> {
     const role = await this.roleModel.findById(id).lean();

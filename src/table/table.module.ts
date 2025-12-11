@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { entities } from 'src/utils/entities';
 import { PermissionService } from 'src/permission/permission.service';
 import { InventoryService } from 'src/inventory/inventory.service';
+import { RoleService } from 'src/role/role.service';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { InventoryService } from 'src/inventory/inventory.service';
       useClass: TableService,
     },
     PermissionService,
-    InventoryService
+    InventoryService,
+    RoleService
   ],
   controllers: [TableController],
   exports: [

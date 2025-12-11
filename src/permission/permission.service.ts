@@ -138,7 +138,28 @@ export class PermissionService {
     }
   }
 
+  async getList(entity: string) {
+    const collections = {
+      modules: this.modules,
+      submodules: this.subModules,
+      roles: this.roleModel,
+      subModuleChild: this.subModuleChild
+    };
 
+    const model = collections[entity];
+
+    if (!model) {
+      throw new BadRequestException(`Unknown list entity: ${entity}`);
+    }
+
+    const data = await model
+      .find({ isDeleted: { $ne: true } })
+      .select({ title: 1, name: 1, _id: 1 })
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return data;
+  }
 
   async deleteModule(id: string) {
     try {
@@ -262,28 +283,78 @@ export class PermissionService {
     }
   }
 
-async getPaginatedSubModules(page: number, limit: number) {
+  async getPaginatedSubModules(page: number, limit: number) {
+    try {
+      const skip = (page - 1) * limit;
+
+      const filter = { isDeleted: false };
+
+      const data = await this.subModules
+        .find(filter)
+        .sort({ sortOrder: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      const total = await this.subModules.countDocuments(filter);
+
+      return { data, total };
+
+    } catch (error) {
+      console.error("Submodule Fetch Error →", error);
+      return { data: [], total: 0 };
+    }
+  }
+
+  async getPaginatedSubModuleChild(page: number, limit: number): Promise<any> {
   try {
+    page = Number(page) || 1;
+    limit = Number(limit) || 10;
+
     const skip = (page - 1) * limit;
 
-    const filter = { isDeleted: false };
+    const filter = { isDeleted: { $ne: true } };
 
-    const data = await this.subModules
-      .find(filter)
-      .sort({ sortOrder: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const [data, total] = await Promise.all([
+      this.subModuleChild
+        .find(filter)
+        .sort({ sortOrder: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
 
-    const total = await this.subModules.countDocuments(filter);
+      this.subModuleChild.countDocuments(filter)
+    ]);
 
-    return { data, total };
+    return {
+      success: true,
+      message: "SubModule Child fetched successfully",
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      data
+    };
 
   } catch (error) {
-    console.error("Submodule Fetch Error →", error);
-    return { data: [], total: 0 };
+    console.error("Submodule Child Fetch Error →", error);
+
+    return {
+      success: false,
+      message: "Failed to fetch submodule child data",
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0
+      },
+      data: []
+    };
   }
 }
+
 
 
 
