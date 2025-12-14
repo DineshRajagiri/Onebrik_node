@@ -1,33 +1,23 @@
-import { IsBoolean, IsMongoId, IsOptional } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsUUID,
+  ValidateIf
+} from 'class-validator';
 
-export class CreatePermissionDto {
-  @IsMongoId()
-  roleId: string;
-
-  @IsMongoId()
+export class PermissionItemDto {
+  level: 'module' | 'subModule' | 'child';
+  id: string;
   moduleId: string;
-
-  @IsOptional()
-  @IsMongoId()
-  subModuleId?: string;
-
-  @IsOptional()
-  @IsMongoId()
-  subModuleChildId?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  canView?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
+  subModuleChildId: string;
+  subModuleId: string;
+  canView: boolean;
   canCreate?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
   canUpdate?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
   canDelete?: boolean;
+}
+
+export class UpsertPermissionsForRoleDto {
+  roleId: string;
+  items: PermissionItemDto[];
 }

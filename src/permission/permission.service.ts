@@ -11,6 +11,7 @@ import { isUUID } from 'class-validator';
 import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
 import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
+import { User, UserDocument } from 'src/schema/user.schema';
 
 @Injectable()
 export class PermissionService {
@@ -20,7 +21,8 @@ export class PermissionService {
     @InjectModel(roles.name) private roleModel: Model<rolesDetails>,
     @InjectModel(modules.name) private readonly modules: Model<modulesDetails>,
     @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
-    @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>
+    @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) { }
 
   private slugify(value: string): string {
@@ -307,53 +309,53 @@ export class PermissionService {
   }
 
   async getPaginatedSubModuleChild(page: number, limit: number): Promise<any> {
-  try {
-    page = Number(page) || 1;
-    limit = Number(limit) || 10;
+    try {
+      page = Number(page) || 1;
+      limit = Number(limit) || 10;
 
-    const skip = (page - 1) * limit;
+      const skip = (page - 1) * limit;
 
-    const filter = { isDeleted: { $ne: true } };
+      const filter = { isDeleted: { $ne: true } };
 
-    const [data, total] = await Promise.all([
-      this.subModuleChild
-        .find(filter)
-        .sort({ sortOrder: 1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      const [data, total] = await Promise.all([
+        this.subModuleChild
+          .find(filter)
+          .sort({ sortOrder: 1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
 
-      this.subModuleChild.countDocuments(filter)
-    ]);
+        this.subModuleChild.countDocuments(filter)
+      ]);
 
-    return {
-      success: true,
-      message: "SubModule Child fetched successfully",
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-      data
-    };
+      return {
+        success: true,
+        message: "SubModule Child fetched successfully",
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+        data
+      };
 
-  } catch (error) {
-    console.error("Submodule Child Fetch Error →", error);
+    } catch (error) {
+      console.error("Submodule Child Fetch Error →", error);
 
-    return {
-      success: false,
-      message: "Failed to fetch submodule child data",
-      pagination: {
-        page,
-        limit,
-        total: 0,
-        totalPages: 0
-      },
-      data: []
-    };
+      return {
+        success: false,
+        message: "Failed to fetch submodule child data",
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0
+        },
+        data: []
+      };
+    }
   }
-}
 
 
 
@@ -587,48 +589,83 @@ export class PermissionService {
   }
 
 
-  async upsertPermissionsForRole(dto: UpsertPermissionsForRoleDto): Promise<{
-    success: boolean;
-    message: string;
-    data: any[];
-  }> {
-    try {
-      if (!isUUID(dto.roleId)) {
-        throw new BadRequestException('Invalid roleId');
-      }
+  async upsertPermissionsForRole(dto: UpsertPermissionsForRoleDto) {
 
-      const role = await this.roleModel.findById(dto.roleId);
-      if (!role) {
-        throw new NotFoundException('Role not found');
-      }
-      await this.permissionModel.deleteMany({ roleId: dto.roleId });
-      const docs = dto.items.map((item) => ({
-        ...item,
-        roleId: dto.roleId
-      }));
-      const created = await this.permissionModel.insertMany(docs);
-      return {
-        success: true,
-        message: 'Permissions updated successfully',
-        data: created
-      };
-
-    } catch (err) {
-      console.error('Error in upsertPermissionsForRole:', err);
-
-      if (
-        err instanceof BadRequestException ||
-        err instanceof NotFoundException
-      ) {
-        throw err;
-      }
-
-      throw new HttpException(
-        'Failed to update permissions for role',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+    if (!isUUID(dto.roleId)) {
+      throw new BadRequestException('Invalid roleId');
     }
+
+    const role = await this.roleModel.findById(dto.roleId);
+    if (!role) throw new NotFoundException('Role not found');
+
+    await this.permissionModel.deleteMany({ roleId: dto.roleId });
+
+    const docs = [];
+
+    for (const item of dto.items) {
+
+      let moduleId: string | null = null;
+      let subModuleId: string | null = null;
+      let subModuleChildId: string | null = null;
+
+      // CHILD LEVEL
+      if (item.subModuleChildId) {
+        const child = await this.subModuleChild.findById(item.subModuleChildId);
+        if (!child) continue;
+
+        subModuleChildId = child._id;
+        subModuleId = child.subModuleId;
+        moduleId = child.moduleId;
+      }
+
+      // SUBMODULE LEVEL
+      else if (item.subModuleId) {
+        const subModule = await this.subModules.findById(item.subModuleId);
+        if (!subModule) continue;
+
+        subModuleId = subModule._id;
+        moduleId = subModule.moduleId;
+      }
+
+      // MODULE LEVEL
+      else if (item.moduleId) {
+        const module = await this.modules.findById(item.moduleId);
+        if (!module) continue;
+
+        moduleId = module._id;
+      }
+
+      if (!moduleId) continue;
+
+      docs.push({
+        roleId: dto.roleId,          // UUID
+        moduleId,                   // UUID
+        subModuleId,                // UUID
+        subModuleChildId,           // UUID
+        canView: Boolean(item.canView),
+        canCreate: Boolean(item.canCreate),
+        canUpdate: Boolean(item.canUpdate),
+        canDelete: Boolean(item.canDelete)
+      });
+    }
+
+    if (!docs.length) {
+      throw new BadRequestException('No valid permissions to insert');
+    }
+
+    const created = await this.permissionModel.insertMany(docs);
+
+    return {
+      success: true,
+      message: 'Permissions updated successfully',
+      data: created
+    };
   }
+
+
+
+
+
 
 
   async getPermissionsByRole(roleId: string): Promise<{
@@ -750,5 +787,60 @@ export class PermissionService {
       }
     };
   }
+
+
+  async getSidebarForUser(userId: string) {
+
+    const user = await this.userModel.findById(userId).lean();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 1️⃣ Load full module tree
+    const moduleTreeResponse = await this.getModuleTree();
+    const moduleTree = moduleTreeResponse.data;
+
+    // 2️⃣ Load permissions
+    const permissions = await this.permissionModel.find({
+      roleId: user.roleId,
+      canView: true,
+    }).lean();
+
+    if (!permissions.length) {
+      return [];
+    }
+
+    // 3️⃣ Collect allowed IDs
+    const allowedIds = new Set<string>();
+
+    permissions.forEach(p => {
+      if (p.moduleId) allowedIds.add(p.moduleId.toString());
+      if (p.subModuleId) allowedIds.add(p.subModuleId.toString());
+      if (p.subModuleChildId) allowedIds.add(p.subModuleChildId.toString());
+    });
+
+    const filterTree = (nodes: any[]): any[] =>
+      nodes
+        .map(node => {
+          const nodeId = node.id || node._id;
+
+          const children = node.children?.length
+            ? filterTree(node.children)
+            : [];
+
+          if (!allowedIds.has(nodeId) && children.length === 0) {
+            return null;
+          }
+
+          return { ...node, children };
+        })
+        .filter(Boolean);
+
+    return filterTree(moduleTree);
+  }
+
+
+
+
 
 }

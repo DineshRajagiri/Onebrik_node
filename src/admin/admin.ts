@@ -7,7 +7,7 @@ export interface IAdminService {
     deleteAdmin(id: string): Promise<{ success: boolean; message: string }>;
     updateAdminStatus(data: any);
     getAdminById(id: string): Promise<{ success: boolean; message: string }>;
-    updateAdminProfile(id: string, file?: any): Promise<{ success: boolean; message: string; admin?: AdminDTO }>;
+    updateOwnProfile(id: string, file?: any): Promise<{ success: boolean; message: string; admin?: AdminDTO }>;
     changePassword(adminId:string,oldPassword: string, newPassword: string,confirmPassword:string): Promise<{success: boolean; statusCode: number; message: string; admin?: AdminDTO}>;
     getAdminProfileById(id: string): Promise<{ success: boolean; message: string; adminProfile: string }>;
 
