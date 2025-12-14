@@ -7,7 +7,7 @@ export type AttributesDocument = attributes & Document;
 @Schema()
 export class attributes extends commonDTO {
  @Prop()
-  name: string;
+  attributename: string;
 
 
 }

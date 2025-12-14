@@ -1,26 +1,20 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { commonDTO } from "src/common/DTO/commonDTO";
 import mongoose, { Document, } from "mongoose";
-import { inventoryCategory } from "./inventoryCategory.schema";
-import { products } from "./products.schema";
 import { attributes } from "./attributes.schema";
 import { attributesValues } from "./attributesValues.schema";
+import { Product } from "./products.schema";
 
 export type productVariantsDocument = productVariants & Document;
 
 @Schema()
 export class productVariants extends commonDTO {
 
+    @Prop({ type: String, ref: "Product", required: true })
+    productId: string;
 
-    @Prop({ type: String, ref: "productVariants" })
-    variantId: productVariants;
-
-    @Prop({ type: String, ref: "attributes" })
-    attributeId: attributes;
-
-
-    @Prop({ type: String, ref: "attributesValues" })
-    attributeValuesId: attributesValues;
+    @Prop()
+    variantName: string;
 
     @Prop()
     stock: string;
@@ -43,5 +37,3 @@ productVariantsSchemaFile.pre("save", async function (next) {
     }
     next();
 });
-
-module.exports = mongoose.model("productVariants", productVariantsSchemaFile);

@@ -20,6 +20,7 @@ import { UserProfileModule } from './user-profile/user-profile.module';
 import { SuperAdminSeeder } from './seeder/super-admin.seeder';
 import { PermissionModule } from './permission/permission.module';
 import { TableModule } from './table/table.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { FileModule } from './file/file.module';
 
 @Module({
@@ -42,6 +43,7 @@ import { FileModule } from './file/file.module';
     UserProfileModule,
     PermissionModule,
     TableModule,
+    InventoryModule,
     FileModule
   ],
   controllers: [AppController],

@@ -14,16 +14,16 @@ import { Permission, permissionDetails } from 'src/schema/permission.schema';
 @Injectable()
 export class RbacService {
 
-    constructor(
-        @InjectModel(modules.name) private readonly modules: Model<modulesDetails>,
-        @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
-        @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>,
-          @InjectModel(User.name) private userModel: Model<UserDocument>,
-           @InjectModel(Permission.name) private permissionModel: Model<permissionDetails>,
-        //  @InjectModel(Menu.name) private readonly menuModel: Model<MenuDocument>
-    ) { }
+  constructor(
+    @InjectModel(modules.name) private readonly modules: Model<modulesDetails>,
+    @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
+    @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Permission.name) private permissionModel: Model<permissionDetails>,
+    //  @InjectModel(Menu.name) private readonly menuModel: Model<MenuDocument>
+  ) { }
 
-   async getMenuForUser(userId: string) {
+  async getMenuForUser(userId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('User not found');
 

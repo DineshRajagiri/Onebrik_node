@@ -1,0 +1,62 @@
+import { attributesDTO } from "./dto/attributes.dto";
+import { attributesValuesDTO } from "./dto/attributesValues.dto";
+import { inventoryCategoryDTO } from "./dto/inventoryCategory.dto";
+import { Types } from "mongoose";
+import { productDTO } from "./dto/products.dto";
+import { productVariantsDTO } from "./dto/productVariants.dto";
+import { VariantAttributeValuesDTO } from "./dto/variantAttributeValues.dto";
+import { VariantImagesDTO } from "./dto/variantImages.dto";
+
+export interface PaginationQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+}
+
+export interface IInventoryService {
+    createAttribute(dto: attributesDTO): Promise<any>;
+    createAttributeValue(dto: attributesValuesDTO): Promise<any>;
+    createInventoryCategory(dto: inventoryCategoryDTO): Promise<any>;
+    createProduct(dto: productDTO): Promise<any>;
+    createProductVariant(dto: productVariantsDTO): Promise<any>;
+    createVariantAttributeValue(dto: VariantAttributeValuesDTO): Promise<any>;
+    createVariantImages(productVariantId: string, imageUrls: string[]): Promise<any>;
+
+
+    updateProduct(id: string, dto: productDTO): Promise<any>;
+    updateProductVariant(id: string, dto: productVariantsDTO): Promise<any>;
+    updateAttribute(id: string, dto: attributesDTO): Promise<any>;
+    updateAttributeValue(id: string, dto: attributesValuesDTO): Promise<any>;
+    updateInventoryCategory(id: string, dto: inventoryCategoryDTO): Promise<any>;
+    updateVariantAttributeValue(productVariantId: string, dto: VariantAttributeValuesDTO): Promise<any>;
+    updateVariantImages(productVariantId: string, imageUrls: string[]): Promise<any>;
+
+
+
+    getAllInventoryCategories(query: PaginationQuery): Promise<any>;
+    getAllAttributes(query: PaginationQuery): Promise<any>;
+    getAllAtrributeValues(query: PaginationQuery): Promise<any>;
+    getAllProducts(query: PaginationQuery): Promise<any>;
+    getAllProductVariants(query: PaginationQuery): Promise<any>;
+    getAllVariantAttributeValues(query: PaginationQuery): Promise<any>;
+    getAllVariantImages(query: PaginationQuery): Promise<any>;
+
+
+    getAttributeValuesbyattributeid(attributeId: string, query?: PaginationQuery): Promise<any>;
+    getProductById(id: string): Promise<any>;
+    getProductVariantById(id: string): Promise<any>;
+    getAttributeById(id: string): Promise<any>;
+    getAttributeValueById(id: string): Promise<any>;
+    getInventoryCategoryById(id: string): Promise<any>;
+    getVariantAttributeValueById(id: string): Promise<any>;
+    getVariantImageById(id: string): Promise<any>;
+
+
+    deleteAttributeValue(id: string): Promise<any>;
+    deleteAttribute(id: string): Promise<any>;
+    deleteInventoryCategory(id: string): Promise<any>;
+    deleteProduct(id: string): Promise<any>;
+    deleteProductVariant(id: string): Promise<any>;
+    deleteVariantAttributeValue(id: string): Promise<any>;
+    deleteVariantImage(id: string): Promise<any>;
+}
