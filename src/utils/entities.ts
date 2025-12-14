@@ -15,9 +15,10 @@ import { modules, modulesSchemaFile } from "src/schema/module.schema";
 import { neft, neftSchemaFile } from "src/schema/neft.schema";
 import { notification, notificationSchemaFile } from "src/schema/notification.schema";
 import { notificationToken, notificationTokenSchemaFile } from "src/schema/notificationToken.schema";
-import { Permission, permissionSchemaFile } from "src/schema/permission.schema";
+// import { Permission, permissionSchemaFile } from "src/schema/permission.schema";
 import { Product, ProductSchema } from "src/schema/products.schema";
 import { productVariants, productVariantsSchemaFile } from "src/schema/productVariants.schema";
+import { Permission, PermissionSchema } from "src/schema/permission.schema";
 import { region, regionSchemaFile } from "src/schema/region.schema";
 import { relationshipManager, relationshipManagerSchemaFile } from "src/schema/relationshipManager";
 import { roles, rolesSchemaFile } from "src/schema/role.schema";
@@ -42,7 +43,7 @@ export const entities = [
     { name: modules.name, schema: modulesSchemaFile },
     { name: subModules.name, schema: subModulesSchemaFile },
     { name: subModuleChild.name, schema: subModuleChildSchemaFile },
-    { name: Permission.name, schema: permissionSchemaFile },
+    { name: Permission.name, schema: PermissionSchema },
     { name: roles.name, schema: rolesSchemaFile },
     { name: notificationToken.name, schema: notificationTokenSchemaFile },
     { name: notification.name, schema: notificationSchemaFile },

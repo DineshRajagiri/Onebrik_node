@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { Services } from 'src/utils/constants';
 import { IPermissionService } from './permission';
@@ -6,6 +6,7 @@ import { Public } from 'src/decorators/public.decorator';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
 import { CreateAppModuleDto } from './DTO/create-module.dto';
 import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('permission')
 export class PermissionController {
@@ -26,10 +27,24 @@ export class PermissionController {
   }
 
   @Public()
-  @Get('sidebar')
+  @Get('sidebaronly')
   async getSidebarMenu() {
     return this.service.getSidebarMenu();
   }
+
+  // @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
+@Get('sidebar')
+async getSidebar(@Req() req) {
+  const userId = req.user.id;
+  const data = await this.service.getSidebarForUser(userId);
+
+  return {
+    success: true,
+    message: 'Sidebar loaded successfully',
+    data,
+  };
+}
 
   @Public()
   @Get('module')

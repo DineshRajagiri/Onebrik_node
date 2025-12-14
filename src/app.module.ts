@@ -21,6 +21,7 @@ import { SuperAdminSeeder } from './seeder/super-admin.seeder';
 import { PermissionModule } from './permission/permission.module';
 import { TableModule } from './table/table.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { InventoryModule } from './inventory/inventory.module';
     UserProfileModule,
     PermissionModule,
     TableModule,
-    InventoryModule
+    InventoryModule,
+    FileModule
   ],
   controllers: [AppController],
   providers: [AppService],

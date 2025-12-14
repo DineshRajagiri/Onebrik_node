@@ -77,7 +77,7 @@ export class VendorService {
             const responseData = {
                 // _id: populatedVendor._id,
                 vendorDetails: createdVendor,
-                adminName: populatedVendor.adminId?.fullName,
+                adminName: populatedVendor.adminId,
                 regionName: populatedVendor.regionId?.regionName,
                 categoryName: populatedVendor.categoryId?.categoryName,
             };
