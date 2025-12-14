@@ -6,6 +6,7 @@ import { entities } from 'src/utils/entities';
 import { NotificationModule } from 'src/notification/notification.module';
 import { CommonModule } from 'src/common/common.module';
 import { Services } from 'src/utils/constants';
+import { FileService } from 'src/file/file.service';
 
 @Module({
     imports: [
@@ -19,7 +20,8 @@ import { Services } from 'src/utils/constants';
         {
             provide: Services.ADMIN,
             useClass: AdminService
-        }
+        },
+        FileService
     ],
     exports: [
         {

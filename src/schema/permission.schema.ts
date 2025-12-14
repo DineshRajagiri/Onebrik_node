@@ -1,20 +1,22 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type permissionDetails = Permission & Document;
 
+@Schema({ timestamps: true })   // 🔥 THIS WAS MISSING
 export class Permission {
- @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
-  roleId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'AppModule', required: true })
-  moduleId: Types.ObjectId;
+  @Prop({ type: String, required: true })
+  roleId: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'SubModule' })
-  subModuleId?: Types.ObjectId;
+  @Prop({ type: String })
+  moduleId: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'SubModuleChild' })
-  subModuleChildId?: Types.ObjectId;
+  @Prop({ type: String })
+  subModuleId?: string;
+
+  @Prop({ type: String })
+  subModuleChildId?: string;
 
   @Prop({ default: false })
   canView: boolean;
@@ -28,4 +30,5 @@ export class Permission {
   @Prop({ default: false })
   canDelete: boolean;
 }
-export const permissionSchemaFile = SchemaFactory.createForClass(Permission);
+
+export const PermissionSchema = SchemaFactory.createForClass(Permission);

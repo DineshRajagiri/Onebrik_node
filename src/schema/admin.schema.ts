@@ -7,48 +7,20 @@ export type adminDetails = admin & Document;
 
 @Schema()
 export class admin extends commonDTO {
-  @Prop()
-  email: string;
+  @Prop({ required: true })
+  userId: string;
 
   @Prop()
-  fullName: string;
+  department?: string;
 
   @Prop()
-  mobileNo: string;
-
-  @Prop({ type: String, enum: Roles })
-  role: Roles;
-
-
-  @Prop({ default: null })
-  passwordHash: string;
+  level?: number;
 
   @Prop()
-  salt: string;
+  adminProfile?: string; 
 
-  @Prop({ default: false })
-  isVerified: boolean;
-
-  @Prop()
-  passwordExpDate: string;
-
-  @Prop()
-  resetPasswordExpires: Date;
-
-  @Prop()
-  resetPasswordToken: string;
-
-  @Prop()
-  refreshToken: string;
-
-  @Prop()
-  adminProfile: string;
-  @Prop({ type: String, enum: isAdminStatus, default: isAdminStatus.ACTIVE })
-  adminStatus: isAdminStatus;
-  @Prop()
-  oldPassword: string;
-  @Prop()
-  newPassword: string;
+  @Prop({ default: isAdminStatus.ACTIVE })
+  adminStatus: string;
 }
 export const adminSchemaFile = SchemaFactory.createForClass(admin);
 

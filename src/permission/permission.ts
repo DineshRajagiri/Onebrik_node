@@ -14,6 +14,7 @@ export interface IPermissionService {
   deleteSubModuleChild(id: string): Promise<any>;
   upsertPermissionsForRole(dto: any): Promise<any>;
   getPermissionsByRole(dto: any): Promise<any>;
+  getSidebarForUser(userId: any): Promise<any>;
   getModuleTree(): Promise<any>;
   getSidebarMenu(): Promise<any>;
   getPaginatedModules(page: number, limit: number): Promise<any>;

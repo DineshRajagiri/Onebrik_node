@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/schema/user.schema';
 import mongoose, { Model } from 'mongoose';
@@ -18,663 +18,127 @@ import { PanDTO } from './DTO/pan.dto';
 import { STATUS_CODES } from 'src/utils/status-codes';
 import { RESPONSE_MESSAGES } from 'src/utils/response-messages';
 import { LoginDto } from './DTO/login.dto';
+import { roles, rolesDetails } from 'src/schema/role.schema';
 
 @Injectable()
-export class AuthService implements IAuthService {
-  private refreshInterval: NodeJS.Timeout;
+export class AuthService {
+
   constructor(
-    // @Inject(Services.AUTH) 
-    // private authService: IAuthService,
-    @InjectModel(User.name) private readonly user: Model<UserDocument>,
-    @InjectModel(admin.name) private readonly admin: Model<adminDetails>,
-    @Inject(Services.NOTIFICATION) private notificationService: INotificationService,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(roles.name) private readonly roleModel: Model<rolesDetails>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    // private userService: UserService,
-  ) { }
+  ) {}
 
+  // ==============================
+  // LOGIN (EMAIL + PASSWORD)
+  // ==============================
+  async login(dto: LoginDto) {
+    const email = dto.email.toLowerCase();
 
-  onModuleDestroy() {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
     }
-  }
 
-  async validateUser(user: any): Promise<any> {
-    return user;
-  }
-
-  async checkAdmin(singupEntity: CreateAdminDTO): Promise<any> {
-    try {
-      singupEntity.email = singupEntity.email.toLowerCase()
-      const checkAdmins: any = await this.admin.findOne({
-        email: singupEntity.email
-      });
-      if (checkAdmins?.isActive == true) {
-
-        return {
-          success: false,
-          message: 'email already registered'
-        };
-      }
-      if (checkAdmins?.isVerified == true || checkAdmins?.isVerified == false) {
-
-        return this.signUpUpdateAdmin(checkAdmins?._id, singupEntity);
-      }
-      return this.signUpNewAdmin(singupEntity);
-    } catch (e) {
-      throw new HttpException({ success: false, message: e?.message }, HttpStatus.BAD_REQUEST)
+    const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordMatch) {
+      throw new UnauthorizedException('Invalid email or password');
     }
-  }
 
-  async signUpUpdateAdmin(_id: string, signUpEntity: CreateAdminDTO) {
-    try {
-      const objectId = new mongoose.Types.ObjectId(_id);
-      const hash = bcrypt.hashSync(signUpEntity.password, bcrypt.genSaltSync(10));
-      signUpEntity.email = signUpEntity.email.toLowerCase();
-
-      const updatedAdmin = await this.admin.findByIdAndUpdate(
-        objectId,
-        {
-          $set: {
-            ...signUpEntity,
-            passwordHash: hash,
-            updatedAt: new Date(),
-            isVerified: false,
-          },
-        },
-        { new: true },
-      );
-
-      if (!updatedAdmin) {
-        throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
-      }
-
-      await this.admin.findByIdAndUpdate(
-        updatedAdmin.id,
-        {
-          $set: {
-            email: signUpEntity.email,
-            passwordHash: hash,
-            role: Roles.SUPERADMIN,
-            updatedAt: new Date(),
-          },
-        },
-      );
-
-      return {
-        success: true,
-        message: 'Admin updated successfully',
-        user: updatedAdmin,
-      };
-    } catch (error) {
-      throw new HttpException(
-        { success: false, message: error?.message },
-        HttpStatus.BAD_REQUEST,
-      );
+    if (!user.isActive) {
+      throw new ForbiddenException('User is inactive');
     }
-  }
 
-  async signUpNewAdmin(signupEntity: CreateAdminDTO) {
-    try {
-      const hash = await bcrypt.hash(signupEntity.password, 10);
-      signupEntity.email = signupEntity.email.toLowerCase();
-
-      const newGeneralUser = await this.admin.create({
-        email: signupEntity.email,
-        passwordHash: hash,
-        role: Roles.SUPERADMIN,
-        isVerified: false,
-        isActive: true,
-      });
-
-      const newAdmin = await this.admin.create({
-        ...signupEntity,
-        passwordHash: hash,
-        generalUserId: newGeneralUser._id,
-      });
-
-      return {
-        success: true,
-        message: 'Admin registered successfully',
-        user: newAdmin
-      };
-    } catch (error) {
-      throw new HttpException(
-        { success: false, message: error?.message },
-        HttpStatus.BAD_REQUEST,
-      );
+    const role = await this.roleModel.findById(user.roleId);
+    if (!role) {
+      throw new UnauthorizedException('Role not found');
     }
-  }
 
-  async signUpUser(userData: { email: string; fullName: string; mobileNumber: string; referralCode: string }) {
-    try {
-      const existingUser = await this.user.countDocuments({
-        $or: [
-          { email: userData.email?.toLowerCase() },
-          { mobileNumber: userData.mobileNumber },
-        ],
-      });
+    const tokens = await this.generateTokens(user, role.name);
 
-      if (existingUser > 0) {
-        throw new HttpException(
-          {
-            success: false,
-            statusCode: STATUS_CODES.CONFLICT,
-            message: RESPONSE_MESSAGES.USER_EXISTS,
-          },
-          STATUS_CODES.CONFLICT
-        );
-      }
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { refreshToken: tokens.refreshToken }
+    );
 
-      const otpSent = await this.sendOtp(userData.mobileNumber);
-      if (otpSent.success) {
-        return {
-          success: true,
-          statusCode: STATUS_CODES.SUCCESS,
-          message: RESPONSE_MESSAGES.OTP_SENT,
-          userData: {
-            ...userData,
-            logid: otpSent.logid,
-          },
-        };
-      } else {
-        throw new HttpException(
-          {
-            success: false,
-            statusCode: STATUS_CODES.BAD_REQUEST,
-            message: otpSent.message,
-          },
-          STATUS_CODES.BAD_REQUEST
-        );
-      }
-    } catch (error) {
-      // Ensure the error keeps its original status
-      if (error instanceof HttpException) {
-        throw error; // Preserve status code (409, 400, etc.)
-      }
-
-      throw new HttpException(
-        {
-          success: false,
-          statusCode: STATUS_CODES.INTERNAL_SERVER_ERROR,
-          message: error?.message || RESPONSE_MESSAGES.SERVER_ERROR,
-        },
-        STATUS_CODES.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  async sendOtp(mobileNumber: string): Promise<{ success: boolean; message: string; logid?: string }> {
-    try {
-      const response = await axios.get('https://global.datagenit.com/API/generate_otp.php', {
-        params: {
-          auth: 'D!~10086OjcIj92RPz',
-          senderid: 'ETVPL',
-          msisdn: mobileNumber,
-          entity_id: '1701165226643819791',
-        },
-        headers: {
-          'cache-control': 'no-cache',
-        },
-      });
-
-      console.log('OTP Service Response:', response.data);
-
-      if (response.data.status === 'success') {
-        return { success: true, message: 'OTP sent successfully', logid: response.data.logid };
-      } else {
-        return {
-          success: false,
-          message: response.data.desc || 'Failed to send OTP.',
-        };
-      }
-    } catch (error) {
-      console.error('OTP Service Error:', error);
-      return { success: false, message: 'Failed to send OTP due to an error.' };
-    }
-  }
-
-  async verifyOtp(
-    mobileNumber: string,
-    logid: string,
-    otp: string
-  ): Promise<{ success: boolean; data: { message: string } }> {
-    try {
-      const response = await axios.get('https://global.datagenit.com/API/verify_otp.php', {
-        params: {
-          auth: 'D!~10086OjcIj92RPz',
-          msisdn: mobileNumber,
-          logid: logid,
-          otp: otp,
-        },
-        headers: {
-          'cache-control': 'no-cache',
-        },
-      });
-
-      console.log('Verify OTP Response:', response.data);
-      if (response.data.status === 'success') {
-        return {
-          success: true,
-          data: { message: response.data.desc || 'OTP verified successfully' },
-        };
-      }
-      const errorMessages: { [key: number]: string } = {
-        401: 'Authentication failed. Please check your credentials.',
-        402: 'Invalid authentication key.',
-        405: 'Missing required parameters. Please ensure all fields are filled.',
-        407: 'Access denied. Your IP might not be whitelisted.',
-        410: 'Mobile number not provided.',
-        417: 'OTP not provided.',
-        418: 'Invalid request. Please try again.',
-        419: 'Invalid OTP. Please ensure the entered OTP is correct.',
-        421: 'OTP time limit exceeded. Please request a new OTP.',
-        422: 'OTP has already been verified for this request.',
-        429: 'Insufficient balance to process the request.',
-        443: 'Log ID not provided. Please ensure the log ID is included.',
-      };
-
-      const failureMessage =
-        errorMessages[response.data.code] || response.data.desc || 'Unknown error occurred.';
-
-      return {
-        success: false,
-        data: { message: failureMessage },
-      };
-    } catch (error) {
-      console.error('Verify OTP Service Error:', error.message || error);
-      return {
-        success: false,
-        data: { message: 'Failed to verify OTP due to a system error.' },
-      };
-    }
-  }
-
-  async verifyOtpAndSaveUser(
-    otp: string,
-    userData: {
-      email: string;
-      fullName: string;
-      mobileNumber: string;
-      logid: string;
-      referralCode: string;
-    },
-  ): Promise<
-    | {
-      success: true;
-      message: string;
-      userDetails: {
-        id: string;
-        fullName: string;
-        email: string;
-        // mobileNumber: string;
-        // logid: string;
-        // referralCode: string;
-      };
-    }
-    | { success: false; message: string }
-  > {
-    const otpVerificationResult = await this.verifyOtp(userData.mobileNumber, userData.logid, otp);
-
-    if (otpVerificationResult.success) {
-      try {
-        const newUser = await this.user.create({
-          email: userData.email?.toLowerCase(),
-          fullName: userData?.fullName,
-          mobileNumber: userData?.mobileNumber,
-          logid: userData?.logid,
-          referralCode: userData?.referralCode,
-          createdAt: new Date(),
-          isOtpVerified: true,
-        });
-        console.log(newUser)
-        return {
-          success: true,
-          message: 'User registered successfully.',
-          userDetails: {
-            id: newUser._id.toString(),
-            fullName: newUser.name,
-            email: newUser.email,
-            // mobileNumber: newUser.mobileNumber,
-            // logid: newUser.logid,
-            // referralCode: newUser.referralCode
-          },
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: 'Failed to save user. Please try again later.',
-        };
-      }
-    } else {
-      return {
-        success: false,
-        message: otpVerificationResult.data.message,
-      };
-    }
-  }
-
-
-
-
-  async initiateLogin(phoneNumber: string) {
-    try {
-      const user = await this.user.findOne({ mobileNumber: phoneNumber });
-
-      if (!user) {
-        return { success: false, message: 'User not found.' };
-      }
-
-      const otpSent = await this.sendOtp(phoneNumber);
-      if (otpSent.success) {
-        return {
-          success: true,
-          message: 'OTP sent successfully.',
-          logid: otpSent.logid,
-        };
-      } else {
-        return { success: false, message: otpSent.message };
-      }
-    } catch (error) {
-      throw new HttpException(
-        { success: false, message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async verifyOtpAndLogin(phoneNumber: string, otp: string, logid: string) {
-    try {
-      const otpVerification = await this.verifyOtp(phoneNumber, logid, otp);
-
-      if (!otpVerification.success) {
-        return { success: false, message: otpVerification.data.message };
-      }
-
-      const user = await this.user.findOne({ mobileNumber: phoneNumber });
-
-      if (!user) {
-        return { success: false, message: 'User not found.' };
-      }
-      const accessToken = await this.createAccessToken(user);
-      const refreshToken = await this.createRefreshToken({ id: user._id });
-      await this.user.updateOne({ _id: user._id }, { refreshToken: refreshToken });
-      return {
-        success: true,
-        message: `Hi ${user.name}, you logged in successfully.`,
-        isadminExists: false,
-        data: {
-          accessToken: accessToken.accessToken,
-          refreshToken: refreshToken,
-          userDetails: {
-            _id: accessToken.data._id,
-            fullName: user.name,
-            email: accessToken.data.email,
-            role: accessToken.data.role,
-            rememberMe: accessToken.data.rememberMe,
-          }
+    return {
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: role.name,
         }
-      };
-    } catch (error) {
-      throw new HttpException(
-        { success: false, message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+      }
+    };
   }
 
-
-
-  // async createAccessToken(payload: any): Promise<string> {
-  //   const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
-  //   return this.jwtService.sign(payload, {
-  //     secret: secret || 'default_access_secret',
-  //     expiresIn: '2m',
-  //   });
-  // }
-
-async createAccessToken(user: any) {
-  const secret =
-    this.configService.get<string>('JWT_ACCESS_SECRET') ||
-    process.env.JWT_ACCESS_SECRET ||
-    'default_access_secret';
-
-  const expiresIn =
-    this.configService.get<string>('JWT_ACCESS_EXPIRE') ||
-    process.env.JWT_ACCESS_EXPIRE ||
-    '1d';
-
+  // ==============================
+  // TOKEN GENERATION
+  // ==============================
+private async generateTokens(user: UserDocument, roleName: string) {
   const payload = {
-    id: user._id.toString(),         
+    sub: user._id.toString(),
     email: user.email,
-    role: user.role,
-    isVerifiedByAdmin: user.isVerifiedByAdmin ?? true,
+    role: roleName,   // ADMIN / VENDOR / DELIVERY
   };
 
-  const userInfo =
-    typeof user.toObject === 'function' ? user.toObject() : { ...user };
-  delete userInfo.passwordHash;
-  delete userInfo.salt;
-  delete userInfo.resetPasswordToken;
-  delete userInfo.refreshToken;
+  const accessToken = this.jwtService.sign(payload, {
+    secret: this.configService.get('JWT_ACCESS_SECRET'),
+    expiresIn: '1d',
+  });
 
-  return {
-    data: userInfo,
-    success: true,
-    accessToken: this.jwtService.sign(payload, {
-      secret,
-      expiresIn,
-    }),
-  };
-}
-
-
-
-async createRefreshToken(user: any) {
-  const secret =
-    this.configService.get<string>('JWT_REFRESH_SECRET') ||
-    process.env.JWT_REFRESH_SECRET ||
-    'default_refresh_secret';
-
-  const expiresIn =
-    this.configService.get<string>('JWT_REFRESH_EXPIRE') ||
-    process.env.JWT_REFRESH_EXPIRE ||
-    '7d';
-
-  return this.jwtService.sign(
-    { id: user._id.toString() },
-    { secret, expiresIn },
+  const refreshToken = this.jwtService.sign(
+    { sub: user._id.toString() },
+    {
+      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      expiresIn: '7d',
+    },
   );
+
+  return { accessToken, refreshToken };
 }
 
 
+  // ==============================
+  // REFRESH TOKEN
+  // ==============================
   async refreshToken(refreshToken: string) {
     try {
       const decoded = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_TOKEN_SECRET,
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
-      let user = await this.user.findOne({ _id: decoded._id, refreshToken });
-      if (!user) {
-        user = await this.admin.findOne({ _id: decoded._id, refreshToken });
-      }
+      const user = await this.userModel.findOne({
+        _id: decoded.sub,
+        refreshToken,
+      });
 
       if (!user) {
-        throw new HttpException("Invalid refresh token.", HttpStatus.UNAUTHORIZED);
+        throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const newAccessToken = await this.createAccessToken(user);
-      const newRefreshToken = await this.createRefreshToken(user);
-      await user.updateOne({ refreshToken: newRefreshToken });
+      const role = await this.roleModel.findById(user.roleId);
+
+      const tokens = await this.generateTokens(user, role.name);
+
+      await this.userModel.updateOne(
+        { _id: user._id },
+        { refreshToken: tokens.refreshToken }
+      );
 
       return {
         success: true,
-        message: "Token refreshed successfully.",
-        data: {
-          accessToken: newAccessToken.accessToken,
-          // accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        },
+        data: tokens,
       };
-    } catch (error) {
-      console.error("Refresh Token Error:", error);
-      throw new HttpException("Invalid refresh token.", HttpStatus.UNAUTHORIZED);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
     }
-  }
-
-
-
-
-
-
-  async checkUser(data) {
-    try {
-      const checkUser: any = await this.user.findOne({
-        $or: [
-          { email: data.username.toLowerCase() },
-          { mobileNo: data.username.toLowerCase() },
-        ],
-      });
-
-      if (
-        !checkUser ||
-        checkUser?.isDeleted == true
-
-      ) {
-        // this.logger.warn(`${data.username} is try to logIn`)
-        return { success: false, message: 'Incorrect username or password' };
-      }
-      if (checkUser?.isActive == false) {
-        return { success: false, message: 'Your credentials has been deactivated by the superadmin' };
-      }
-      const mathPassword = bcrypt.compareSync(
-        data?.password,
-        checkUser?.passwordHash,
-      );
-      if (mathPassword === false) {
-        return { success: false, message: 'Incorrect username or password' };
-      }
-      let creatFCM: any
-      if (data?.notification_token) {
-        creatFCM = await this.notificationService.createNotificationToken({ userId: checkUser._id, notification_token: data?.notification_token, deviceType: data?.deviceType })
-      }
-      const loginDetails = await this.createAccessToken(checkUser);
-      // const obj={
-      //   user:loginDetails?.data?._id,
-      //   title:"user Locked in",
-      //   body:"User has been locked in pleace check"
-      // }
-      // await this.notificationService.sendPush(obj)
-      return Object.assign(loginDetails, {
-        success: true,
-        isUserExists: true,
-        message: 'User exists',
-      });
-    } catch (e) {
-      throw new HttpException(
-        { success: false, message: e?.message },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  async login(dto: LoginDto) {
-    const user = await this.user.findOne({ email: dto.email });
-
-    if (!user) {
-      throw new HttpException("Invalid email or password", HttpStatus.UNAUTHORIZED);
-    }
-
-    const match = await bcrypt.compare(dto.password, user.passwordHash);
-
-    if (!match) {
-      throw new HttpException("Invalid email or password", HttpStatus.UNAUTHORIZED);
-    }
-
-    const payload = {
-      userId: user._id,
-      roleId: user.roleId
-    };
-
-    const token = await this.jwtService.signAsync(payload);
-
-    return {
-      success: true,
-      token,
-      user
-    };
-  }
-
- async adminLogin(data: AdminLoginDTO) {
-  try {
-    const { username, password } = data;
-
-    const admin = await this.admin.findOne({ email: username.toLowerCase() });
-
-    if (!admin || admin.isDeleted) {
-      return { success: false, message: 'Incorrect adminname or password' };
-    }
-
-    if (!admin.isActive) {
-      return {
-        success: false,
-        message: 'Your credentials have been deactivated by the superadmin',
-      };
-    }
-
-    const match = await bcrypt.compare(password, admin.passwordHash);
-    if (!match) {
-      return { success: false, message: 'Incorrect adminname or password' };
-    }
-
-    // 🔥 Generate tokens
-    const accessToken = await this.createAccessToken(admin);
-    const refreshToken = await this.createRefreshToken(admin);
-
-    // Save refresh token
-    await this.admin.updateOne(
-      { _id: admin._id },
-      { refreshToken: refreshToken },
-    );
-
-    return {
-      success: true,
-      isadminExists: true,
-      message: 'Admin exists',
-      data: {
-        accessToken: accessToken.accessToken,
-        refreshToken: refreshToken,
-        userDetails: {
-          _id: accessToken.data._id,
-          email: accessToken.data.email,
-          role: accessToken.data.role,
-          rememberMe: accessToken.data.rememberMe,
-          fullName: accessToken.data.fullName,
-          adminProfile: accessToken.data.adminProfile,
-        },
-      },
-    };
-  } catch (e) {
-    throw new HttpException(
-      { success: false, message: e?.message },
-      HttpStatus.BAD_REQUEST,
-    );
   }
 }
 
-
-
-  async getStoredRefreshToken() {
-    return 'your-refresh-token';
-  }
-
-  async storeNewRefreshToken(newRefreshToken: string) {
-    console.log('New refresh token stored:', newRefreshToken);
-  }
-
-
-
-
-
-}

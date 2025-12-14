@@ -6,6 +6,9 @@ import { Services } from 'src/utils/constants';
 import { Public } from 'src/decorators/public.decorator';
 import { UpdateUserDto } from './DTO/update-user.dto';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
+import { CreateAdminDto } from './DTO/create-admin.dto';
+import { CreateVendorDto } from './DTO/create-vendor.dto';
+import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
 
 @Controller('user')
 export class UsersController {
@@ -14,34 +17,43 @@ export class UsersController {
   ) { }
 
 @Public()
- @Post()
-  async create(@Body() dto: CreateUserDto) {
-    const user = await this.service.create(dto);
-    return BaseResponse.ok(user, 'User created successfully');
+  @Post('admin')
+  async createAdmin(@Body() dto: CreateAdminDto) {
+    const data = await this.service.createAdmin(dto);
+    return BaseResponse.ok(data, 'Admin created successfully');
   }
 
+  // ===== VENDOR =====
+  @Public()
+  @Post('vendor')
+  async createVendor(@Body() dto: CreateVendorDto) {
+    const data = await this.service.createVendor(dto);
+    return BaseResponse.ok(data, 'Vendor created successfully');
+  }
+
+  // ===== DELIVERY BOY =====
+  @Public()
+  @Post('deliveryPartner')
+  async createDeliveryPartner(@Body() dto: CreateDeliveryPartnerDto) {
+    const data = await this.service.createDeliveryPartner(dto);
+    return BaseResponse.ok(data, 'Delivery partner created successfully');
+  }
+
+  // ===== COMMON =====
   @Get()
   async findAll() {
-    const users = await this.service.findAll();
-    return BaseResponse.ok(users);
+    return this.service.findAll();
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    const user = await this.service.findOne(id);
-    return BaseResponse.ok(user);
-  }
-
-  @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    const user = await this.service.update(id, dto);
-    return BaseResponse.ok(user, 'User updated successfully');
+    return this.service.findOne(id);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
-    return BaseResponse.ok(null, 'User deleted successfully');
+    return BaseResponse.ok(null, 'User deleted');
   }
 
 }

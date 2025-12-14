@@ -10,15 +10,14 @@ export class User extends commonDTO {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, unique: true, lowercase: true })
+  @Prop({ required: true, unique: true })
   email: string;
 
   @Prop({ required: true })
-  passwordHash: string;       
+  passwordHash: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
-  roleId: Types.ObjectId;
-
+  @Prop({ required: true })
+  roleId: string;
   @Prop({ default: true })
   isActive: boolean;
 }
