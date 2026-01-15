@@ -4,9 +4,8 @@ export const varientAttributeValuesTableMetadata = {
 
     columns: [
         { field: "productVariantSku", title: "Product Variant Code" },
-        { field: "attributeValue", title: "Variant Name" },
         { field: "attributeName", title: "Attribute Name" },
-        
+        { field: "attributeValue", title: "Attribute Value" }
     
     ],
 

@@ -62,8 +62,6 @@ export class TableService {
       case "varientAttributeValues":
         result = await this.inventoryService.getAllVariantAttributeValues({ page, limit, search: "" });
         break;
-
-
       case "submodulechild":
         result = await this.service.getPaginatedSubModuleChild(page, limit);
         break;

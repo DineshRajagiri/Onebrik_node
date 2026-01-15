@@ -15,6 +15,7 @@ import { attributesValuesDTO } from './dto/attributesValues.dto';
 import { inventoryCategoryDTO } from './dto/inventoryCategory.dto';
 import { VariantAttributeValuesDTO } from './dto/variantAttributeValues.dto';
 import { VariantImagesDTO } from './dto/variantImages.dto';
+import { CreateFullProductDTO } from './dto/createFullProduct.dto';
 
 @Injectable()
 export class InventoryService {
@@ -35,6 +36,11 @@ export class InventoryService {
 
     return { page, limit, skip };
   }
+
+  private asId<T = any>(id: any): T {
+    return id as unknown as T;
+  }
+
 
   async createAttribute(dto: any) {
     try {
@@ -138,7 +144,13 @@ export class InventoryService {
       if (!["MAIN", "SUB", "SUBCHILD"].includes(level)) {
         throw new BadRequestException("Invalid level. Allowed: MAIN, SUB, SUBCHILD");
       }
+      if (level === "MAIN" && dto.parentId) {
+        throw new BadRequestException("MAIN category cannot have parentId");
+      }
 
+      if (level !== "MAIN" && !dto.parentId) {
+        throw new BadRequestException(`${level} category must have parentId`);
+      }
 
       const exists = await this.inventoryCategoryModel.findOne({ categoryName }).lean();
       if (exists) throw new ConflictException("Category name already exists");
@@ -405,6 +417,156 @@ export class InventoryService {
       );
     }
   }
+  async createFullProduct(dto: CreateFullProductDTO) {
+    try {
+      if (!dto.productName?.trim()) {
+        throw new BadRequestException("Product name is required");
+      }
+
+      if (!Array.isArray(dto.variants) || dto.variants.length === 0) {
+        throw new BadRequestException("At least one variant is required");
+      }
+      const categoryIds = [
+        dto.mainCategoryId,
+        dto.subCategoryId,
+        dto.subChildCategoryId
+      ].filter(Boolean);
+
+      if (categoryIds.length) {
+        const categoryCount = await this.inventoryCategoryModel.countDocuments({
+          _id: { $in: categoryIds }
+        });
+
+        if (categoryCount !== categoryIds.length) {
+          throw new BadRequestException("Invalid category id(s)");
+        }
+      }
+
+      const exists = await this.productModel.findOne({
+        productName: dto.productName.trim(),
+        mainCategoryId: dto.mainCategoryId ?? null,
+        subCategoryId: dto.subCategoryId ?? null,
+        subChildCategoryId: dto.subChildCategoryId ?? null,
+      });
+
+      if (exists) {
+        throw new ConflictException(
+          "Product already exists in this category"
+        );
+      }
+
+      const attributeIds = new Set<string>();
+      const attributeValuePairs: { attributeId: string; valueId: string }[] = [];
+
+      dto.variants.forEach(v => {
+        v.attributes?.forEach(a => {
+          attributeIds.add(a.attributeId);
+          attributeValuePairs.push({
+            attributeId: a.attributeId,
+            valueId: a.attributeValuesId
+          });
+        });
+      });
+
+      if (attributeIds.size) {
+        const validAttrCount = await this.attributesModel.countDocuments({
+          _id: { $in: [...attributeIds] }
+        });
+
+        if (validAttrCount !== attributeIds.size) {
+          throw new BadRequestException("Invalid attributeId found");
+        }
+      }
+
+      for (const pair of attributeValuePairs) {
+        const valid = await this.attributesValuesModel.exists({
+          _id: pair.valueId,
+          attributeId: pair.attributeId
+        });
+
+        if (!valid) {
+          throw new BadRequestException(
+            `Invalid attribute value ${pair.valueId} for attribute ${pair.attributeId}`
+          );
+        }
+      }
+      const product = await this.productModel.create({
+        productName: dto.productName.trim(),
+        description: dto.description ?? "",
+        price: dto.price ?? "",
+        sku: dto.sku,
+        mainCategoryId: dto.mainCategoryId ?? null,
+        subCategoryId: dto.subCategoryId ?? null,
+        subChildCategoryId: dto.subChildCategoryId ?? null,
+      });
+
+      const variants = await this.productVarientsModel.insertMany(
+        dto.variants.map(v => ({
+          productId: product._id,
+          variantName: v.variantName,
+          price: v.price,
+          stock: v.stock,
+          variantSku: v.variantSku,
+        }))
+      );
+
+      const attributeDocs = [];
+      const imageDocs = [];
+
+      variants.forEach((variant, index) => {
+        const input = dto.variants[index];
+
+        input.attributes?.forEach(a => {
+          attributeDocs.push({
+            productVariantId: variant._id,
+            attributeId: a.attributeId,
+            attributeValuesId: a.attributeValuesId,
+          });
+        });
+
+        input.images?.forEach(url => {
+          imageDocs.push({
+            productVariantId: variant._id,
+            imageUrl: url,
+          });
+        });
+      });
+
+      const attributes = attributeDocs.length
+        ? await this.variantAttributeValuesModel.insertMany(attributeDocs)
+        : [];
+
+      const images = imageDocs.length
+        ? await this.variantImageModel.insertMany(imageDocs)
+        : [];
+      return {
+        success: true,
+        message: "Product created successfully",
+        data: {
+          product,
+          variants: variants.map(v => ({
+            variant: v,
+            attributes: attributes.filter(
+              a => String(a.productVariantId) === String(v._id)
+            ),
+            images: images.filter(
+              i => String(i.productVariantId) === String(v._id)
+            ),
+          }))
+        }
+      };
+
+    } catch (err) {
+      console.error("createFullProduct error:", err);
+      throw err instanceof HttpException
+        ? err
+        : new HttpException(
+          err.message || "Failed to create product",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+
 
 
 
@@ -559,11 +721,12 @@ export class InventoryService {
 
       const duplicate = await this.attributesModel.findOne({
         _id: { $ne: id },
-        name
+        attributename: name
       }).lean();
 
+
       if (duplicate) {
-        throw new ConflictException("Another attribute with this name already exists");
+        throw new ConflictException("Another attribute with this attributename already exists");
       }
 
       existing.attributename = name;
@@ -668,17 +831,33 @@ export class InventoryService {
         throw new NotFoundException("Category not found");
       }
 
+      const effectiveLevel = dto.level ?? category.level;
+      const effectiveParentId =
+        dto.parentId !== undefined ? dto.parentId : category.parentId;
+
+      if (effectiveLevel === "MAIN" && effectiveParentId) {
+        throw new BadRequestException("MAIN category cannot have parentId");
+      }
+
+      if (effectiveLevel !== "MAIN" && !effectiveParentId) {
+        throw new BadRequestException(
+          `${effectiveLevel} category must have parentId`
+        );
+      }
+
       if (dto.categoryName) {
-        const existing = await this.inventoryCategoryModel.findOne({
-          name: dto.categoryName.trim(),
+        const exists = await this.inventoryCategoryModel.findOne({
+          categoryName: dto.categoryName.trim(),
           _id: { $ne: id }
         });
-
-        if (existing) {
+        if (exists) {
           throw new ConflictException("Category name already exists");
         }
-
         category.categoryName = dto.categoryName.trim();
+      }
+
+      if (dto.level) {
+        category.level = dto.level;
       }
 
       if (dto.parentId !== undefined) {
@@ -688,20 +867,10 @@ export class InventoryService {
             throw new BadRequestException("Invalid parentId");
           }
         }
-
         category.parentId = dto.parentId || null;
       }
 
-      if (dto.level) {
-        if (!["MAIN", "SUB", "SUB_CHILD"].includes(dto.level)) {
-          throw new BadRequestException("Invalid level value");
-        }
-
-        category.level = dto.level;
-      }
-
       category.updatedAt = new Date();
-
       await category.save();
 
       return {
@@ -712,18 +881,16 @@ export class InventoryService {
 
     } catch (err) {
       console.error("Error in updateInventoryCategory:", err);
-
-      throw new HttpException(
-        err.message || "Unexpected error updating category",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      throw err instanceof HttpException
+        ? err
+        : new HttpException(
+          "Unexpected error while updating category",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
   }
 
-  async updateVariantAttributeValue(
-    productVariantId: string,
-    dto: VariantAttributeValuesDTO
-  ) {
+  async updateVariantAttributeValue(productVariantId: string, dto: VariantAttributeValuesDTO) {
     try {
       const { attributes } = dto;
 
@@ -803,8 +970,280 @@ export class InventoryService {
     }
   }
 
+  async updateFullProduct(productId: string, dto: CreateFullProductDTO) {
+    try {
+      const product = await this.productModel.findById(productId);
+      if (!product) {
+        throw new NotFoundException("Product not found");
+      }
+
+      if (!dto.productName?.trim()) {
+        throw new BadRequestException("Product name is required");
+      }
+
+      if (!Array.isArray(dto.variants) || dto.variants.length === 0) {
+        throw new BadRequestException("At least one variant is required");
+      }
+
+      const categoryIds = [
+        dto.mainCategoryId,
+        dto.subCategoryId,
+        dto.subChildCategoryId
+      ].filter(Boolean);
+
+      if (categoryIds.length) {
+        const count = await this.inventoryCategoryModel.countDocuments({
+          _id: { $in: categoryIds }
+        });
+
+        if (count !== categoryIds.length) {
+          throw new BadRequestException("Invalid category id(s)");
+        }
+      }
+      product.mainCategoryId = this.asId(dto.mainCategoryId);
+      product.subCategoryId = this.asId(dto.subCategoryId);
+      product.subChildCategoryId = this.asId(dto.subChildCategoryId);
+
+      product.productName = dto.productName.trim();
+      product.description = dto.description ?? "";
+      product.price = dto.price ?? "";
+      product.sku = dto.sku ?? product.sku;
+      product.mainCategoryId = this.asId(dto.mainCategoryId);
+      product.subCategoryId = this.asId(dto.subCategoryId);
+      product.subChildCategoryId = this.asId(dto.subChildCategoryId);
+
+      product.updatedAt = new Date();
+
+      await product.save();
 
 
+      const oldVariants = await this.productVarientsModel.find({
+        productId
+      }).lean();
+
+      const variantIds = oldVariants.map(v => v._id);
+
+      if (variantIds.length) {
+        await this.variantAttributeValuesModel.deleteMany({
+          productVariantId: { $in: variantIds }
+        });
+
+        await this.variantImageModel.deleteMany({
+          productVariantId: { $in: variantIds }
+        });
+
+        await this.productVarientsModel.deleteMany({
+          productId
+        });
+      }
+
+      const newVariants = await this.productVarientsModel.insertMany(
+        dto.variants.map(v => ({
+          productId,
+          variantName: v.variantName,
+          price: v.price,
+          stock: v.stock,
+          variantSku: v.variantSku,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }))
+      );
+
+
+      const attributeDocs = [];
+      const imageDocs = [];
+
+      newVariants.forEach((variant, index) => {
+        const input = dto.variants[index];
+
+        input.attributes?.forEach(a => {
+          attributeDocs.push({
+            productVariantId: variant._id,
+            attributeId: a.attributeId,
+            attributeValuesId: a.attributeValuesId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        });
+
+        input.images?.forEach(url => {
+          imageDocs.push({
+            productVariantId: variant._id,
+            imageUrl: url,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        });
+      });
+
+      const attributes = attributeDocs.length
+        ? await this.variantAttributeValuesModel.insertMany(attributeDocs)
+        : [];
+
+      const images = imageDocs.length
+        ? await this.variantImageModel.insertMany(imageDocs)
+        : [];
+
+
+      return {
+        success: true,
+        message: "Product updated successfully",
+        data: {
+          product,
+          variants: newVariants.map(v => ({
+            variant: v,
+            attributes: attributes.filter(
+              a => String(a.productVariantId) === String(v._id)
+            ),
+            images: images.filter(
+              i => String(i.productVariantId) === String(v._id)
+            ),
+          }))
+        }
+      };
+
+    } catch (err) {
+      console.error("updateFullProduct error:", err);
+      throw err instanceof HttpException
+        ? err
+        : new HttpException(
+          err.message || "Failed to update product",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+
+
+
+
+  async upsertAttribute(dto: any) {
+    if (dto.id) {
+      return this.updateAttribute(dto.id, dto);
+    }
+    return this.createAttribute(dto);
+  }
+
+  async upsertAttributeValue(dto: any) {
+    if (dto.id) {
+      return this.updateAttributeValue(dto.id, dto);
+    }
+    return this.createAttributeValue(dto);
+  }
+
+  async upsertInventoryCategory(dto: inventoryCategoryDTO & { id?: string }) {
+    if (dto.id) {
+      return this.updateInventoryCategory(dto.id, dto);
+    }
+    return this.createInventoryCategory(dto);
+  }
+
+  async upsertProduct(dto: productDTO & { id?: string }) {
+    if (dto.id) {
+      return this.updateProduct(dto.id, dto);
+    }
+    return this.createProduct(dto);
+  }
+
+  async upsertProductVariant(dto: productVariantsDTO & { id?: string }) {
+    if (dto.id) {
+      return this.updateProductVariant(dto.id, dto);
+    }
+    return this.createProductVariant(dto);
+  }
+
+  async upsertProductVariantWithAttributes(dto: productVariantsDTO & { id?: string }) {
+
+    const variantResult = dto.id
+      ? await this.updateProductVariant(dto.id, dto)
+      : await this.createProductVariant(dto);
+
+    const variantId = variantResult.data._id;
+
+    if (dto.attributes && dto.attributes.length > 0) {
+      await this.upsertVariantAttributeValues({
+        productVariantId: variantId,
+        attributes: dto.attributes
+      });
+    }
+
+    return {
+      success: true,
+      message: "Product variant saved successfully",
+      data: variantResult.data
+    };
+  }
+
+  async upsertVariantAttributeValues(dto: VariantAttributeValuesDTO) {
+    try {
+      const { productVariantId, attributes } = dto;
+
+      if (!productVariantId) {
+        throw new BadRequestException("productVariantId is required");
+      }
+
+      if (!Array.isArray(attributes) || attributes.length === 0) {
+        throw new BadRequestException("attributes array is required");
+      }
+
+      const variantExists = await this.productVarientsModel.findById(productVariantId);
+      if (!variantExists) {
+        throw new NotFoundException("Product Variant not found");
+      }
+
+      for (const item of attributes) {
+        if (!item.attributeId) {
+          throw new BadRequestException("attributeId is required");
+        }
+        if (!item.attributeValuesId) {
+          throw new BadRequestException("attributeValuesId is required");
+        }
+
+        const validValue = await this.attributesValuesModel.exists({
+          _id: item.attributeValuesId,
+          attributeId: item.attributeId,
+        });
+
+        if (!validValue) {
+          throw new BadRequestException(
+            `Invalid attributeValuesId ${item.attributeValuesId} for attribute ${item.attributeId}`
+          );
+        }
+      }
+
+      await this.variantAttributeValuesModel.deleteMany({ productVariantId });
+      const createdDocs = await this.variantAttributeValuesModel.insertMany(
+        attributes.map(a => ({
+          productVariantId,
+          attributeId: a.attributeId,
+          attributeValuesId: a.attributeValuesId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }))
+      );
+
+      const populated = await this.variantAttributeValuesModel
+        .find({ _id: { $in: createdDocs.map(d => d._id) } })
+        .populate("attributeId", "attributename")
+        .populate("attributeValuesId", "value")
+        .lean();
+
+      return {
+        success: true,
+        message: "Variant attributes upserted successfully",
+        data: populated,
+      };
+
+    } catch (err) {
+      console.error("Error in upsertVariantAttributeValues:", err);
+
+      throw err instanceof HttpException
+        ? err
+        : new HttpException(
+          err.message || "Failed to upsert variant attributes",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
 
 
 
@@ -913,12 +1352,7 @@ export class InventoryService {
       }
 
       const [variants, total] = await Promise.all([
-        this.productVarientsModel
-          .find(filter)
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-
+        this.productVarientsModel.find(filter).skip(skip).limit(limit).lean(),
         this.productVarientsModel.countDocuments(filter)
       ]);
 
@@ -929,15 +1363,11 @@ export class InventoryService {
           data: [],
           total,
           page,
-          limit,
+          limit
         };
       }
 
       const variantIds = variants.map(v => v._id.toString());
-
-      const allImages = await this.variantImageModel
-        .find({ productVariantId: { $in: variantIds } })
-        .lean();
 
       const allAttributes = await this.variantAttributeValuesModel
         .find({ productVariantId: { $in: variantIds } })
@@ -945,21 +1375,29 @@ export class InventoryService {
         .populate("attributeValuesId", "value")
         .lean();
 
+      const allImages = await this.variantImageModel
+        .find({ productVariantId: { $in: variantIds } })
+        .lean();
+
       const productIds = [...new Set(variants.map(v => v.productId))];
 
       const products = await this.productModel
         .find({ _id: { $in: productIds } })
-        .populate("mainCategoryId", "categoryName level")
-        .populate("subCategoryId", "categoryName level")
-        .populate("subChildCategoryId", "categoryName level")
+        .populate("mainCategoryId", "categoryName")
+        .populate("subCategoryId", "categoryName")
+        .populate("subChildCategoryId", "categoryName")
         .lean();
 
-      const productMap = {};
+      const productMap: any = {};
       products.forEach(p => (productMap[p._id] = p));
 
       const finalData = variants.map(v => {
-        const vid = v._id.toString();
+        const vid = String(v._id);
         const product = productMap[v.productId] || {};
+
+        const attrs = allAttributes.filter(
+          a => String(a.productVariantId) === vid
+        );
 
         return {
           ...v,
@@ -975,16 +1413,25 @@ export class InventoryService {
           subChildCategoryId: product.subChildCategoryId?._id || null,
           subChildCategoryName: product.subChildCategoryId?.categoryName || null,
 
-          attributes: allAttributes
-            .filter(a => String(a.productVariantId) === vid)
-            .map(a => ({
-              _id: a._id,
-              attributeName: a.attributeId?.attributename || null,
-              attributeValue: a.attributeValuesId?.value || null,
-            })),
+          attributeName: attrs
+            .map(a => a.attributeId?.attributename)
+            .filter(Boolean)
+            .join(", "),
+          attributeValue: attrs
+            .map(a => a.attributeValuesId?.value)
+            .filter(Boolean)
+            .join(", "),
 
-          images: allImages.filter(img => String(img.productVariantId) === vid),
+          attributes: attrs.map(a => ({
+            attributeId: a.attributeId?._id,
+            attributeValuesId: a.attributeValuesId?._id
+          })),
+
+          images: allImages.filter(
+            img => String(img.productVariantId) === vid
+          )
         };
+
       });
 
       return {
@@ -993,7 +1440,7 @@ export class InventoryService {
         data: finalData,
         total,
         page,
-        limit,
+        limit
       };
 
     } catch (err) {
@@ -1074,7 +1521,6 @@ export class InventoryService {
       const search = query.search?.trim() || "";
 
       const filter: any = {};
-
       if (search) {
         filter.value = { $regex: search, $options: "i" };
       }
@@ -1090,10 +1536,15 @@ export class InventoryService {
         this.attributesValuesModel.countDocuments(filter),
       ]);
 
+      const mappedList = list.map(item => ({
+        ...item,
+        attributename: item.attributeId?.attributename
+      }));
+
       return {
         success: true,
         message: "Attribute values fetched successfully",
-        data: list,
+        data: mappedList,
         total,
         page,
         limit,
@@ -1101,7 +1552,10 @@ export class InventoryService {
 
     } catch (err) {
       console.error("Error in getAllAttributeValues:", err);
-      throw new HttpException("Failed to fetch attribute values", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        "Failed to fetch attribute values",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
@@ -1507,28 +1961,31 @@ export class InventoryService {
 
 
 
-
-
-
-
   async deleteAttributeValue(id: string) {
     try {
       const exists = await this.attributesValuesModel.findById(id);
       if (!exists) throw new NotFoundException('Attribute value not found');
+
+      const used = await this.variantAttributeValuesModel.findOne({
+        attributeValuesId: id
+      }).lean();
+
+      if (used) {
+        throw new ConflictException(
+          'Cannot delete attribute value because it is used in product variants'
+        );
+      }
 
       await this.attributesValuesModel.findByIdAndDelete(id);
 
       return {
         success: true,
         message: 'Attribute value deleted successfully',
-        data: null,
+        data: null
       };
 
     } catch (err) {
-      console.error('Error in deleteAttributeValue:', err);
-
-      if (err instanceof NotFoundException)
-        throw err;
+      if (err instanceof HttpException) throw err;
 
       throw new HttpException(
         'Failed to delete attribute value',
@@ -1542,22 +1999,43 @@ export class InventoryService {
       const exists = await this.inventoryCategoryModel.findById(id);
       if (!exists) throw new NotFoundException('Category not found');
 
+      const childExists = await this.inventoryCategoryModel.findOne({
+        parentId: id
+      }).lean();
+
+      if (childExists) {
+        throw new ConflictException(
+          'Cannot delete category because child categories exist'
+        );
+      }
+
+      const productExists = await this.productModel.findOne({
+        $or: [
+          { mainCategoryId: id },
+          { subCategoryId: id },
+          { subChildCategoryId: id }
+        ]
+      }).lean();
+
+      if (productExists) {
+        throw new ConflictException(
+          'Cannot delete category because products exist'
+        );
+      }
+
       await this.inventoryCategoryModel.findByIdAndDelete(id);
 
       return {
         success: true,
         message: 'Category deleted successfully',
-        data: null,
+        data: null
       };
 
     } catch (err) {
-      console.error('Error in deleteInventoryCategory:', err);
-
-      if (err instanceof NotFoundException)
-        throw err;
+      if (err instanceof HttpException) throw err;
 
       throw new HttpException(
-        'Unexpected error while deleting category',
+        'Failed to delete category',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -1570,7 +2048,9 @@ export class InventoryService {
 
       const used = await this.attributesValuesModel.findOne({ attributeId: id }).lean();
       if (used) {
-        throw new ConflictException('Cannot delete attribute because values exist');
+        throw new ConflictException(
+          'Cannot delete attribute because attribute values exist'
+        );
       }
 
       await this.attributesModel.findByIdAndDelete(id);
@@ -1578,56 +2058,47 @@ export class InventoryService {
       return {
         success: true,
         message: 'Attribute deleted successfully',
-        data: null,
+        data: null
       };
 
     } catch (err) {
-      console.log('Error in deleteAttribute:', err);
+      if (err instanceof HttpException) throw err;
 
-      if (err instanceof NotFoundException || err instanceof ConflictException)
-        throw err;
-
-      throw new HttpException('Failed to delete attribute', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to delete attribute',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
   async deleteProduct(id: string) {
     try {
       const product = await this.productModel.findById(id);
-      if (!product) {
-        throw new NotFoundException("Product not found");
-      }
+      if (!product) throw new NotFoundException('Product not found');
 
-      // Delete all product variants
-      const variants = await this.productVarientsModel.find({ productId: id }).lean();
-      const variantIds = variants.map(v => v._id);
+      const variantExists = await this.productVarientsModel.findOne({
+        productId: id
+      }).lean();
 
-      if (variantIds.length > 0) {
-        await this.variantAttributeValuesModel.deleteMany({
-          productVariantId: { $in: variantIds }
-        });
-
-        await this.variantImageModel.deleteMany({
-          productVariantId: { $in: variantIds }
-        });
-
-        await this.productVarientsModel.deleteMany({
-          productId: id
-        });
+      if (variantExists) {
+        throw new ConflictException(
+          'Cannot delete product because variants exist. Delete variants first.'
+        );
       }
 
       await this.productModel.findByIdAndDelete(id);
 
       return {
         success: true,
-        message: "Product deleted successfully",
+        message: 'Product deleted successfully',
         data: null
       };
 
     } catch (err) {
-      console.error("Error in deleteProduct:", err);
+      if (err instanceof HttpException) throw err;
+
       throw new HttpException(
-        "Failed to delete product",
+        'Failed to delete product',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -1636,30 +2107,41 @@ export class InventoryService {
   async deleteProductVariant(id: string) {
     try {
       const variant = await this.productVarientsModel.findById(id);
-      if (!variant) {
-        throw new NotFoundException("Product variant not found");
-      }
+      if (!variant) throw new NotFoundException('Product variant not found');
 
-      await this.variantAttributeValuesModel.deleteMany({
-        productVariantId: id
-      });
+      // const attrExists = await this.variantAttributeValuesModel.findOne({
+      //   productVariantId: id
+      // }).lean();
 
-      await this.variantImageModel.deleteMany({
-        productVariantId: id
-      });
+      // if (attrExists) {
+      //   throw new ConflictException(
+      //     'Cannot delete variant because attributes exist'
+      //   );
+      // }
+
+      // const imageExists = await this.variantImageModel.findOne({
+      //   productVariantId: id
+      // }).lean();
+
+      // if (imageExists) {
+      //   throw new ConflictException(
+      //     'Cannot delete variant because images exist'
+      //   );
+      // }
 
       await this.productVarientsModel.findByIdAndDelete(id);
 
       return {
         success: true,
-        message: "Product variant deleted successfully",
+        message: 'Product variant deleted successfully',
         data: null
       };
 
     } catch (err) {
-      console.error("Error in deleteProductVariant:", err);
+      if (err instanceof HttpException) throw err;
+
       throw new HttpException(
-        "Failed to delete product variant",
+        'Failed to delete product variant',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -1668,23 +2150,21 @@ export class InventoryService {
   async deleteVariantAttributeValue(id: string) {
     try {
       const exists = await this.variantAttributeValuesModel.findById(id);
-
-      if (!exists) {
-        throw new NotFoundException("Variant attribute value not found");
-      }
+      if (!exists) throw new NotFoundException('Variant attribute value not found');
 
       await this.variantAttributeValuesModel.findByIdAndDelete(id);
 
       return {
         success: true,
-        message: "Variant attribute value deleted successfully",
+        message: 'Variant attribute value deleted successfully',
         data: null
       };
 
     } catch (err) {
-      console.error("Error in deleteVariantAttributeValue:", err);
+      if (err instanceof HttpException) throw err;
+
       throw new HttpException(
-        "Failed to delete variant attribute value",
+        'Failed to delete variant attribute value',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -1693,28 +2173,25 @@ export class InventoryService {
   async deleteVariantImage(id: string) {
     try {
       const exists = await this.variantImageModel.findById(id);
-
-      if (!exists) {
-        throw new NotFoundException("Variant image not found");
-      }
+      if (!exists) throw new NotFoundException('Variant image not found');
 
       await this.variantImageModel.findByIdAndDelete(id);
 
       return {
         success: true,
-        message: "Variant image deleted successfully",
+        message: 'Variant image deleted successfully',
         data: null
       };
 
     } catch (err) {
-      console.error("Error in deleteVariantImage:", err);
+      if (err instanceof HttpException) throw err;
+
       throw new HttpException(
-        "Failed to delete variant image",
+        'Failed to delete variant image',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
-
 
 
 }

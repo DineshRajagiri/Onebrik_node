@@ -12,6 +12,7 @@ import { VariantAttributeValuesDTO } from './dto/variantAttributeValues.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Request } from 'express';
+import { CreateFullProductDTO } from './dto/createFullProduct.dto';
 
 @Controller('inventory')
 export class InventoryController {
@@ -85,6 +86,45 @@ export class InventoryController {
         return this.service.createVariantImages(productVariantId, fileUrls);
     }
 
+    @Public()
+    @Post("createFullProduct")
+    async createFullProduct(@Body() dto: CreateFullProductDTO) {
+        return this.service.createFullProduct(dto);
+    }
+
+
+
+    @Public()
+    @Post('upsertAttribute')
+    upsertAttribute(@Body() dto: attributesDTO & { id?: string }) {
+        return this.service.upsertAttribute(dto);
+    }
+    @Public()
+    @Post('upsertAttributeValue')
+    upsertAttributeValue(@Body() dto: attributesValuesDTO & { id?: string }) {
+        return this.service.upsertAttributeValue(dto);
+    }
+    @Public()
+    @Post('upsertInventoryCategory')
+    upsertInventoryCategory(@Body() dto: inventoryCategoryDTO & { id?: string }) {
+        return this.service.upsertInventoryCategory(dto);
+    }
+    @Public()
+    @Post('upsertProduct')
+    upsertProduct(@Body() dto: productDTO & { id?: string }) {
+        return this.service.upsertProduct(dto);
+    }
+    @Public()
+    @Post('upsertVariantAttributeValues')
+    upsertVariantAttributeValues(@Body() dto: VariantAttributeValuesDTO) {
+        return this.service.upsertVariantAttributeValues(dto);
+    }
+    @Public()
+    @Post('upsertProductVariant')
+    upsertProductVariant(@Body() dto) {
+        return this.service.upsertProductVariantWithAttributes(dto);
+    }
+
 
 
     @Public()
@@ -92,31 +132,26 @@ export class InventoryController {
     async updateProduct(@Param('id') id: string, @Body() dto: productDTO) {
         return this.service.updateProduct(id, dto);
     }
-
     @Public()
     @Put('updateProductVariant/:id')
     async updateProductVariant(@Param('id') id: string, @Body() dto: productVariantsDTO) {
         return this.service.updateProductVariant(id, dto);
     }
-
     @Public()
     @Put('updateAttribute/:id')
     async updateAttribute(@Param('id') id: string, @Body() dto: attributesDTO) {
         return this.service.updateAttribute(id, dto);
     }
-
     @Public()
     @Put('updateAttributeValue/:id')
     async updateAttributeValue(@Param('id') id: string, @Body() dto: attributesValuesDTO) {
         return this.service.updateAttributeValue(id, dto);
     }
-
     @Public()
     @Put('updateInventoryCategory/:id')
     async updateInventoryCategory(@Param('id') id: string, @Body() dto: inventoryCategoryDTO) {
         return this.service.updateInventoryCategory(id, dto);
     }
-
     @Public()
     @Put('updateVariantAttributeValue/:productVariantId')
     async updateVariantAttributeValue(
@@ -125,7 +160,6 @@ export class InventoryController {
     ) {
         return this.service.updateVariantAttributeValue(productVariantId, dto);
     }
-
     @Public()
     @Put('updateVariantImages/:productVariantId')
     @UseInterceptors(
@@ -170,43 +204,36 @@ export class InventoryController {
     ) {
         return this.service.getAttributeValuesbyattributeid(attributeId, query);
     }
-
     @Public()
     @Get('getProductById/:id')
     async getProductById(@Param('id') id: string) {
         return this.service.getProductById(id);
     }
-
     @Public()
     @Get('getProductVariantById/:id')
     async getProductVariantById(@Param('id') id: string) {
         return this.service.getProductVariantById(id);
     }
-
     @Public()
     @Get('getAttributeById/:id')
     async getAttributeById(@Param('id') id: string) {
         return this.service.getAttributeById(id);
     }
-
     @Public()
     @Get('getAttributeValueById/:id')
     async getAttributeValueById(@Param('id') id: string) {
         return this.service.getAttributeValueById(id);
     }
-
     @Public()
     @Get('getInventoryCategoryById/:id')
     async getInventoryCategoryById(@Param('id') id: string) {
         return this.service.getInventoryCategoryById(id);
     }
-
     @Public()
     @Get('getVariantAttributeValueById/:id')
     async getVariantAttributeValueById(@Param('id') id: string) {
         return this.service.getVariantAttributeValueById(id);
     }
-
     @Public()
     @Get('getVariantImageById/:id')
     async getVariantImageById(@Param('id') id: string) {
@@ -215,45 +242,36 @@ export class InventoryController {
 
 
 
-
-
-
     @Public()
     @Delete('deleteProduct/:id')
     async deleteProduct(@Param('id') id: string) {
         return this.service.deleteProduct(id);
     }
-
     @Public()
     @Delete('deleteProductVariant/:id')
     async deleteProductVariant(@Param('id') id: string) {
         return this.service.deleteProductVariant(id);
     }
-
     @Public()
     @Delete('deleteAttributeValue/:id')
     async deleteAttributeValue(@Param('id') id: string) {
         return this.service.deleteAttributeValue(id);
     }
-
     @Public()
     @Delete('deleteAttribute/:id')
     async deleteAttribute(@Param('id') id: string) {
         return this.service.deleteAttribute(id);
     }
-
     @Public()
     @Delete('deleteCategory/:id')
     async deleteInventoryCategory(@Param('id') id: string) {
         return this.service.deleteInventoryCategory(id);
     }
-
     @Public()
     @Delete('deleteVariantAttributeValue/:id')
     async deleteVariantAttributeValue(@Param('id') id: string) {
         return this.service.deleteVariantAttributeValue(id);
     }
-
     @Public()
     @Delete('deleteVariantImage/:id')
     async deleteVariantImage(@Param('id') id: string) {

@@ -4,6 +4,7 @@ import { admin, adminDetails } from 'src/schema/admin.schema';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { Roles } from 'src/utils/constants';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class SuperAdminSeeder implements OnApplicationBootstrap {
@@ -20,6 +21,7 @@ export class SuperAdminSeeder implements OnApplicationBootstrap {
       const hashed = await bcrypt.hash('Admin@123', 10);
 
       await this.adminModel.create({
+        userId: randomUUID(),
         email,
         fullName: 'Super Admin',
         passwordHash: hashed,
