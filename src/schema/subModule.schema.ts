@@ -27,6 +27,7 @@ export class subModules extends commonDTO {
 
   @Prop({ default: true })
   isActive: boolean;
+  
 }
 
 export const subModulesSchemaFile = SchemaFactory.createForClass(subModules);

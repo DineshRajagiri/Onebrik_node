@@ -6,6 +6,7 @@ import { productDTO } from "./dto/products.dto";
 import { productVariantsDTO } from "./dto/productVariants.dto";
 import { VariantAttributeValuesDTO } from "./dto/variantAttributeValues.dto";
 import { VariantImagesDTO } from "./dto/variantImages.dto";
+import { CreateFullProductDTO } from "./dto/createFullProduct.dto";
 
 export interface PaginationQuery {
     page?: number;
@@ -21,6 +22,7 @@ export interface IInventoryService {
     createProductVariant(dto: productVariantsDTO): Promise<any>;
     createVariantAttributeValue(dto: VariantAttributeValuesDTO): Promise<any>;
     createVariantImages(productVariantId: string, imageUrls: string[]): Promise<any>;
+    createFullProduct(dto: CreateFullProductDTO): Promise<any>;
 
 
     updateProduct(id: string, dto: productDTO): Promise<any>;
@@ -30,8 +32,17 @@ export interface IInventoryService {
     updateInventoryCategory(id: string, dto: inventoryCategoryDTO): Promise<any>;
     updateVariantAttributeValue(productVariantId: string, dto: VariantAttributeValuesDTO): Promise<any>;
     updateVariantImages(productVariantId: string, imageUrls: string[]): Promise<any>;
+    updateFullProduct(productId: string, dto: CreateFullProductDTO): Promise<any>;
 
 
+    upsertAttribute(dto: attributesDTO & { id?: string }): Promise<any>;
+    upsertAttributeValue(dto: attributesValuesDTO & { id?: string }): Promise<any>;
+    upsertInventoryCategory(dto: inventoryCategoryDTO & { id?: string }): Promise<any>;
+    upsertProduct(dto: productDTO & { id?: string }): Promise<any>;
+    upsertProductVariant(dto: productVariantsDTO & { id?: string }): Promise<any>;
+    upsertVariantAttributeValues(dto: VariantAttributeValuesDTO & { id?: string }): Promise<any>;
+    upsertVariantImages(dto: VariantImagesDTO & { id?: string }): Promise<any>;
+    upsertProductVariantWithAttributes(dto: productVariantsDTO & { id?: string }): Promise<any>;
 
     getAllInventoryCategories(query: PaginationQuery): Promise<any>;
     getAllAttributes(query: PaginationQuery): Promise<any>;

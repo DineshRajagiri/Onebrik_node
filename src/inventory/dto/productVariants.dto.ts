@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import mongoose, { Document, } from "mongoose";
 import { inventoryCategory } from "src/schema/inventoryCategory.schema";
 import { Product } from "src/schema/products.schema";
+import { VariantAttributeItem } from "./variantAttributeValues.dto";
 
 export class productVariantsDTO {
     @Prop()
@@ -19,4 +20,5 @@ export class productVariantsDTO {
     @Prop()
     variantSku: string;
 
+  attributes?: VariantAttributeItem[];
 }

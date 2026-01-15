@@ -8,6 +8,7 @@ export class inventoryCategoryDTO {
 
     @Prop({ type: String, ref: "inventoryCategory", default: null })
     parentId: inventoryCategory;
+    
 
     @Prop({ type: String, enum: ["MAIN", "SUB", "SUBCHILD"], required: true })
     level: string;

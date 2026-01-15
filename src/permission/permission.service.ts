@@ -205,7 +205,7 @@ export class PermissionService {
 
 
   async upsertSubModule(dto: UpsertSubModuleDto) {
-    try {
+    try { 
       if (!isUUID(dto.moduleId)) {
         throw new NotFoundException('Invalid moduleId: Must be a valid UUID');
       }

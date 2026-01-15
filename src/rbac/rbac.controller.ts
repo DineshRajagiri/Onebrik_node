@@ -122,7 +122,7 @@ export class RbacController {
                 type: 'collapse',
                 children: [
                   {
-                    id: 'Products',
+                    id: 'products',
                     title: 'Product List',
                     type: 'item',
                     tableKey: 'products',
@@ -130,25 +130,60 @@ export class RbacController {
                     url: '/admin/inventory/prdocutList'
                   },
                   {
-                    id: 'uploadProducts',
-                    title: 'Add Product',
-                    type: 'item',
-                    tableKey: 'submodules',
-                    routeType: 'master',   // <-- MASTER PAGE
-                    url: '/admin/inventory/addProduct'
-                  },
-                  {
-                    id: 'productMasters',
-                    title: 'Product Masters',
+                    id: 'productUpload',
+                    title: 'product Upload',
                     type: 'item',
                     routeType: 'custom',
-                    url: '/admin/inventory/product-masters'
+                    url: '/admin/add-full-product'
                   }
 
                 ]
+              },
+              {
+                id: 'commonManagement',
+                title: 'Common Masters',
+                type: 'collapse',
+                children: [
+                  {
+                    id: 'attributes',
+                    title: 'Attributes List',
+                    type: 'item',
+                    tableKey: 'attributes',
+                    routeType: 'master',
+                    url: '/admin/inventory/attributes'
+                  },
+                  {
+                    id: 'attributesValues',
+                    title: 'Attributes Values List',
+                    type: 'item',
+                    tableKey: 'attributesValues',
+                    routeType: 'master',
+                    url: '/admin/inventory/attributesValues'
+                  },
+                  {
+                    id: 'inventoryCategory',
+                    title: 'Inventory Category List',
+                    type: 'item',
+                    tableKey: 'inventoryCategory',
+                    routeType: 'master',
+                    url: '/admin/inventory/inventoryCategory'
+                  },
+                  {
+                    id: 'productVarients',
+                    title: 'productVarients List',
+                    type: 'item',
+                    tableKey: 'productVarients',
+                    routeType: 'master',
+                    url: '/admin/inventory/productVarients'
+                  },
+                 
+
+                ]
               }
-            ]
-          },
+            ],
+
+
+          }
         ]
       }
     };
