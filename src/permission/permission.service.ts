@@ -704,8 +704,6 @@ export class PermissionService {
     }
   }
 
-
-
   async getModuleTree(): Promise<{
     success: boolean;
     message: string;
@@ -788,7 +786,6 @@ export class PermissionService {
     };
   }
 
-
   async getSidebarForUser(userId: string) {
 
     const user = await this.userModel.findById(userId).lean();
@@ -839,8 +836,22 @@ export class PermissionService {
     return filterTree(moduleTree);
   }
 
-
-
-
-
+  async givePermissions(data: any) {
+    const user = await this.userModel.findById(data.userId).lean();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const docs = data.permissions.map((item: any) => ({
+      roleId: user.roleId,
+      moduleId: item.moduleId || null,
+      subModuleId: item.subModuleId || null,
+      subModuleChildId: item.subModuleChildId || null,
+      canView: Boolean(item.canView),
+      canCreate: Boolean(item.canCreate),
+      canUpdate: Boolean(item.canUpdate),
+      canDelete: Boolean(item.canDelete)
+    }));
+    await this.permissionModel.deleteMany({ userId: user._id });
+    await this.permissionModel.insertMany(docs);
+  }
 }

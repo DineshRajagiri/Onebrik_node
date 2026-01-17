@@ -32,7 +32,7 @@ export class PermissionController {
     return this.service.getSidebarMenu();
   }
 
-  // @UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @UseGuards(JwtAuthGuard)
 @Get('sidebar')
 async getSidebar(@Req() req) {
@@ -119,5 +119,10 @@ async getSidebar(@Req() req) {
   async getPermissionsByRole(@Param('roleId') roleId: string) {
     const data = await this.service.getPermissionsByRole(roleId);
     return BaseResponse.ok(data);
+  }
+
+  @Post('give-permissions-sidebar')
+  async givepermissions(@Body() body: any) {
+   await this.service.givePermissions(body);
   }
 }

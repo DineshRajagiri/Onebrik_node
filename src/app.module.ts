@@ -22,9 +22,12 @@ import { PermissionModule } from './permission/permission.module';
 import { TableModule } from './table/table.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { FileModule } from './file/file.module';
+import { SidebarModule } from './sidebar/sidebar.module';
+import { SuperAdminModule } from './module/superadmin/superadmin.module';
 
 @Module({
   imports: [
+    SuperAdminModule,
     CoreModule,
     AuthModule,
     // SidebarModule,
@@ -44,7 +47,8 @@ import { FileModule } from './file/file.module';
     PermissionModule,
     TableModule,
     InventoryModule,
-    FileModule
+    FileModule,
+    SidebarModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -18,6 +18,7 @@ export class User extends commonDTO {
 
   @Prop({ required: true })
   roleId: string;
+  
   @Prop({ default: true })
   isActive: boolean;
 }

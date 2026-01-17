@@ -73,7 +73,6 @@ export class RbacController {
               }
             ]
           },
-
           {
             id: 'users',
             title: 'Users',
