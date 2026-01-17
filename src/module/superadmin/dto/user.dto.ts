@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UserDTO {
 
@@ -14,6 +14,12 @@ export class UserDTO {
   @MinLength(6, { message: 'Password must be at least 6 characters' })
   @IsNotEmpty({ message: 'Password is required' })
   passwordHash: string;  // matches schema name
+
+
+  @IsNumber()
+  @IsOptional()
+  mobilenumber: number;  // matches schema name
+
 
   @IsString({ message: 'Role ID must be a string' })
   @IsNotEmpty({ message: 'Role ID is required' })

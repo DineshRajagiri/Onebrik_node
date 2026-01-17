@@ -19,4 +19,11 @@ export class SuperAdminController {
     async getroles() {
         return await this.superAdminService.getroles();
     }
+
+
+      @Public()
+    @Post('users_new')
+    async getusers() {
+        return await this.superAdminService.getusers();
+    }
 }

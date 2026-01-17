@@ -96,54 +96,57 @@ export class RoleService {
   }
 
 
-  async getPaginatedRoles(page: number, limit: number): Promise<any> {
-    try {
-      page = Number(page) || 1;
-      limit = Number(limit) || 10;
+async getPaginatedRoles(page: number, limit: number): Promise<any> {
+  try {
+    page = Number(page) || 1;
+    limit = Number(limit) || 10;
+    const skip = (page - 1) * limit;
 
-      const skip = (page - 1) * limit;
+    // Filter out deleted roles and superAdmin
+    const filter = {
+      isDeleted: { $ne: true },
+      name: { $ne: "SUPERADMIN" }  // <-- Exclude superAdmin
+    };
 
-      const filter = { isDeleted: { $ne: true } };
+    const [data, total] = await Promise.all([
+      this.roleModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
 
-      const [data, total] = await Promise.all([
-        this.roleModel
-          .find(filter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
+      this.roleModel.countDocuments(filter)
+    ]);
 
-        this.roleModel.countDocuments(filter)
-      ]);
+    return {
+      success: true,
+      message: "Roles fetched successfully",
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      data
+    };
 
-      return {
-        success: true,
-        message: "Roles fetched successfully",
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-        data
-      };
+  } catch (error) {
+    console.error("Role Fetch Error →", error);
 
-    } catch (error) {
-      console.error("Role Fetch Error →", error);
-
-      return {
-        success: false,
-        message: "Failed to fetch role data",
-        pagination: {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0
-        },
-        data: []
-      };
-    }
+    return {
+      success: false,
+      message: "Failed to fetch role data",
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0
+      },
+      data: []
+    };
   }
+}
 
 
   async findOne(id: string): Promise<roles> {

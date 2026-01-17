@@ -31,6 +31,7 @@ import { VariantImages, VariantImagesSchemaFile } from "src/schema/variantImages
 import { vendor, vendorSchemaFile } from "src/schema/vendor.schema";
 import { wallet, walletSchemaFile } from "src/schema/wallet.schema";
 import { withdrawal, withdrawalSchemaFile } from "src/schema/withdrawal.schema";
+import { Sidebar, SidebarSchema } from "src/schema/sidebar.scehma";
 
 
 
@@ -70,7 +71,9 @@ export const entities = [
     { name: VariantAttributeValues.name, schema: VariantAttributeValuesSchemaFile },
     { name: VariantImages.name, schema: VariantImagesSchemaFile },
    { name: Product.name, schema: ProductSchema },
-    { name: productVariants.name, schema: productVariantsSchemaFile }
+    { name: productVariants.name, schema: productVariantsSchemaFile },
+    { name: Sidebar.name, schema: SidebarSchema }
+    // { name: Permission.name,schema:permissionSchemaFile},
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},
     // { name: SubModulePermission.name,schema:SubModulePermissionSchema},

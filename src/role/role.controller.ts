@@ -28,6 +28,7 @@ export class RoleController {
     return BaseResponse.ok(role, dto.id ? 'Role updated successfully' : 'Role created successfully');
   }
 
+  @Public()
   @Get()
   async findAll() {
     const roles = await this.service.getPaginatedRoles();

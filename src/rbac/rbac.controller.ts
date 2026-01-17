@@ -34,7 +34,6 @@ export class RbacController {
               }
             ]
           },
-
           {
             id: 'masters',
             title: 'Masters',

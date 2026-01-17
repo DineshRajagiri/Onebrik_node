@@ -24,6 +24,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { FileModule } from './file/file.module';
 import { SidebarModule } from './sidebar/sidebar.module';
 import { SuperAdminModule } from './module/superadmin/superadmin.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -48,7 +49,8 @@ import { SuperAdminModule } from './module/superadmin/superadmin.module';
     TableModule,
     InventoryModule,
     FileModule,
-    SidebarModule
+    SidebarModule,
+    MailModule
   ],
   controllers: [AppController],
   providers: [AppService],

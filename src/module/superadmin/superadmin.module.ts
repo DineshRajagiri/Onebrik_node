@@ -5,15 +5,18 @@ import { CommonModule } from 'src/common/common.module';
 import { entities } from 'src/utils/entities';
 import { SuperAdminController } from './superadmin.controller';
 import { SuperAdminService } from './superadmin.service';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports:[
     HttpModule,
     MongooseModule.forFeature(entities),
-    CommonModule
+    CommonModule,
+    MailModule
   ],
   controllers: [SuperAdminController],
-  providers: [SuperAdminService]
+  providers: [SuperAdminService],
+  exports: [SuperAdminService],
 
 })
 export class SuperAdminModule {}

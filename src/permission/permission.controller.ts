@@ -7,6 +7,8 @@ import { BaseResponse } from 'src/common/DTO/base-response.dto';
 import { CreateAppModuleDto } from './DTO/create-module.dto';
 import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { RoleGuard } from 'src/auth/guards/roles.guard';
+import {  User } from 'src/decorators/getid.decorator';
 
 @Controller('permission')
 export class PermissionController {
@@ -32,19 +34,22 @@ export class PermissionController {
     return this.service.getSidebarMenu();
   }
 
-// @UseGuards(JwtAuthGuard)
-@UseGuards(JwtAuthGuard)
-@Get('sidebar')
-async getSidebar(@Req() req) {
-  const userId = req.user.id;
-  const data = await this.service.getSidebarForUser(userId);
-
-  return {
-    success: true,
-    message: 'Sidebar loaded successfully',
-    data,
-  };
-}
+  @UseGuards(JwtAuthGuard)
+  @Get('sidebar')
+  async getSidebar(@Req() req,
+    @User('id') id: string,
+    @User('role') role: string) {
+    console.log(id, "id");
+    // if (role ==='SUPERADMIN') {
+    //   return await this.service.getsidebarForadmin(id);
+    // }
+    const data = await this.service.getSidebarForUser(id);
+    return {
+      success: true,
+      message: 'Sidebar loaded successfully',
+      data,
+    };
+  }
 
   @Public()
   @Get('module')
@@ -106,7 +111,6 @@ async getSidebar(@Req() req) {
     return BaseResponse.ok(data);
   }
 
-
   @Public()
   @Post('role-permissions')
   async upsertPermissions(@Body() dto: UpsertPermissionsForRoleDto) {
@@ -125,4 +129,13 @@ async getSidebar(@Req() req) {
   async givepermissions(@Body() body: any) {
    await this.service.givePermissions(body);
   }
+
+  @Post('paginated-modules')
+  async getPaginatedModules(@Body() body: { page: number; limit: number }) {
+    const data = await this.service.getPaginatedModules(body.page, body.limit);
+    return BaseResponse.ok(data);
+  }
+
+
+  
 }

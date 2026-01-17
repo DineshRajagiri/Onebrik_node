@@ -12,6 +12,7 @@ import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
 import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
 import { User, UserDocument } from 'src/schema/user.schema';
+import { Sidebar, SidebarDocument } from 'src/schema/sidebar.scehma';
 
 @Injectable()
 export class PermissionService {
@@ -23,6 +24,7 @@ export class PermissionService {
     @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
     @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Sidebar.name)private readonly sidebarModel: Model<SidebarDocument>,
   ) { }
 
   private slugify(value: string): string {
@@ -357,9 +359,6 @@ export class PermissionService {
     }
   }
 
-
-
-
   // async getSubModules(moduleId?: string): Promise<{
   //   success: boolean;
   //   message: string;
@@ -489,7 +488,8 @@ export class PermissionService {
         sortOrder: dto.sortOrder ?? 1,
         isActive: dto.isActive ?? true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        moduleId: parent.moduleId
       });
 
       return {
@@ -663,11 +663,6 @@ export class PermissionService {
   }
 
 
-
-
-
-
-
   async getPermissionsByRole(roleId: string): Promise<{
     success: boolean;
     message: string;
@@ -723,8 +718,8 @@ export class PermissionService {
           id: module._id,
           title: module.title,
           key: module.key,
-          icon: module.icon,
-          type: moduleSubs.length ? 'collapse' : 'item',
+          // icon: module.icon,
+          type: moduleSubs.length ? 'group' : 'item',
           children: moduleSubs.map((sub) => {
             const subChildren = children.filter(
               (c) => String(c.subModuleId) === String(sub._id)
@@ -831,11 +826,23 @@ export class PermissionService {
 
           return { ...node, children };
         })
-        .filter(Boolean);
+.filter(Boolean);
 
     return filterTree(moduleTree);
   }
 
+  async getsidebarForadmin(): Promise<any> {
+    try{
+      const moduleTreeResponse = await this.sidebarModel.find()
+      return {
+        success: true,
+        data: moduleTreeResponse ,
+        message: 'Sidebar loaded successfully'
+      };
+    }catch(err){
+      console.error(err);
+    }
+  }
   async givePermissions(data: any) {
     const user = await this.userModel.findById(data.userId).lean();
     if (!user) {
@@ -843,6 +850,7 @@ export class PermissionService {
     }
     const docs = data.permissions.map((item: any) => ({
       roleId: user.roleId,
+      userId: user?._id || '',
       moduleId: item.moduleId || null,
       subModuleId: item.subModuleId || null,
       subModuleChildId: item.subModuleChildId || null,
@@ -853,5 +861,14 @@ export class PermissionService {
     }));
     await this.permissionModel.deleteMany({ userId: user._id });
     await this.permissionModel.insertMany(docs);
+  }
+
+async getu(userId: string): Promise<any[]> {
+    const user = await this.userModel.findById(userId).lean();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const permissions = await this.permissionModel.find({ userId: user._id }).lean();
+    return permissions;
   }
 }
