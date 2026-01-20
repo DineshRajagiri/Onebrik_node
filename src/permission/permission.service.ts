@@ -8,9 +8,9 @@ import { subModules, subModulesDetails } from 'src/schema/subModule.schema';
 import { subModuleChild, subModuleChildDetails } from 'src/schema/subModuleChild.schema';
 import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { isUUID } from 'class-validator';
-import { UpsertModuleDto } from './DTO/upsert-module.dto';
-import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
-import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
+import { UpsertModuleDto } from './dto/upsert-module.dto';
+import { UpsertSubModuleDto } from './dto/upsert-sub-module.dto';
+import { UpsertSubModuleChildDto } from './dto/upsert-submodule-child-dto';
 import { User, UserDocument } from 'src/schema/user.schema';
 import { Sidebar, SidebarDocument } from 'src/schema/sidebar.scehma';
 
