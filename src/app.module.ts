@@ -25,6 +25,8 @@ import { FileModule } from './file/file.module';
 import { SidebarModule } from './sidebar/sidebar.module';
 import { SuperAdminModule } from './module/superadmin/superadmin.module';
 import { MailModule } from './mail/mail.module';
+import { CustomerModule } from './module/customer/customer.module';
+import { CustomerPageModule } from './module/customer-page/customer-page.module';
 
 @Module({
   imports: [
@@ -50,7 +52,9 @@ import { MailModule } from './mail/mail.module';
     InventoryModule,
     FileModule,
     SidebarModule,
-    MailModule
+    MailModule,
+    CustomerModule,
+    CustomerPageModule
   ],
   controllers: [AppController],
   providers: [AppService],
