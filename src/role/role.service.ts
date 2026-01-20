@@ -5,7 +5,7 @@ import { Model } from 'mongoose';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Permission, permissionDetails } from 'src/schema/permission.schema';
-import { UpsertRoleDto } from './DTO/upsert-role.dto';
+import { UpsertRoleDto } from './dto/upsert-role.dto';
 
 
 @Injectable()

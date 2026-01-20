@@ -6,7 +6,7 @@ import { Services } from 'src/utils/constants';
 import { IRoleService } from './role';
 import { Public } from 'src/decorators/public.decorator';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
-import { UpsertRoleDto } from './DTO/upsert-role.dto';
+import { UpsertRoleDto } from './dto/upsert-role.dto';
 
 @Controller('role')
 export class RoleController {

@@ -6,7 +6,7 @@ import { roles, rolesDetails } from 'src/schema/role.schema';
 import { modules, modulesDetails } from 'src/schema/module.schema';
 import { subModules, subModulesDetails } from 'src/schema/subModule.schema';
 import { subModuleChild, subModuleChildDetails } from 'src/schema/subModuleChild.schema';
-import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { UpsertPermissionsForRoleDto } from './dto/bulk-update-permission-role.dto';
 import { isUUID } from 'class-validator';
 import { UpsertModuleDto } from './dto/upsert-module.dto';
 import { UpsertSubModuleDto } from './dto/upsert-sub-module.dto';
