@@ -1,14 +1,12 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { PermissionService } from './permission.service';
-import { Services } from 'src/utils/constants';
-import { IPermissionService } from './permission';
-import { Public } from 'src/decorators/public.decorator';
-import { BaseResponse } from 'src/common/DTO/base-response.dto';
-import { CreateAppModuleDto } from './dto/create-module.dto';
-import { UpsertPermissionsForRoleDto } from './dto/bulk-update-permission-role.dto';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { RoleGuard } from 'src/auth/guards/roles.guard';
-import {  User } from 'src/decorators/getid.decorator';
+import { BaseResponse } from 'src/common/DTO/base-response.dto';
+import { User } from 'src/decorators/getid.decorator';
+import { Public } from 'src/decorators/public.decorator';
+import { Services } from 'src/utils/constants';
+import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { CreateAppModuleDto } from './DTO/create-module.dto';
+import { IPermissionService } from './permission';
 
 @Controller('permission')
 export class PermissionController {

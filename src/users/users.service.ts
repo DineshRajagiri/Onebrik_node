@@ -1,18 +1,15 @@
-import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from 'src/schema/user.schema';
-import { Model } from 'mongoose';
-import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
-import { UpdateUserDto } from './DTO/update-user.dto';
-import { roles, rolesDetails } from 'src/schema/role.schema';
-import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
+import { Model } from 'mongoose';
 import { admin, adminDetails } from 'src/schema/admin.schema';
-import { vendor, vendorDetails } from 'src/schema/vendor.schema';
 import { deliveryBoy, deliveryBoyDetails } from 'src/schema/deliveryBoy.schema';
+import { roles, rolesDetails } from 'src/schema/role.schema';
+import { User, UserDocument } from 'src/schema/user.schema';
+import { vendor, vendorDetails } from 'src/schema/vendor.schema';
 import { CreateAdminDto } from './DTO/create-admin.dto';
 import { CreateVendorDto } from './DTO/create-vendor.dto';
-import { isAdminStatus } from 'src/utils/constants';
+import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
 @Injectable()
 export class UsersService {
   // private readonly logger = new Logger(UsersService.name);

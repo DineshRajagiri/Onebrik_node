@@ -1,12 +1,5 @@
-import { categoryDTO } from "./dto/category.dto";
-import { experienceDTO } from "./dto/experience.dto";
-import { incomeRangeDTO } from "./dto/incomeRange.dto";
-import { professionDTO } from "./dto/profession.dto";
-import { relationshipManagerDTO } from "./dto/realationshipManager.dto";
-import { relationshipDTO } from "./dto/realtionship.dto";
-import { regionDTO } from "./dto/region.dto";
-import { roleDTO } from "./dto/role.dto";
-import { xScoreDTO } from "./dto/xScore.dto";
+import { categoryDTO } from "./DTO/category.dto";
+import { regionDTO } from "./DTO/region.dto";
 
 export interface IMasterService {
 

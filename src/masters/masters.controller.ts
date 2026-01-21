@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { Services } from 'src/utils/constants';
 import { IMasterService } from './masters';
-import { categoryDTO } from './dto/category.dto';
-import { regionDTO } from './dto/region.dto';
+import { categoryDTO } from './DTO/category.dto';
+import { regionDTO } from './DTO/region.dto';
 
 @Controller('masters')
 export class MastersController {

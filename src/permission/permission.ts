@@ -1,4 +1,4 @@
-import { CreateAppModuleDto } from "./dto/create-module.dto";
+import { CreateAppModuleDto } from "./DTO/create-module.dto";
 
 export interface IPermissionService {
   upsertModule(dto: CreateAppModuleDto): Promise<any>;

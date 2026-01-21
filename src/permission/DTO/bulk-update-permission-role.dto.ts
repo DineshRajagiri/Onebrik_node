@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsMongoId, IsOptional, IsUUID, ValidateNested } from "class-validator";
+import { IsOptional, IsUUID, ValidateNested } from "class-validator";
 import { PermissionItemDto } from "./create-permission.dto";
 
 export class UpsertPermissionsForRoleDto {

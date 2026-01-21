@@ -2,19 +2,19 @@
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { relationshipDTO } from './dto/realtionship.dto';
+import { relationshipDTO } from './DTO/realtionship.dto';
 import { experience, experienceDetails } from 'src/schema/experience.schema';
 import { incomeRange, incomeRangeDetails } from '../schema/IncomeRange.schema';
-import { xScoreDTO } from './dto/xScore.dto';
+import { xScoreDTO } from './DTO/xScore.dto';
 import { relationshipManager, relationshipManagerDetails } from 'src/schema/relationshipManager';
-import { relationshipManagerDTO } from './dto/realationshipManager.dto';
+import { relationshipManagerDTO } from './DTO/realationshipManager.dto';
 import { roles, rolesDetails } from 'src/schema/role.schema';
-import { roleDTO } from './dto/role.dto';
+import { roleDTO } from './DTO/role.dto';
 import { admin } from 'src/schema/admin.schema';
 import { category, categoryDetails } from 'src/schema/category.schema';
 import { region, regionDetails } from 'src/schema/region.schema';
-import { categoryDTO } from './dto/category.dto';
-import { regionDTO } from './dto/region.dto';
+import { categoryDTO } from './DTO/category.dto';
+import { regionDTO } from './DTO/region.dto';
 @Injectable()
 
 export class MastersService {

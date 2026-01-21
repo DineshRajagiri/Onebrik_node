@@ -2,10 +2,10 @@ import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictExcep
 import { InjectModel } from '@nestjs/mongoose';
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { Model } from 'mongoose';
-import { CreateRoleDto } from './dto/create-role.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
+import { CreateRoleDto } from './DTO/create-role.dto';
+import { UpdateRoleDto } from './DTO/update-role.dto';
 import { Permission, permissionDetails } from 'src/schema/permission.schema';
-import { UpsertRoleDto } from './dto/upsert-role.dto';
+import { UpsertRoleDto } from './DTO/upsert-role.dto';
 
 
 @Injectable()
