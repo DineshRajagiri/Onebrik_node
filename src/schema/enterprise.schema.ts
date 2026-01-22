@@ -57,7 +57,7 @@ export class enterprise extends commonDTO {
 
   @Prop()
   financialOverview: string;
-  @Prop({ type: String, enum: isEnterpriseStatus, default: isEnterpriseStatus.ACTIVE })
+  @Prop({ type: String, enum: Object.values(isEnterpriseStatus), default: isEnterpriseStatus.ACTIVE })
   enterpriseStatus: isEnterpriseStatus;
 }
 

@@ -5,6 +5,7 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "watchAssets": false,
-    "assets": false
+    "assets": false,
+    "builder": "tsc"
   }
 }

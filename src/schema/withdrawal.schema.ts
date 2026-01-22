@@ -20,7 +20,7 @@ export class withdrawal extends commonDTO {
     @Prop({ required: false })  
     amountRequested: number;
 
-    @Prop({ type: String, enum: withdrawalStatus, }) 
+    @Prop({ type: String, enum: Object.values(withdrawalStatus) }) 
     status: withdrawalStatus;
 
     @Prop()

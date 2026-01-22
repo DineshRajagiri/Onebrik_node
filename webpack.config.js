@@ -6,6 +6,7 @@ module.exports = {
   mode: 'development',
   optimization: {
     minimize: false,
+    splitChunks: false,
   },
   resolve: {
     extensions: ['.ts', '.js'],
@@ -19,6 +20,11 @@ module.exports = {
           options: {
             transpileOnly: true,
             experimentalWatchApi: true,
+            compilerOptions: {
+              incremental: false,
+              declaration: false,
+              sourceMap: false,
+            },
           },
         },
         exclude: /node_modules/,
@@ -32,6 +38,10 @@ module.exports = {
   watchOptions: {
     ignored: /node_modules/,
     aggregateTimeout: 300,
-    poll: 1000,
+    poll: false,
+  },
+  stats: 'minimal',
+  performance: {
+    hints: false,
   },
 };
