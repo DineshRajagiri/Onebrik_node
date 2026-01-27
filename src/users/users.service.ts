@@ -1,15 +1,18 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as bcrypt from 'bcrypt';
-import { Model } from 'mongoose';
-import { admin, adminDetails } from 'src/schema/admin.schema';
-import { deliveryBoy, deliveryBoyDetails } from 'src/schema/deliveryBoy.schema';
-import { roles, rolesDetails } from 'src/schema/role.schema';
 import { User, UserDocument } from 'src/schema/user.schema';
+import { Model } from 'mongoose';
+import { CreateUserDto } from './dto/create-user.dto';
+import * as bcrypt from 'bcrypt';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { roles, rolesDetails } from 'src/schema/role.schema';
+import { CreateDeliveryPartnerDto } from './dto/delivery-partner.dto';
+import { admin, adminDetails } from 'src/schema/admin.schema';
 import { vendor, vendorDetails } from 'src/schema/vendor.schema';
-import { CreateAdminDto } from './DTO/create-admin.dto';
-import { CreateVendorDto } from './DTO/create-vendor.dto';
-import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
+import { deliveryBoy, deliveryBoyDetails } from 'src/schema/deliveryBoy.schema';
+import { CreateAdminDto } from './dto/create-admin.dto';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { isAdminStatus } from 'src/utils/constants';
 @Injectable()
 export class UsersService {
   // private readonly logger = new Logger(UsersService.name);
