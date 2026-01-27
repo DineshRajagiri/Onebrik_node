@@ -10,7 +10,7 @@
     "build:webpack": "NODE_OPTIONS='--max-old-space-size=8192' nest build --webpack",
     "build:tsc": "NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "node --max-old-space-size=256 dist/main.js",
     "start:dev": "NODE_OPTIONS='--max-old-space-size=8192' nest start --watch",
     "start:dev:memory": "node start-dev.js",
     "start:debug": "NODE_OPTIONS='--max-old-space-size=8192' nest start --debug --watch",
