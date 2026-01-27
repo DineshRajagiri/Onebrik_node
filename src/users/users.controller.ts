@@ -1,14 +1,18 @@
 import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query } from '@nestjs/common';
 // import { UserService } from './user.service';
-import { CreateUserDto } from './DTO/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { IUserService } from './users';
 import { Services } from 'src/utils/constants';
 import { Public } from 'src/decorators/public.decorator';
-import { UpdateUserDto } from './DTO/update-user.dto';
+// import { UpdateUserDto } from './DTO/update-user.dto';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
-import { CreateAdminDto } from './DTO/create-admin.dto';
-import { CreateVendorDto } from './DTO/create-vendor.dto';
-import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
+// import { CreateAdminDto } from './DTO/create-admin.dto';
+// import { CreateVendorDto } from './DTO/create-vendor.dto';
+// import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { CreateAdminDto } from "./dto/create-admin.dto";
+import { CreateVendorDto } from "./dto/create-vendor.dto";
+import { CreateDeliveryPartnerDto } from "./dto/delivery-partner.dto";
 
 @Controller('user')
 export class UsersController {

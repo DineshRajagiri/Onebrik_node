@@ -2,12 +2,8 @@
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { relationshipDTO } from './DTO/realtionship.dto';
-import { experience, experienceDetails } from 'src/schema/experience.schema';
-import { incomeRange, incomeRangeDetails } from '../schema/IncomeRange.schema';
-import { xScoreDTO } from './DTO/xScore.dto';
 import { relationshipManager, relationshipManagerDetails } from 'src/schema/relationshipManager';
-import { relationshipManagerDTO } from './DTO/realationshipManager.dto';
+
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { roleDTO } from './DTO/role.dto';
 import { admin } from 'src/schema/admin.schema';
@@ -29,13 +25,9 @@ export class MastersService {
     @InjectModel(region.name) private readonly region: Model<regionDetails>,
 
 
-    //inovice traders//
-    // @InjectModel(relationship.name) private readonly relationship: Model<relationshipDetails>,
-    @InjectModel(experience.name) private readonly experience: Model<experienceDetails>,
-    @InjectModel(incomeRange.name) private readonly incomeRange: Model<incomeRangeDetails>,
-    // @InjectModel(profession.name) private readonly profession: Model<professionDetails>,
-    @InjectModel(relationshipManager.name) private readonly relationshipManager: Model<relationshipManagerDetails>,
-    @InjectModel(roles.name) private readonly roles: Model<rolesDetails>,
+    // //inovice traders//
+    // @InjectModel(relationshipManager.name) private readonly relationshipManager: Model<relationshipManagerDetails>,
+    // @InjectModel(roles.name) private readonly roles: Model<rolesDetails>,
 
 
   ) { }
