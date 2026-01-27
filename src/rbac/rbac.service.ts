@@ -2,8 +2,8 @@ import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestj
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, isValidObjectId, Types } from 'mongoose';
 // import { Menu, MenuDocument } from 'src/schema/menu.schema';
-import { CreateMenuDto } from './dto/create-menu.dto';
-import { UpdateMenuDto } from './dto/update-menu.dto';
+import { CreateMenuDto } from './DTO/create-menu.dto';
+import { UpdateMenuDto } from './DTO/update-menu.dto';
 import { Menu, MenuDocument } from 'src/schema/menu.schema';
 import { modules, modulesDetails } from 'src/schema/module.schema';
 import { subModules, subModulesDetails } from 'src/schema/subModule.schema';

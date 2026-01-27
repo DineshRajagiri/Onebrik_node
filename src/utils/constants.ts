@@ -20,7 +20,8 @@ export enum Services {
     BLOGS="BLOGS",
     WITHDRAWAL="WITHDRAWAL",
     DELIVERYBOY="DELIVERYBOY",
-    INVENTORY="INVENTORY"
+    INVENTORY="INVENTORY",
+    CUSTOMER="CUSTOMER"
 }
 
 export enum Roles{
@@ -88,6 +89,7 @@ export enum Roles{
   }
 
   export enum PaymentStatus {
+    PENDING = 'PENDING',
     FAILED = 'FAILED',
     SUCCESS = 'SUCCESS',
   }

@@ -4,10 +4,10 @@ import { attributesValues, attributesValuesSchemaFile } from "src/schema/attribu
 import { category, categorySchemaFile } from "src/schema/category.schema";
 import { Counter, CounterSchema } from "src/schema/counter.schema";
 import { deliveryBoy, deliveryBoySchemaFile } from "src/schema/deliveryBoy.schema";
-import { enterprise, enterpriseSchemaFile } from "src/schema/enterprise.schema";
 import { inventoryCategory, inventoryCategorySchemaFile } from "src/schema/inventoryCategory.schema";
 import { Menu, MenuSchema } from "src/schema/menu.schema";
 import { modules, modulesSchemaFile } from "src/schema/module.schema";
+import { notification, notificationSchemaFile } from "src/schema/notification.schema";
 import { notificationToken, notificationTokenSchemaFile } from "src/schema/notificationToken.schema";
 // import { Permission, permissionSchemaFile } from "src/schema/permission.schema";
 import { Product, ProductSchema } from "src/schema/products.schema";
@@ -22,7 +22,16 @@ import { UserProfile, UserProfileSchema } from "src/schema/userProfile.schema";
 import { VariantAttributeValues, VariantAttributeValuesSchemaFile } from "src/schema/variantAttributeValues.schema";
 import { VariantImages, VariantImagesSchemaFile } from "src/schema/variantImages.schema";
 import { vendor, vendorSchemaFile } from "src/schema/vendor.schema";
-
+import { Sidebar, SidebarSchema } from "src/schema/sidebar.scehma";
+import { Device, DeviceSchemaFile } from "src/schema/device.schema";
+import { Cart, CartSchemaFile } from "src/schema/cart.schema";
+import { CartItem, CartItemSchemaFile } from "src/schema/cartItem.schema";
+import { Customer, CustomerSchemaFile } from "src/schema/customer.schema";
+import { CustomerAddress, CustomerAddressSchemaFile } from "src/schema/customerAddress.schema";
+import { Payment, PaymentSchemaFile } from "src/schema/payment.schema";
+import { Order, OrderSchemaFile } from "src/schema/order.schema";
+import { OrderItem, OrderItemSchemaFile } from "src/schema/orderItem.schema";
+import { SubCursor, SubCursorSchema } from "src/schema/subcursore.schema";
 
 
 
@@ -38,21 +47,32 @@ export const entities = [
     { name: Permission.name, schema: PermissionSchema },
     { name: roles.name, schema: rolesSchemaFile },
     { name: notificationToken.name, schema: notificationTokenSchemaFile },
-    { name: enterprise.name, schema: enterpriseSchemaFile },
+    { name: notification.name, schema: notificationSchemaFile },
     { name: vendor.name, schema: vendorSchemaFile },
     { name: Counter.name, schema: CounterSchema },
+    { name: relationshipManager.name, schema: relationshipManagerSchemaFile },
+    { name: blogs.name, schema: blogsSchemaFile },
     { name: category.name, schema: categorySchemaFile },
     { name: region.name, schema: regionSchemaFile },
     { name: deliveryBoy.name, schema: deliveryBoySchemaFile },
-
     { name: attributes.name, schema: attributesSchemaFile },
     { name: attributesValues.name, schema: attributesValuesSchemaFile },
     { name: inventoryCategory.name, schema: inventoryCategorySchemaFile },
-
     { name: VariantAttributeValues.name, schema: VariantAttributeValuesSchemaFile },
     { name: VariantImages.name, schema: VariantImagesSchemaFile },
-   { name: Product.name, schema: ProductSchema },
-    { name: productVariants.name, schema: productVariantsSchemaFile }
+    { name: Product.name, schema: ProductSchema },
+    { name: productVariants.name, schema: productVariantsSchemaFile },
+    { name: Sidebar.name, schema: SidebarSchema },
+    { name: Device.name, schema: DeviceSchemaFile },
+    { name: Cart.name, schema: CartSchemaFile },
+    { name: CartItem.name, schema: CartItemSchemaFile },
+    { name: Customer.name, schema: CustomerSchemaFile },
+    { name: CustomerAddress.name, schema: CustomerAddressSchemaFile },
+    { name: Payment.name, schema: PaymentSchemaFile },
+    { name: Order.name, schema: OrderSchemaFile },
+    { name: OrderItem.name, schema: OrderItemSchemaFile },
+    { name: SubCursor.name, schema: SubCursorSchema },
+    // { name: Permission.name,schema:permissionSchemaFile},
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},
     // { name: SubModulePermission.name,schema:SubModulePermissionSchema},

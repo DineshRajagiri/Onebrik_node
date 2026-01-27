@@ -4,14 +4,14 @@ import { User, UserDocument } from 'src/schema/user.schema';
 import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
-import { UpdateUserDto } from './DTO/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { roles, rolesDetails } from 'src/schema/role.schema';
-import { CreateDeliveryPartnerDto } from './DTO/delivery-partner.dto';
+import { CreateDeliveryPartnerDto } from './dto/delivery-partner.dto';
 import { admin, adminDetails } from 'src/schema/admin.schema';
 import { vendor, vendorDetails } from 'src/schema/vendor.schema';
 import { deliveryBoy, deliveryBoyDetails } from 'src/schema/deliveryBoy.schema';
-import { CreateAdminDto } from './DTO/create-admin.dto';
-import { CreateVendorDto } from './DTO/create-vendor.dto';
+import { CreateAdminDto } from './dto/create-admin.dto';
+import { CreateVendorDto } from './dto/create-vendor.dto';
 import { isAdminStatus } from 'src/utils/constants';
 @Injectable()
 export class UsersService {

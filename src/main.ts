@@ -5,10 +5,10 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import passport from 'passport';
 // import "reflect-metadata";
  import * as dotenv from 'dotenv';
-import { JwtAuthGuard } from './auth/guards/jwt.guard';
+//import { JwtAuthGuard } from './auth/guards/jwt.guard';
 // import { initializeFirebase } from './notification/config/firebase-init';
 // import { initializeFirebase } from './notification/config/firebase.config';
-import './notification/config/firebase-init';
+//import './notification/config/firebase-init';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 dotenv.config();
@@ -35,9 +35,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-doc', app, document);
 
-  const port = process.env.PORT_LOCAL || 3000; 
+  const port = process.env.PORT || process.env.PORT_LOCAL || 3000; 
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   const logger = new Logger();
 
@@ -47,10 +47,7 @@ async function bootstrap() {
 
   logger.log(`😼======================================================== 😼`);
 
-  logger.log(
-    `HTTP Server running on http://localhost:${port} ✌`,
-    'NestApplication',
-  );
+  logger.log('Database connected successfully', 'NestApplication');
 
   logger.log(
     `Database URI: ${process.env.MONGODB_LOCAL_URL} ✌`,

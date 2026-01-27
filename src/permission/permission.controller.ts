@@ -1,12 +1,12 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { PermissionService } from './permission.service';
-import { Services } from 'src/utils/constants';
-import { IPermissionService } from './permission';
-import { Public } from 'src/decorators/public.decorator';
-import { BaseResponse } from 'src/common/DTO/base-response.dto';
-import { CreateAppModuleDto } from './DTO/create-module.dto';
-import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { BaseResponse } from 'src/common/DTO/base-response.dto';
+import { User } from 'src/decorators/getid.decorator';
+import { Public } from 'src/decorators/public.decorator';
+import { Services } from 'src/utils/constants';
+import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { CreateAppModuleDto } from './DTO/create-module.dto';
+import { IPermissionService } from './permission';
 
 @Controller('permission')
 export class PermissionController {
@@ -32,19 +32,22 @@ export class PermissionController {
     return this.service.getSidebarMenu();
   }
 
-  // @UseGuards(JwtAuthGuard)
-@UseGuards(JwtAuthGuard)
-@Get('sidebar')
-async getSidebar(@Req() req) {
-  const userId = req.user.id;
-  const data = await this.service.getSidebarForUser(userId);
-
-  return {
-    success: true,
-    message: 'Sidebar loaded successfully',
-    data,
-  };
-}
+  @UseGuards(JwtAuthGuard)
+  @Get('sidebar')
+  async getSidebar(@Req() req,
+    @User('id') id: string,
+    @User('role') role: string) {
+    console.log(id, "id");
+    // if (role ==='SUPERADMIN') {
+    //   return await this.service.getsidebarForadmin(id);
+    // }
+    const data = await this.service.getSidebarForUser(id);
+    return {
+      success: true,
+      message: 'Sidebar loaded successfully',
+      data,
+    };
+  }
 
   @Public()
   @Get('module')
@@ -106,7 +109,6 @@ async getSidebar(@Req() req) {
     return BaseResponse.ok(data);
   }
 
-
   @Public()
   @Post('role-permissions')
   async upsertPermissions(@Body() dto: UpsertPermissionsForRoleDto) {
@@ -120,4 +122,18 @@ async getSidebar(@Req() req) {
     const data = await this.service.getPermissionsByRole(roleId);
     return BaseResponse.ok(data);
   }
+
+  @Post('give-permissions-sidebar')
+  async givepermissions(@Body() body: any) {
+   await this.service.givePermissions(body);
+  }
+
+  @Post('paginated-modules')
+  async getPaginatedModules(@Body() body: { page: number; limit: number }) {
+    const data = await this.service.getPaginatedModules(body.page, body.limit);
+    return BaseResponse.ok(data);
+  }
+
+
+  
 }

@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { RoleService } from './role.service';
-import { CreateRoleDto } from './dto/create-role.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
+import { CreateRoleDto } from './DTO/create-role.dto';
+import { UpdateRoleDto } from './DTO/update-role.dto';
 import { Services } from 'src/utils/constants';
 import { IRoleService } from './role';
 import { Public } from 'src/decorators/public.decorator';
@@ -28,6 +28,7 @@ export class RoleController {
     return BaseResponse.ok(role, dto.id ? 'Role updated successfully' : 'Role created successfully');
   }
 
+  @Public()
   @Get()
   async findAll() {
     const roles = await this.service.getPaginatedRoles();

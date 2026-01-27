@@ -2,6 +2,8 @@
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { relationshipManager, relationshipManagerDetails } from 'src/schema/relationshipManager';
+
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { roleDTO } from './DTO/role.dto';
 import { admin } from 'src/schema/admin.schema';
@@ -23,10 +25,9 @@ export class MastersService {
     @InjectModel(region.name) private readonly region: Model<regionDetails>,
 
 
-    //inovice traders//
-    // @InjectModel(relationship.name) private readonly relationship: Model<relationshipDetails>,
-    // @InjectModel(profession.name) private readonly profession: Model<professionDetails>,
-    @InjectModel(roles.name) private readonly roles: Model<rolesDetails>,
+    // //inovice traders//
+    // @InjectModel(relationshipManager.name) private readonly relationshipManager: Model<relationshipManagerDetails>,
+    // @InjectModel(roles.name) private readonly roles: Model<rolesDetails>,
 
 
   ) { }

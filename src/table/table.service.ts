@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { TableMetadataMap } from 'src/common/table-metadata/table-index';
 import { InventoryService } from 'src/inventory/inventory.service';
+import { SuperAdminService } from 'src/module/superadmin/superadmin.service';
 import { IPermissionService } from 'src/permission/permission';
 import { PermissionService } from 'src/permission/permission.service';
 import { RoleService } from 'src/role/role.service';
@@ -14,7 +15,8 @@ export class TableService {
     // private readonly service: PermissionService,
     private readonly inventoryService: InventoryService,
     private readonly service: PermissionService,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    private readonly superAdminService: SuperAdminService,
   ) { }
 
   async buildTable(tableKey: string, page: number, limit: number) {
@@ -69,7 +71,9 @@ export class TableService {
       case "roles":
         result = await this.roleService.getPaginatedRoles(page, limit);
         break;
-
+      case "users_new":
+        result = await this.superAdminService.getusers();
+        break;
       default:
         throw new NotFoundException(`No service for table ${tableKey}`);
     }
