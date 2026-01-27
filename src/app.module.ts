@@ -9,9 +9,6 @@ import { NotificationModule } from './notification/notification.module';
 import { MastersModule } from './masters/masters.module';
 import { VendorModule } from './vendor/vendor.module';
 import { AdminModule } from './admin/admin.module';
-import { NeftModule } from './neft/neft.module';
-import { BlogsModule } from './blogs/blogs.module';
-import { WithdrawalModule } from './withdrawal/withdrawal.module';
 import { DeliveryModule } from './deliveryPartner/delivery.module';
 import { RbacModule } from './rbac/rbac.module';
 import { CoreModule } from './core/core/core.module';
@@ -34,9 +31,6 @@ import { FileModule } from './file/file.module';
     HttpModule,
     NotificationModule,
     AdminModule,
-    NeftModule,
-    BlogsModule,
-    WithdrawalModule,
     DeliveryModule,
     RbacModule,
     RoleModule,
