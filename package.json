@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "NODE_OPTIONS='--max-old-space-size=8192' nest build",
+    "build": "nest build",
     "build:webpack": "NODE_OPTIONS='--max-old-space-size=8192' nest build --webpack",
     "build:tsc": "NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
