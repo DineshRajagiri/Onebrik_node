@@ -9,11 +9,11 @@ import { BatchResponse } from 'firebase-admin/lib/messaging/messaging-api';
 // import * as shell from 'shelljs';
 import { chunk } from 'lodash';
 import { mapLimit } from 'async';
-import {
-    notification,
-    notificationDetails,
-    // notificationDetails,
-} from 'src/schema/notification.schema';
+// import {
+//     notification,
+//     notificationDetails,
+//     // notificationDetails,
+// } from 'src/schema/notification.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { notificationToken, notificationTokenDetails } from 'src/schema/notificationToken.schema';
@@ -28,8 +28,8 @@ export interface ISendFirebaseMessages {
 @Injectable()
 export class NotificationService {
     constructor(
-        @InjectModel(notification.name)
-        private notificationModel: Model<notificationDetails>,
+        // @InjectModel(notification.name)
+        // private notificationModel: Model<notificationDetails>,
         @InjectModel(notificationToken.name)
         private notificationTokenModel: Model<notificationTokenDetails>,
     ) {
@@ -191,45 +191,45 @@ export class NotificationService {
     }
 
 
-    async sendPush(data: { user: string; title: string; body: string }) {
-        try {
-            const { user, title, body } = data;
-            const notifications = await this.notificationTokenModel.find({ user }).lean();
+    // async sendPush(data: { user: string; title: string; body: string }) {
+    //     try {
+    //         const { user, title, body } = data;
+    //         const notifications = await this.notificationTokenModel.find({ user }).lean();
     
-            if (!notifications.length) {
-                console.warn(`🚫 No tokens found for user: ${user}`);
-                return;
-            }
+    //         if (!notifications.length) {
+    //             console.warn(`🚫 No tokens found for user: ${user}`);
+    //             return;
+    //         }
     
-            const tokens = notifications.map((x) => x.notification_token);
-            await this.notificationModel.create({ user, title, body });
+    //         const tokens = notifications.map((x) => x.notification_token);
+    //         await this.notificationModel.create({ user, title, body });
     
-            // console.log("🔥 Firebase Admin Initialized:", admin.apps.length > 0);
+    //         // console.log("🔥 Firebase Admin Initialized:", admin.apps.length > 0);
     
-            const response = await admin.messaging().sendEachForMulticast({
-                notification: { title, body },
-                data: { title, body },  
-                tokens: tokens,
-                android: { priority: "high" },
-                apns: { headers: { "apns-priority": "10" } },
-            });
+    //         const response = await admin.messaging().sendEachForMulticast({
+    //             notification: { title, body },
+    //             data: { title, body },  
+    //             tokens: tokens,
+    //             android: { priority: "high" },
+    //             apns: { headers: { "apns-priority": "10" } },
+    //         });
             
     
-            // console.log("✅ Push Notification Sent:", response);
+    //         // console.log("✅ Push Notification Sent:", response);
     
-            if (response.failureCount > 0) {
-                response.responses.forEach(async (res, index) => {
-                    if (!res.success) {
-                        console.log("🚫 Invalid Token Deleted:", tokens[index]);
-                        // await this.notificationTokenModel.deleteOne({ notification_token: tokens[index] });
-                    }
-                });
-            }
-        } catch (error) {
-            console.error("❌ Push Notification Error:", error.message);
-            console.error("❌ Full Error:", JSON.stringify(error, null, 2));
-        }
-    }
+    //         if (response.failureCount > 0) {
+    //             response.responses.forEach(async (res, index) => {
+    //                 if (!res.success) {
+    //                     console.log("🚫 Invalid Token Deleted:", tokens[index]);
+    //                     // await this.notificationTokenModel.deleteOne({ notification_token: tokens[index] });
+    //                 }
+    //             });
+    //         }
+    //     } catch (error) {
+    //         console.error("❌ Push Notification Error:", error.message);
+    //         console.error("❌ Full Error:", JSON.stringify(error, null, 2));
+    //     }
+    // }
     
     
 

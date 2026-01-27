@@ -1,7 +1,6 @@
 import { admin, adminSchemaFile } from "src/schema/admin.schema";
 import { attributes, attributesSchemaFile } from "src/schema/attributes.schema";
 import { attributesValues, attributesValuesSchemaFile } from "src/schema/attributesValues.schema";
-import { blogs, blogsSchemaFile } from "src/schema/blogs.schema";
 import { category, categorySchemaFile } from "src/schema/category.schema";
 import { Counter, CounterSchema } from "src/schema/counter.schema";
 import { deliveryBoy, deliveryBoySchemaFile } from "src/schema/deliveryBoy.schema";
@@ -15,7 +14,6 @@ import { Product, ProductSchema } from "src/schema/products.schema";
 import { productVariants, productVariantsSchemaFile } from "src/schema/productVariants.schema";
 import { Permission, PermissionSchema } from "src/schema/permission.schema";
 import { region, regionSchemaFile } from "src/schema/region.schema";
-import { relationshipManager, relationshipManagerSchemaFile } from "src/schema/relationshipManager";
 import { roles, rolesSchemaFile } from "src/schema/role.schema";
 import { subModules, subModulesSchemaFile } from "src/schema/subModule.schema";
 import { subModuleChild, subModuleChildSchemaFile } from "src/schema/subModuleChild.schema";
