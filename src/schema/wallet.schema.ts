@@ -23,7 +23,7 @@
     @Prop()
     amount: number;
     
-    @Prop()
+    @Prop({ enum: Object.values(PaymentStatus) })
     @IsEnum(PaymentStatus)
     status: PaymentStatus;
     @Prop({ enum: ['wallet', 'upi'], })

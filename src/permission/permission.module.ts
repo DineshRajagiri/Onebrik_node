@@ -13,7 +13,8 @@ import { Services } from 'src/utils/constants';
     HttpModule,
     MongooseModule.forFeature(entities),
     NotificationModule,
-    CommonModule
+    CommonModule,
+ 
   ],
   controllers: [PermissionController],
   providers: [

@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { relationshipDTO } from './DTO/realtionship.dto';
 import { experience, experienceDetails } from 'src/schema/experience.schema';
-import { incomeRange, incomeRangeDetails } from 'src/schema/IncomeRange.schema';
+import { incomeRange, incomeRangeDetails } from '../schema/IncomeRange.schema';
 import { xScoreDTO } from './DTO/xScore.dto';
 import { relationshipManager, relationshipManagerDetails } from 'src/schema/relationshipManager';
 import { relationshipManagerDTO } from './DTO/realationshipManager.dto';

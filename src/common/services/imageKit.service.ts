@@ -24,7 +24,6 @@ export class ImageKitService {
   }
   async multiFileUpload(files, id) {
     let fileArray = [];
-
     for await (const iterator of files) {
       let fileName = iterator.originalname.split(".")
       const result = await this.imageKit.upload({

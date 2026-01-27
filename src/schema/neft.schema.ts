@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { IsNotEmpty, IsString } from 'class-validator';
-import { Document, SchemaTypes, Types } from 'mongoose';
+import { Document } from 'mongoose';
 import { commonDTO } from 'src/common/DTO/commonDTO';
 import { neftStatus } from 'src/utils/constants';
 export type neftDetails = neft & Document;
@@ -22,7 +21,7 @@ export class neft extends commonDTO {
   @Prop()
   branchName: string;
 
-  @Prop({ type: String, enum: neftStatus })
+  @Prop({ type: String, enum: Object.values(neftStatus) })
   status: neftStatus;
 
   @Prop()

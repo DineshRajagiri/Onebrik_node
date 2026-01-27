@@ -31,6 +31,16 @@ import { VariantImages, VariantImagesSchemaFile } from "src/schema/variantImages
 import { vendor, vendorSchemaFile } from "src/schema/vendor.schema";
 import { wallet, walletSchemaFile } from "src/schema/wallet.schema";
 import { withdrawal, withdrawalSchemaFile } from "src/schema/withdrawal.schema";
+import { Sidebar, SidebarSchema } from "src/schema/sidebar.scehma";
+import { Device, DeviceSchemaFile } from "src/schema/device.schema";
+import { Cart, CartSchemaFile } from "src/schema/cart.schema";
+import { CartItem, CartItemSchemaFile } from "src/schema/cartItem.schema";
+import { Customer, CustomerSchemaFile } from "src/schema/customer.schema";
+import { CustomerAddress, CustomerAddressSchemaFile } from "src/schema/customerAddress.schema";
+import { Payment, PaymentSchemaFile } from "src/schema/payment.schema";
+import { Order, OrderSchemaFile } from "src/schema/order.schema";
+import { OrderItem, OrderItemSchemaFile } from "src/schema/orderItem.schema";
+import { SubCursor, SubCursorSchema } from "src/schema/subcursore.schema";
 
 
 
@@ -70,7 +80,18 @@ export const entities = [
     { name: VariantAttributeValues.name, schema: VariantAttributeValuesSchemaFile },
     { name: VariantImages.name, schema: VariantImagesSchemaFile },
    { name: Product.name, schema: ProductSchema },
-    { name: productVariants.name, schema: productVariantsSchemaFile }
+    { name: productVariants.name, schema: productVariantsSchemaFile },
+    { name: Sidebar.name, schema: SidebarSchema },
+    { name: Device.name, schema: DeviceSchemaFile },
+    { name: Cart.name, schema: CartSchemaFile },
+    { name: CartItem.name, schema: CartItemSchemaFile },
+    { name: Customer.name, schema: CustomerSchemaFile },
+    { name: CustomerAddress.name, schema: CustomerAddressSchemaFile },
+    { name: Payment.name, schema: PaymentSchemaFile },
+    { name: Order.name, schema: OrderSchemaFile },
+    { name: OrderItem.name, schema: OrderItemSchemaFile },
+    { name: SubCursor.name, schema: SubCursorSchema },
+    // { name: Permission.name,schema:permissionSchemaFile},
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},
     // { name: SubModulePermission.name,schema:SubModulePermissionSchema},

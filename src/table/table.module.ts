@@ -9,12 +9,15 @@ import { entities } from 'src/utils/entities';
 import { PermissionService } from 'src/permission/permission.service';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { RoleService } from 'src/role/role.service';
+import { SuperAdminService } from 'src/module/superadmin/superadmin.service';
+import { SuperAdminModule } from 'src/module/superadmin/superadmin.module';
 
 @Module({
   imports: [
     CommonModule,
     MongooseModule.forFeature(entities),
     forwardRef(() => AuthModule),
+    SuperAdminModule
   ],
   providers: [
     {

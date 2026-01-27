@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query } from '@nestjs/common';
 // import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './DTO/create-user.dto';
 import { IUserService } from './users';
 import { Services } from 'src/utils/constants';
 import { Public } from 'src/decorators/public.decorator';

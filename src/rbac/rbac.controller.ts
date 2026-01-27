@@ -1,9 +1,9 @@
 import { Body, Controller, Inject, Post, Get, Param, Put, Delete, Query } from '@nestjs/common';
 import { Services } from 'src/utils/constants';
 import { IRBACService } from './rbac';
-import { CreateMenuDto } from './dto/create-menu.dto';
-import { UpdateMenuDto } from './dto/update-menu.dto';
-import { ListMenuDto } from './dto/list-menu.dto';
+import { CreateMenuDto } from './DTO/create-menu.dto';
+import { UpdateMenuDto } from './DTO/update-menu.dto';
+import { ListMenuDto } from './DTO/list-menu.dto';
 import { Public } from 'src/decorators/public.decorator';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
 
@@ -34,7 +34,6 @@ export class RbacController {
               }
             ]
           },
-
           {
             id: 'masters',
             title: 'Masters',
@@ -73,7 +72,6 @@ export class RbacController {
               }
             ]
           },
-
           {
             id: 'users',
             title: 'Users',

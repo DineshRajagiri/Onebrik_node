@@ -18,4 +18,6 @@ export interface IPermissionService {
   getModuleTree(): Promise<any>;
   getSidebarMenu(): Promise<any>;
   getPaginatedModules(page: number, limit: number): Promise<any>;
+  givePermissions(data: any): Promise<void>;
+  getsidebarForadmin(role): Promise<any>;
 }

@@ -1,6 +1,6 @@
 
-import { CreateRoleDto } from "./dto/create-role.dto";
-import { UpdateRoleDto } from "./dto/update-role.dto";
+import { CreateRoleDto } from "./DTO/create-role.dto";
+import { UpdateRoleDto } from "./DTO/update-role.dto";
 
 export interface IRoleService {
   create(dto: CreateRoleDto): Promise<any>;

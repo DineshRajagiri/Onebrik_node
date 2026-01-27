@@ -59,7 +59,7 @@ export class deals extends commonDTO {
   enterpriseInvoiceToShow: string;
   @Prop()
   tenure?: string;
-  @Prop({ type: String, enum: isDealStatus, default: isDealStatus.INACTIVE })
+  @Prop({ type: String, enum: Object.values(isDealStatus), default: isDealStatus.INACTIVE })
   dealStatus: isDealStatus;
   @Prop() 
   remainingValue: number;
