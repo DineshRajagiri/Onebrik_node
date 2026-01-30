@@ -7,7 +7,6 @@ import { deliveryBoy, deliveryBoySchemaFile } from "src/schema/deliveryBoy.schem
 import { inventoryCategory, inventoryCategorySchemaFile } from "src/schema/inventoryCategory.schema";
 import { Menu, MenuSchema } from "src/schema/menu.schema";
 import { modules, modulesSchemaFile } from "src/schema/module.schema";
-import { notification, notificationSchemaFile } from "src/schema/notification.schema";
 import { notificationToken, notificationTokenSchemaFile } from "src/schema/notificationToken.schema";
 // import { Permission, permissionSchemaFile } from "src/schema/permission.schema";
 import { Product, ProductSchema } from "src/schema/products.schema";
@@ -47,11 +46,8 @@ export const entities = [
     { name: Permission.name, schema: PermissionSchema },
     { name: roles.name, schema: rolesSchemaFile },
     { name: notificationToken.name, schema: notificationTokenSchemaFile },
-    { name: notification.name, schema: notificationSchemaFile },
     { name: vendor.name, schema: vendorSchemaFile },
     { name: Counter.name, schema: CounterSchema },
-    { name: relationshipManager.name, schema: relationshipManagerSchemaFile },
-    { name: blogs.name, schema: blogsSchemaFile },
     { name: category.name, schema: categorySchemaFile },
     { name: region.name, schema: regionSchemaFile },
     { name: deliveryBoy.name, schema: deliveryBoySchemaFile },
