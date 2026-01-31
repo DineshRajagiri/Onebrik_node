@@ -51,6 +51,8 @@ export interface IInventoryService {
     getAllProductVariants(query: PaginationQuery): Promise<any>;
     getAllVariantAttributeValues(query: PaginationQuery): Promise<any>;
     getAllVariantImages(query: PaginationQuery): Promise<any>;
+    getAllFullProductsDetails(query: PaginationQuery): Promise<any>;
+
 
 
     getAttributeValuesbyattributeid(attributeId: string, query?: PaginationQuery): Promise<any>;

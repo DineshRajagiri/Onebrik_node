@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query, Req, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { Services } from 'src/utils/constants';
-import { IInventoryService } from './inventory';
+import { IInventoryService, PaginationQuery } from './inventory';
 import { Public } from 'src/decorators/public.decorator';
 import { attributesDTO } from './dto/attributes.dto';
 import { attributesValuesDTO } from './dto/attributesValues.dto';
@@ -238,6 +238,21 @@ export class InventoryController {
     @Get('getVariantImageById/:id')
     async getVariantImageById(@Param('id') id: string) {
         return this.service.getVariantImageById(id);
+    }
+    @Public()
+    @Get("full-products")
+    async getAllFullProducts(@Query() query: PaginationQuery) {
+        const result = await this.service.getAllFullProductsDetails(query);
+
+        return {
+            success: true,
+            products: result.data,
+            pagination: {
+                page: Number(query.page) || 1,
+                limit: Number(query.limit) || 10,
+                total: result.total,
+            },
+        };
     }
 
 
