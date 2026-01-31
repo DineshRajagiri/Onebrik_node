@@ -36,11 +36,11 @@ export class InventoryController {
         return this.service.createInventoryCategory(dto);
     }
 
-    @Public()
-    @Post('createProduct')
-    async createProduct(@Body() dto: productDTO) {
-        return this.service.createProduct(dto);
-    }
+    // @Public()
+    // @Post('createProduct')
+    // async createProduct(@Body() dto: productDTO) {
+    //     return this.service.createProduct(dto);
+    // }
 
     @Public()
     @Post('createProductVariant')
@@ -87,7 +87,7 @@ export class InventoryController {
     }
 
     @Public()
-    @Post("createFullProduct")
+    @Post("createProducts")
     async createFullProduct(@Body() dto: CreateFullProductDTO) {
         return this.service.createFullProduct(dto);
     }
@@ -127,10 +127,15 @@ export class InventoryController {
 
 
 
+    // @Public()
+    // @Put('updateProduct/:id')
+    // async updateProduct(@Param('id') id: string, @Body() dto: productDTO) {
+    //     return this.service.updateProduct(id, dto);
+    // }
     @Public()
     @Put('updateProduct/:id')
-    async updateProduct(@Param('id') id: string, @Body() dto: productDTO) {
-        return this.service.updateProduct(id, dto);
+    async updateFullProduct(@Param('id') id: string, @Body() dto: CreateFullProductDTO) {
+        return this.service.updateFullProduct(id, dto);
     }
     @Public()
     @Put('updateProductVariant/:id')
@@ -239,20 +244,23 @@ export class InventoryController {
     async getVariantImageById(@Param('id') id: string) {
         return this.service.getVariantImageById(id);
     }
-    @Public()
-    @Get("full-products")
-    async getAllFullProducts(@Query() query: PaginationQuery) {
-        const result = await this.service.getAllFullProductsDetails(query);
 
-        return {
-            success: true,
-            products: result.data,
-            pagination: {
-                page: Number(query.page) || 1,
-                limit: Number(query.limit) || 10,
-                total: result.total,
-            },
-        };
+    @Public()
+    @Get("getAllProducts")
+    async getAllProducts(@Query() query: PaginationQuery) {
+        return this.service.getAllProducts(query);
+    }
+
+
+
+
+
+
+    @Public()
+    @Get("getAllProducts")
+    async getAllFullProducts(@Query() query: PaginationQuery) {
+        const result = await this.service.getAllProducts(query);
+        return { success: true, products: result.data, pagination: { page: Number(query.page) || 1, limit: Number(query.limit) || 10, total: result.total, }, };
     }
 
 

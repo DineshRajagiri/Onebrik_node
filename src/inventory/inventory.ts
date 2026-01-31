@@ -63,6 +63,8 @@ export interface IInventoryService {
     getInventoryCategoryById(id: string): Promise<any>;
     getVariantAttributeValueById(id: string): Promise<any>;
     getVariantImageById(id: string): Promise<any>;
+    getProductDetailsById(id: string): Promise<any>;
+
 
 
     deleteAttributeValue(id: string): Promise<any>;
