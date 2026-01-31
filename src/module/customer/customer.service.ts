@@ -1044,167 +1044,333 @@ export class CustomerService {
   // ==============================
   // PRODUCT/ITEMS OPERATIONS
   // ==============================
+  // async getItems(query: GetItemsDto) {
+  //   try {
+  //     const {
+  //       page = 1,
+  //       limit = 10,
+  //       search = '',
+  //       mainCategoryId,
+  //       subCategoryId,
+  //       subChildCategoryId,
+  //       minPrice,
+  //       maxPrice,
+  //       sortBy = 'createdAt',
+  //       sortOrder = 'desc',
+  //       inStock,
+  //     } = query;
+
+  //     const skip = (page - 1) * limit;
+  //     const filter: any = {
+  //       isDeleted: false,
+  //       isActive: true,
+  //     };
+
+  //     // Search filter
+  //     if (search.trim()) {
+  //       filter.productName = { $regex: search.trim(), $options: 'i' };
+  //     }
+
+  //     // Category filters
+  //     if (mainCategoryId) filter.mainCategoryId = mainCategoryId;
+  //     if (subCategoryId) filter.subCategoryId = subCategoryId;
+  //     if (subChildCategoryId) filter.subChildCategoryId = subChildCategoryId;
+
+  //     // Price filter (on product base price)
+  //     if (minPrice !== undefined || maxPrice !== undefined) {
+  //       filter.price = {};
+  //       if (minPrice !== undefined) {
+  //         filter.price.$gte = minPrice.toString();
+  //       }
+  //       if (maxPrice !== undefined) {
+  //         filter.price.$lte = maxPrice.toString();
+  //       }
+  //     }
+
+  //     // Sort options
+  //     const sortOptions: any = {};
+  //     if (sortBy === 'price') {
+  //       sortOptions.price = sortOrder === 'asc' ? 1 : -1;
+  //     } else if (sortBy === 'name') {
+  //       sortOptions.productName = sortOrder === 'asc' ? 1 : -1;
+  //     } else {
+  //       sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
+  //     }
+
+  //     // Get products
+  //     const products = await this.productModel
+  //       .find(filter)
+  //       .populate('mainCategoryId', 'categoryName level')
+  //       .populate('subCategoryId', 'categoryName level')
+  //       .populate('subChildCategoryId', 'categoryName level')
+  //       .skip(skip)
+  //       .limit(limit)
+  //       .sort(sortOptions)
+  //       .lean();
+
+  //     // Get variants for each product
+  //     const productsWithVariants = await Promise.all(
+  //       products.map(async (product) => {
+  //         const variantFilter: any = {
+  //           productId: product._id,
+  //           isDeleted: false,
+  //           isActive: true,
+  //         };
+
+  //         // Stock filter
+  //         if (inStock !== undefined) {
+  //           if (inStock) {
+  //             variantFilter.stock = { $gt: '0' };
+  //           } else {
+  //             variantFilter.$or = [
+  //               { stock: { $lte: '0' } },
+  //               { stock: { $exists: false } },
+  //             ];
+  //           }
+  //         }
+
+  //         const variants = await this.variantModel.find(variantFilter).lean();
+
+  //         // Apply price filter on variants if no variants match product price filter
+  //         let filteredVariants = variants;
+  //         if (minPrice !== undefined || maxPrice !== undefined) {
+  //           filteredVariants = variants.filter((variant) => {
+  //             const variantPrice = parseFloat(variant.price || '0');
+  //             if (minPrice !== undefined && variantPrice < minPrice) return false;
+  //             if (maxPrice !== undefined && variantPrice > maxPrice) return false;
+  //             return true;
+  //           });
+  //         }
+
+  //         // Get minimum and maximum prices from variants
+  //         const variantPrices = filteredVariants.map((v) => parseFloat(v.price || '0'));
+  //         const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : parseFloat(product.price || '0');
+  //         const maxVariantPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : parseFloat(product.price || '0');
+
+  //         return {
+  //           ...product,
+  //           mainCategoryName: (product.mainCategoryId as any)?.categoryName || null,
+  //           subCategoryName: (product.subCategoryId as any)?.categoryName || null,
+  //           subChildCategoryName: (product.subChildCategoryId as any)?.categoryName || null,
+  //           variants: filteredVariants,
+  //           minPrice: minVariantPrice,
+  //           maxPrice: maxVariantPrice,
+  //           hasVariants: filteredVariants.length > 0,
+  //           totalStock: filteredVariants.reduce((sum, v) => sum + parseFloat(v.stock || '0'), 0),
+  //         };
+  //       }),
+  //     );
+
+  //     // Filter out products that don't have any variants matching stock filter
+  //     const finalProducts = inStock !== undefined
+  //       ? productsWithVariants.filter((p) => p.totalStock > 0)
+  //       : productsWithVariants;
+
+  //     // Get total count
+  //     const total = await this.productModel.countDocuments(filter);
+
+  //     return {
+  //       success: true,
+  //       message: 'Items fetched successfully',
+  //       statusCode: 200,
+  //       data: {
+  //         items: finalProducts,
+  //         pagination: {
+  //           page: Number(page),
+  //           limit: Number(limit),
+  //           total,
+  //           totalPages: Math.ceil(total / limit),
+  //         },
+  //         filters: {
+  //           search,
+  //           mainCategoryId,
+  //           subCategoryId,
+  //           subChildCategoryId,
+  //           minPrice,
+  //           maxPrice,
+  //           sortBy,
+  //           sortOrder,
+  //           inStock,
+  //         },
+  //       },
+  //     };
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       {
+  //         success: false,
+  //         message: error.message || 'Failed to fetch items',
+  //         statusCode: 400,
+  //         data: null,
+  //       },
+  //       HttpStatus.BAD_REQUEST,
+  //     );
+  //   }
+  // }
+
   async getItems(query: GetItemsDto) {
-    try {
-      const {
-        page = 1,
-        limit = 10,
-        search = '',
-        mainCategoryId,
-        subCategoryId,
-        subChildCategoryId,
-        minPrice,
-        maxPrice,
-        sortBy = 'createdAt',
-        sortOrder = 'desc',
-        inStock,
-      } = query;
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      mainCategoryId,
+      subCategoryId,
+      subChildCategoryId,
+      minPrice,
+      maxPrice,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      inStock,
+    } = query;
 
-      const skip = (page - 1) * limit;
-      const filter: any = {
-        isDeleted: false,
-        isActive: true,
-      };
+    const skip = (page - 1) * limit;
 
-      // Search filter
-      if (search.trim()) {
-        filter.productName = { $regex: search.trim(), $options: 'i' };
-      }
+    /* -------------------- PRODUCT FILTER -------------------- */
+    const productFilter: any = {
+      isDeleted: false,
+      isActive: true,
+    };
 
-      // Category filters
-      if (mainCategoryId) filter.mainCategoryId = mainCategoryId;
-      if (subCategoryId) filter.subCategoryId = subCategoryId;
-      if (subChildCategoryId) filter.subChildCategoryId = subChildCategoryId;
+    if (search.trim()) {
+      productFilter.productName = { $regex: search.trim(), $options: 'i' };
+    }
 
-      // Price filter (on product base price)
-      if (minPrice !== undefined || maxPrice !== undefined) {
-        filter.price = {};
-        if (minPrice !== undefined) {
-          filter.price.$gte = minPrice.toString();
-        }
-        if (maxPrice !== undefined) {
-          filter.price.$lte = maxPrice.toString();
-        }
-      }
+    if (mainCategoryId) productFilter.mainCategoryId = mainCategoryId;
+    if (subCategoryId) productFilter.subCategoryId = subCategoryId;
+    if (subChildCategoryId) productFilter.subChildCategoryId = subChildCategoryId;
 
-      // Sort options
-      const sortOptions: any = {};
-      if (sortBy === 'price') {
-        sortOptions.price = sortOrder === 'asc' ? 1 : -1;
-      } else if (sortBy === 'name') {
-        sortOptions.productName = sortOrder === 'asc' ? 1 : -1;
-      } else {
-        sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
-      }
+    /* -------------------- SORT -------------------- */
+    const sortOptions: any = {};
+    if (sortBy === 'name') {
+      sortOptions.productName = sortOrder === 'asc' ? 1 : -1;
+    } else {
+      sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
+    }
 
-      // Get products
-      const products = await this.productModel
-        .find(filter)
-        .populate('mainCategoryId', 'categoryName level')
-        .populate('subCategoryId', 'categoryName level')
-        .populate('subChildCategoryId', 'categoryName level')
-        .skip(skip)
-        .limit(limit)
-        .sort(sortOptions)
-        .lean();
+    /* -------------------- FETCH PRODUCTS -------------------- */
+    const products = await this.productModel
+      .find(productFilter)
+      .populate('mainCategoryId', 'categoryName')
+      .populate('subCategoryId', 'categoryName')
+      .populate('subChildCategoryId', 'categoryName')
+      .skip(skip)
+      .limit(limit)
+      .sort(sortOptions)
+      .lean();
 
-      // Get variants for each product
-      const productsWithVariants = await Promise.all(
-        products.map(async (product) => {
-          const variantFilter: any = {
-            productId: product._id,
-            isDeleted: false,
-            isActive: true,
-          };
-
-          // Stock filter
-          if (inStock !== undefined) {
-            if (inStock) {
-              variantFilter.stock = { $gt: '0' };
-            } else {
-              variantFilter.$or = [
-                { stock: { $lte: '0' } },
-                { stock: { $exists: false } },
-              ];
-            }
-          }
-
-          const variants = await this.variantModel.find(variantFilter).lean();
-
-          // Apply price filter on variants if no variants match product price filter
-          let filteredVariants = variants;
-          if (minPrice !== undefined || maxPrice !== undefined) {
-            filteredVariants = variants.filter((variant) => {
-              const variantPrice = parseFloat(variant.price || '0');
-              if (minPrice !== undefined && variantPrice < minPrice) return false;
-              if (maxPrice !== undefined && variantPrice > maxPrice) return false;
-              return true;
-            });
-          }
-
-          // Get minimum and maximum prices from variants
-          const variantPrices = filteredVariants.map((v) => parseFloat(v.price || '0'));
-          const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : parseFloat(product.price || '0');
-          const maxVariantPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : parseFloat(product.price || '0');
-
-          return {
-            ...product,
-            mainCategoryName: (product.mainCategoryId as any)?.categoryName || null,
-            subCategoryName: (product.subCategoryId as any)?.categoryName || null,
-            subChildCategoryName: (product.subChildCategoryId as any)?.categoryName || null,
-            variants: filteredVariants,
-            minPrice: minVariantPrice,
-            maxPrice: maxVariantPrice,
-            hasVariants: filteredVariants.length > 0,
-            totalStock: filteredVariants.reduce((sum, v) => sum + parseFloat(v.stock || '0'), 0),
-          };
-        }),
-      );
-
-      // Filter out products that don't have any variants matching stock filter
-      const finalProducts = inStock !== undefined
-        ? productsWithVariants.filter((p) => p.totalStock > 0)
-        : productsWithVariants;
-
-      // Get total count
-      const total = await this.productModel.countDocuments(filter);
-
+    if (!products.length) {
       return {
         success: true,
         message: 'Items fetched successfully',
         statusCode: 200,
         data: {
-          items: finalProducts,
+          items: [],
           pagination: {
-            page: Number(page),
-            limit: Number(limit),
-            total,
-            totalPages: Math.ceil(total / limit),
-          },
-          filters: {
-            search,
-            mainCategoryId,
-            subCategoryId,
-            subChildCategoryId,
-            minPrice,
-            maxPrice,
-            sortBy,
-            sortOrder,
-            inStock,
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
           },
         },
       };
-    } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: error.message || 'Failed to fetch items',
-          statusCode: 400,
-          data: null,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
     }
+
+    const productIds = products.map(p => p._id);
+
+    /* -------------------- FETCH VARIANTS (ONCE) -------------------- */
+    const variantFilter: any = {
+      productId: { $in: productIds },
+      isDeleted: false,
+      isActive: true,
+    };
+
+    if (inStock !== undefined) {
+      variantFilter.stock = inStock ? { $gt: 0 } : { $lte: 0 };
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      variantFilter.salePrice = {};
+      if (minPrice !== undefined) variantFilter.salePrice.$gte = minPrice;
+      if (maxPrice !== undefined) variantFilter.salePrice.$lte = maxPrice;
+    }
+
+    const variants = await this.variantModel.find(variantFilter).lean();
+
+    /* -------------------- GROUP VARIANTS -------------------- */
+    const variantMap = new Map<string, any[]>();
+    for (const v of variants) {
+      const key = String(v.productId);
+      if (!variantMap.has(key)) variantMap.set(key, []);
+      variantMap.get(key)!.push(v);
+    }
+
+    /* -------------------- FINAL RESPONSE SHAPE -------------------- */
+    const items = products.map(product => {
+      const productVariants = variantMap.get(String(product._id)) || [];
+
+      const prices = productVariants.map(v => v.offerPrice ?? v.salePrice);
+      const stocks = productVariants.map(v => Number(v.stock || 0));
+
+      return {
+        id: product._id,
+        name: product.productName,
+        brand: product.brand,
+        description: product.description,
+        about: product.about,
+        rating: product.rating,
+        discount: product.discount,
+        offer: product.offer,
+
+        image: null, // can be filled from default variant image later
+        colors: [], // derive later if needed
+
+        quantity: stocks.reduce((a, b) => a + b, 0),
+        isStock: stocks.some(s => s > 0),
+
+        minPrice: prices.length ? Math.min(...prices) : null,
+        maxPrice: prices.length ? Math.max(...prices) : null,
+
+        created: product.createdAt,
+
+        categories: {
+          main: (product.mainCategoryId as any)?.categoryName || null,
+          sub: (product.subCategoryId as any)?.categoryName || null,
+          child: (product.subChildCategoryId as any)?.categoryName || null,
+        },
+
+        variants: productVariants,
+      };
+    });
+
+    /* -------------------- TOTAL COUNT -------------------- */
+    const total = await this.productModel.countDocuments(productFilter);
+
+    return {
+      success: true,
+      message: 'Items fetched successfully',
+      statusCode: 200,
+      data: {
+        items,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
+  } catch (error) {
+    throw new HttpException(
+      {
+        success: false,
+        message: error.message || 'Failed to fetch items',
+        statusCode: 400,
+        data: null,
+      },
+      HttpStatus.BAD_REQUEST,
+    );
   }
+}
+
 }
 

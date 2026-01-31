@@ -5,20 +5,24 @@ import { Product } from "src/schema/products.schema";
 import { VariantAttributeItem } from "./variantAttributeValues.dto";
 
 export class productVariantsDTO {
-    @Prop()
-    productId: string;
+  @Prop()
+  productId: string;
 
-    @Prop()
-    variantName: string;
+  @Prop()
+  variantName: string;
 
-    @Prop()
-    stock: string;
+  @Prop()
+  stock: string;
 
-    @Prop()
-    price: string;
+  @Prop()
+  variantSku: string;
 
-    @Prop()
-    variantSku: string;
+  @Prop()
+  salePrice: number;
+
+  @Prop()
+  offerPrice: number;
+
 
   attributes?: VariantAttributeItem[];
 }

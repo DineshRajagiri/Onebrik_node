@@ -287,8 +287,11 @@ export class InventoryService {
         throw new NotFoundException("Product not found");
       }
 
-      if (!dto.price) {
-        throw new BadRequestException("Variant price is required");
+      if (!dto.salePrice) {
+        throw new BadRequestException("Variant sale price is required");
+      }
+      if (!dto.offerPrice) {
+        throw new BadRequestException("Variant offer price is required");
       }
       if (!dto.stock) {
         throw new BadRequestException("Variant stock is required");
@@ -296,7 +299,8 @@ export class InventoryService {
 
       const createdVariant = await this.productVarientsModel.create({
         productId: dto.productId,
-        price: dto.price,
+        salePrice: dto.salePrice,
+        offerPrice: dto.offerPrice || 0,
         stock: dto.stock,
         variantSku: dto.variantSku || null,
         variantName: dto.variantName.trim(),
@@ -417,6 +421,156 @@ export class InventoryService {
       );
     }
   }
+  // async createFullProduct(dto: CreateFullProductDTO) {
+  //   try {
+  //     if (!dto.productName?.trim()) {
+  //       throw new BadRequestException("Product name is required");
+  //     }
+
+  //     if (!Array.isArray(dto.variants) || dto.variants.length === 0) {
+  //       throw new BadRequestException("At least one variant is required");
+  //     }
+  //     const categoryIds = [
+  //       dto.mainCategoryId,
+  //       dto.subCategoryId,
+  //       dto.subChildCategoryId
+  //     ].filter(Boolean);
+
+  //     if (categoryIds.length) {
+  //       const categoryCount = await this.inventoryCategoryModel.countDocuments({
+  //         _id: { $in: categoryIds }
+  //       });
+
+  //       if (categoryCount !== categoryIds.length) {
+  //         throw new BadRequestException("Invalid category id(s)");
+  //       }
+  //     }
+
+  //     const exists = await this.productModel.findOne({
+  //       productName: dto.productName.trim(),
+  //       mainCategoryId: dto.mainCategoryId ?? null,
+  //       subCategoryId: dto.subCategoryId ?? null,
+  //       subChildCategoryId: dto.subChildCategoryId ?? null,
+  //     });
+
+  //     if (exists) {
+  //       throw new ConflictException(
+  //         "Product already exists in this category"
+  //       );
+  //     }
+
+  //     const attributeIds = new Set<string>();
+  //     const attributeValuePairs: { attributeId: string; valueId: string }[] = [];
+
+  //     dto.variants.forEach(v => {
+  //       v.attributes?.forEach(a => {
+  //         attributeIds.add(a.attributeId);
+  //         attributeValuePairs.push({
+  //           attributeId: a.attributeId,
+  //           valueId: a.attributeValuesId
+  //         });
+  //       });
+  //     });
+
+  //     if (attributeIds.size) {
+  //       const validAttrCount = await this.attributesModel.countDocuments({
+  //         _id: { $in: [...attributeIds] }
+  //       });
+
+  //       if (validAttrCount !== attributeIds.size) {
+  //         throw new BadRequestException("Invalid attributeId found");
+  //       }
+  //     }
+
+  //     for (const pair of attributeValuePairs) {
+  //       const valid = await this.attributesValuesModel.exists({
+  //         _id: pair.valueId,
+  //         attributeId: pair.attributeId
+  //       });
+
+  //       if (!valid) {
+  //         throw new BadRequestException(
+  //           `Invalid attribute value ${pair.valueId} for attribute ${pair.attributeId}`
+  //         );
+  //       }
+  //     }
+  //     const product = await this.productModel.create({
+  //       productName: dto.productName.trim(),
+  //       description: dto.description ?? "",
+  //       price: dto.price ?? "",
+  //       sku: dto.sku,
+  //       mainCategoryId: dto.mainCategoryId ?? null,
+  //       subCategoryId: dto.subCategoryId ?? null,
+  //       subChildCategoryId: dto.subChildCategoryId ?? null,
+  //     });
+
+  //     const variants = await this.productVarientsModel.insertMany(
+  //       dto.variants.map(v => ({
+  //         productId: product._id,
+  //         variantName: v.variantName,
+  //         price: v.price,
+  //         stock: v.stock,
+  //         variantSku: v.variantSku,
+  //       }))
+  //     );
+
+  //     const attributeDocs = [];
+  //     const imageDocs = [];
+
+  //     variants.forEach((variant, index) => {
+  //       const input = dto.variants[index];
+
+  //       input.attributes?.forEach(a => {
+  //         attributeDocs.push({
+  //           productVariantId: variant._id,
+  //           attributeId: a.attributeId,
+  //           attributeValuesId: a.attributeValuesId,
+  //         });
+  //       });
+
+  //       input.images?.forEach(url => {
+  //         imageDocs.push({
+  //           productVariantId: variant._id,
+  //           imageUrl: url,
+  //         });
+  //       });
+  //     });
+
+  //     const attributes = attributeDocs.length
+  //       ? await this.variantAttributeValuesModel.insertMany(attributeDocs)
+  //       : [];
+
+  //     const images = imageDocs.length
+  //       ? await this.variantImageModel.insertMany(imageDocs)
+  //       : [];
+  //     return {
+  //       success: true,
+  //       message: "Product created successfully",
+  //       data: {
+  //         product,
+  //         variants: variants.map(v => ({
+  //           variant: v,
+  //           attributes: attributes.filter(
+  //             a => String(a.productVariantId) === String(v._id)
+  //           ),
+  //           images: images.filter(
+  //             i => String(i.productVariantId) === String(v._id)
+  //           ),
+  //         }))
+  //       }
+  //     };
+
+  //   } catch (err) {
+  //     console.error("createFullProduct error:", err);
+  //     throw err instanceof HttpException
+  //       ? err
+  //       : new HttpException(
+  //         err.message || "Failed to create product",
+  //         HttpStatus.INTERNAL_SERVER_ERROR
+  //       );
+  //   }
+  // }
+
   async createFullProduct(dto: CreateFullProductDTO) {
     try {
       if (!dto.productName?.trim()) {
@@ -426,23 +580,26 @@ export class InventoryService {
       if (!Array.isArray(dto.variants) || dto.variants.length === 0) {
         throw new BadRequestException("At least one variant is required");
       }
+
+
       const categoryIds = [
         dto.mainCategoryId,
         dto.subCategoryId,
-        dto.subChildCategoryId
+        dto.subChildCategoryId,
       ].filter(Boolean);
 
       if (categoryIds.length) {
-        const categoryCount = await this.inventoryCategoryModel.countDocuments({
-          _id: { $in: categoryIds }
+        const count = await this.inventoryCategoryModel.countDocuments({
+          _id: { $in: categoryIds },
         });
 
-        if (categoryCount !== categoryIds.length) {
+        if (count !== categoryIds.length) {
           throw new BadRequestException("Invalid category id(s)");
         }
       }
 
-      const exists = await this.productModel.findOne({
+
+      const exists = await this.productModel.exists({
         productName: dto.productName.trim(),
         mainCategoryId: dto.mainCategoryId ?? null,
         subCategoryId: dto.subCategoryId ?? null,
@@ -450,27 +607,26 @@ export class InventoryService {
       });
 
       if (exists) {
-        throw new ConflictException(
-          "Product already exists in this category"
-        );
+        throw new ConflictException("Product already exists in this category");
       }
+
 
       const attributeIds = new Set<string>();
       const attributeValuePairs: { attributeId: string; valueId: string }[] = [];
 
-      dto.variants.forEach(v => {
-        v.attributes?.forEach(a => {
-          attributeIds.add(a.attributeId);
+      for (const variant of dto.variants) {
+        for (const attr of variant.attributes ?? []) {
+          attributeIds.add(attr.attributeId);
           attributeValuePairs.push({
-            attributeId: a.attributeId,
-            valueId: a.attributeValuesId
+            attributeId: attr.attributeId,
+            valueId: attr.attributeValuesId,
           });
-        });
-      });
+        }
+      }
 
       if (attributeIds.size) {
         const validAttrCount = await this.attributesModel.countDocuments({
-          _id: { $in: [...attributeIds] }
+          _id: { $in: [...attributeIds] },
         });
 
         if (validAttrCount !== attributeIds.size) {
@@ -478,23 +634,30 @@ export class InventoryService {
         }
       }
 
-      for (const pair of attributeValuePairs) {
-        const valid = await this.attributesValuesModel.exists({
-          _id: pair.valueId,
-          attributeId: pair.attributeId
+      if (attributeValuePairs.length) {
+        const invalidValue = await this.attributesValuesModel.findOne({
+          $or: attributeValuePairs.map(p => ({
+            _id: p.valueId,
+            attributeId: { $ne: p.attributeId },
+          })),
         });
 
-        if (!valid) {
-          throw new BadRequestException(
-            `Invalid attribute value ${pair.valueId} for attribute ${pair.attributeId}`
-          );
+        if (invalidValue) {
+          throw new BadRequestException("Invalid attribute value mapping");
         }
       }
+
+
       const product = await this.productModel.create({
         productName: dto.productName.trim(),
+        sku: dto.sku,
         description: dto.description ?? "",
         price: dto.price ?? "",
-        sku: dto.sku,
+        brand: dto.brand,
+        about: dto.about,
+        rating: dto.rating ?? 0,
+        discount: dto.discount,
+        offer: dto.offer,
         mainCategoryId: dto.mainCategoryId ?? null,
         subCategoryId: dto.subCategoryId ?? null,
         subChildCategoryId: dto.subChildCategoryId ?? null,
@@ -504,8 +667,9 @@ export class InventoryService {
         dto.variants.map(v => ({
           productId: product._id,
           variantName: v.variantName,
-          price: v.price,
           stock: v.stock,
+          salePrice: v.salePrice,
+          offerPrice: v.offerPrice,
           variantSku: v.variantSku,
         }))
       );
@@ -516,29 +680,32 @@ export class InventoryService {
       variants.forEach((variant, index) => {
         const input = dto.variants[index];
 
-        input.attributes?.forEach(a => {
+        for (const attr of input.attributes ?? []) {
           attributeDocs.push({
             productVariantId: variant._id,
-            attributeId: a.attributeId,
-            attributeValuesId: a.attributeValuesId,
+            attributeId: attr.attributeId,
+            attributeValuesId: attr.attributeValuesId,
           });
-        });
+        }
 
-        input.images?.forEach(url => {
+        for (const img of input.images ?? []) {
           imageDocs.push({
             productVariantId: variant._id,
-            imageUrl: url,
+            imageUrl: img,
           });
-        });
+        }
       });
 
-      const attributes = attributeDocs.length
-        ? await this.variantAttributeValuesModel.insertMany(attributeDocs)
-        : [];
+      const [attributes, images] = await Promise.all([
+        attributeDocs.length
+          ? this.variantAttributeValuesModel.insertMany(attributeDocs)
+          : [],
+        imageDocs.length
+          ? this.variantImageModel.insertMany(imageDocs)
+          : [],
+      ]);
 
-      const images = imageDocs.length
-        ? await this.variantImageModel.insertMany(imageDocs)
-        : [];
+
       return {
         success: true,
         message: "Product created successfully",
@@ -552,8 +719,8 @@ export class InventoryService {
             images: images.filter(
               i => String(i.productVariantId) === String(v._id)
             ),
-          }))
-        }
+          })),
+        },
       };
 
     } catch (err) {
@@ -566,6 +733,7 @@ export class InventoryService {
         );
     }
   }
+
 
 
 
@@ -659,8 +827,12 @@ export class InventoryService {
         variant.productId = dto.productId;
       }
 
-      if (dto.price !== undefined) {
-        variant.price = dto.price;
+      if (dto.salePrice !== undefined) {
+        variant.salePrice = dto.salePrice;
+      }
+
+      if (dto.offerPrice !== undefined) {
+        variant.offerPrice = dto.offerPrice;
       }
 
       if (dto.stock !== undefined) {
@@ -970,8 +1142,151 @@ export class InventoryService {
     }
   }
 
+  // async updateFullProduct(productId: string, dto: CreateFullProductDTO) {
+  //   try {
+  //     const product = await this.productModel.findById(productId);
+  //     if (!product) {
+  //       throw new NotFoundException("Product not found");
+  //     }
+
+  //     if (!dto.productName?.trim()) {
+  //       throw new BadRequestException("Product name is required");
+  //     }
+
+  //     if (!Array.isArray(dto.variants) || dto.variants.length === 0) {
+  //       throw new BadRequestException("At least one variant is required");
+  //     }
+
+  //     const categoryIds = [
+  //       dto.mainCategoryId,
+  //       dto.subCategoryId,
+  //       dto.subChildCategoryId
+  //     ].filter(Boolean);
+
+  //     if (categoryIds.length) {
+  //       const count = await this.inventoryCategoryModel.countDocuments({
+  //         _id: { $in: categoryIds }
+  //       });
+
+  //       if (count !== categoryIds.length) {
+  //         throw new BadRequestException("Invalid category id(s)");
+  //       }
+  //     }
+  //     product.mainCategoryId = this.asId(dto.mainCategoryId);
+  //     product.subCategoryId = this.asId(dto.subCategoryId);
+  //     product.subChildCategoryId = this.asId(dto.subChildCategoryId);
+
+  //     product.productName = dto.productName.trim();
+  //     product.description = dto.description ?? "";
+  //     product.price = dto.price ?? "";
+  //     product.sku = dto.sku ?? product.sku;
+  //     product.mainCategoryId = this.asId(dto.mainCategoryId);
+  //     product.subCategoryId = this.asId(dto.subCategoryId);
+  //     product.subChildCategoryId = this.asId(dto.subChildCategoryId);
+
+  //     product.updatedAt = new Date();
+
+  //     await product.save();
+
+
+  //     const oldVariants = await this.productVarientsModel.find({
+  //       productId
+  //     }).lean();
+
+  //     const variantIds = oldVariants.map(v => v._id);
+
+  //     if (variantIds.length) {
+  //       await this.variantAttributeValuesModel.deleteMany({
+  //         productVariantId: { $in: variantIds }
+  //       });
+
+  //       await this.variantImageModel.deleteMany({
+  //         productVariantId: { $in: variantIds }
+  //       });
+
+  //       await this.productVarientsModel.deleteMany({
+  //         productId
+  //       });
+  //     }
+
+  //     const newVariants = await this.productVarientsModel.insertMany(
+  //       dto.variants.map(v => ({
+  //         productId,
+  //         variantName: v.variantName,
+  //         price: v.price,
+  //         stock: v.stock,
+  //         variantSku: v.variantSku,
+  //         createdAt: new Date(),
+  //         updatedAt: new Date()
+  //       }))
+  //     );
+
+
+  //     const attributeDocs = [];
+  //     const imageDocs = [];
+
+  //     newVariants.forEach((variant, index) => {
+  //       const input = dto.variants[index];
+
+  //       input.attributes?.forEach(a => {
+  //         attributeDocs.push({
+  //           productVariantId: variant._id,
+  //           attributeId: a.attributeId,
+  //           attributeValuesId: a.attributeValuesId,
+  //           createdAt: new Date(),
+  //           updatedAt: new Date()
+  //         });
+  //       });
+
+  //       input.images?.forEach(url => {
+  //         imageDocs.push({
+  //           productVariantId: variant._id,
+  //           imageUrl: url,
+  //           createdAt: new Date(),
+  //           updatedAt: new Date()
+  //         });
+  //       });
+  //     });
+
+  //     const attributes = attributeDocs.length
+  //       ? await this.variantAttributeValuesModel.insertMany(attributeDocs)
+  //       : [];
+
+  //     const images = imageDocs.length
+  //       ? await this.variantImageModel.insertMany(imageDocs)
+  //       : [];
+
+
+  //     return {
+  //       success: true,
+  //       message: "Product updated successfully",
+  //       data: {
+  //         product,
+  //         variants: newVariants.map(v => ({
+  //           variant: v,
+  //           attributes: attributes.filter(
+  //             a => String(a.productVariantId) === String(v._id)
+  //           ),
+  //           images: images.filter(
+  //             i => String(i.productVariantId) === String(v._id)
+  //           ),
+  //         }))
+  //       }
+  //     };
+
+  //   } catch (err) {
+  //     console.error("updateFullProduct error:", err);
+  //     throw err instanceof HttpException
+  //       ? err
+  //       : new HttpException(
+  //         err.message || "Failed to update product",
+  //         HttpStatus.INTERNAL_SERVER_ERROR
+  //       );
+  //   }
+  // }
   async updateFullProduct(productId: string, dto: CreateFullProductDTO) {
     try {
+      /* -------------------- PRODUCT CHECK -------------------- */
       const product = await this.productModel.findById(productId);
       if (!product) {
         throw new NotFoundException("Product not found");
@@ -985,106 +1300,111 @@ export class InventoryService {
         throw new BadRequestException("At least one variant is required");
       }
 
+      /* -------------------- CATEGORY VALIDATION -------------------- */
       const categoryIds = [
         dto.mainCategoryId,
         dto.subCategoryId,
-        dto.subChildCategoryId
+        dto.subChildCategoryId,
       ].filter(Boolean);
 
       if (categoryIds.length) {
         const count = await this.inventoryCategoryModel.countDocuments({
-          _id: { $in: categoryIds }
+          _id: { $in: categoryIds },
         });
 
         if (count !== categoryIds.length) {
           throw new BadRequestException("Invalid category id(s)");
         }
       }
-      product.mainCategoryId = this.asId(dto.mainCategoryId);
-      product.subCategoryId = this.asId(dto.subCategoryId);
-      product.subChildCategoryId = this.asId(dto.subChildCategoryId);
 
-      product.productName = dto.productName.trim();
-      product.description = dto.description ?? "";
-      product.price = dto.price ?? "";
-      product.sku = dto.sku ?? product.sku;
-      product.mainCategoryId = this.asId(dto.mainCategoryId);
-      product.subCategoryId = this.asId(dto.subCategoryId);
-      product.subChildCategoryId = this.asId(dto.subChildCategoryId);
+      /* -------------------- UPDATE PRODUCT -------------------- */
+      Object.assign(product, {
+        productName: dto.productName.trim(),
+        description: dto.description ?? "",
+        price: dto.price ?? "",
+        sku: dto.sku ?? product.sku,
 
-      product.updatedAt = new Date();
+        // ✅ NEW FIELDS
+        brand: dto.brand,
+        about: dto.about,
+        rating: dto.rating ?? product.rating,
+        discount: dto.discount,
+        offer: dto.offer,
+
+        mainCategoryId: this.asId(dto.mainCategoryId),
+        subCategoryId: this.asId(dto.subCategoryId),
+        subChildCategoryId: this.asId(dto.subChildCategoryId),
+
+        updatedAt: new Date(),
+      });
 
       await product.save();
 
-
-      const oldVariants = await this.productVarientsModel.find({
-        productId
-      }).lean();
+      /* -------------------- REMOVE OLD VARIANTS -------------------- */
+      const oldVariants = await this.productVarientsModel
+        .find({ productId })
+        .select("_id")
+        .lean();
 
       const variantIds = oldVariants.map(v => v._id);
 
       if (variantIds.length) {
-        await this.variantAttributeValuesModel.deleteMany({
-          productVariantId: { $in: variantIds }
-        });
-
-        await this.variantImageModel.deleteMany({
-          productVariantId: { $in: variantIds }
-        });
-
-        await this.productVarientsModel.deleteMany({
-          productId
-        });
+        await Promise.all([
+          this.variantAttributeValuesModel.deleteMany({
+            productVariantId: { $in: variantIds },
+          }),
+          this.variantImageModel.deleteMany({
+            productVariantId: { $in: variantIds },
+          }),
+          this.productVarientsModel.deleteMany({ productId }),
+        ]);
       }
 
+      /* -------------------- INSERT NEW VARIANTS -------------------- */
       const newVariants = await this.productVarientsModel.insertMany(
         dto.variants.map(v => ({
           productId,
           variantName: v.variantName,
-          price: v.price,
           stock: v.stock,
+          salePrice: v.salePrice,
+          offerPrice: v.offerPrice,
           variantSku: v.variantSku,
-          createdAt: new Date(),
-          updatedAt: new Date()
         }))
       );
 
-
+      /* -------------------- ATTRIBUTES & IMAGES -------------------- */
       const attributeDocs = [];
       const imageDocs = [];
 
       newVariants.forEach((variant, index) => {
         const input = dto.variants[index];
 
-        input.attributes?.forEach(a => {
+        for (const attr of input.attributes ?? []) {
           attributeDocs.push({
             productVariantId: variant._id,
-            attributeId: a.attributeId,
-            attributeValuesId: a.attributeValuesId,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            attributeId: attr.attributeId,
+            attributeValuesId: attr.attributeValuesId,
           });
-        });
+        }
 
-        input.images?.forEach(url => {
+        for (const img of input.images ?? []) {
           imageDocs.push({
             productVariantId: variant._id,
-            imageUrl: url,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            imageUrl: img,
           });
-        });
+        }
       });
 
-      const attributes = attributeDocs.length
-        ? await this.variantAttributeValuesModel.insertMany(attributeDocs)
-        : [];
+      const [attributes, images] = await Promise.all([
+        attributeDocs.length
+          ? this.variantAttributeValuesModel.insertMany(attributeDocs)
+          : [],
+        imageDocs.length
+          ? this.variantImageModel.insertMany(imageDocs)
+          : [],
+      ]);
 
-      const images = imageDocs.length
-        ? await this.variantImageModel.insertMany(imageDocs)
-        : [];
-
-
+      /* -------------------- RESPONSE -------------------- */
       return {
         success: true,
         message: "Product updated successfully",
@@ -1098,8 +1418,8 @@ export class InventoryService {
             images: images.filter(
               i => String(i.productVariantId) === String(v._id)
             ),
-          }))
-        }
+          })),
+        },
       };
 
     } catch (err) {
@@ -1112,6 +1432,7 @@ export class InventoryService {
         );
     }
   }
+
 
 
 
@@ -1598,7 +1919,8 @@ export class InventoryService {
 
         productVariantId: item.productVariantId?._id || null,
         productVariantSku: item.productVariantId?.variantSku || null,
-        price: item.productVariantId?.price || null,
+        salePrice: item.productVariantId?.salePrice || null,
+        offerPrice: item.productVariantId?.offerPrice || null,
         stock: item.productVariantId?.stock || null,
 
         attributeId: item.attributeId?._id || null,
