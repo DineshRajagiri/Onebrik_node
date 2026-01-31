@@ -15,14 +15,29 @@ export class productDTO {
     @Prop()
     description: string;
 
-    @Prop({ type:String, ref: "inventoryCategory", default: null })
+    @Prop()
+    brand: string;
+
+    @Prop()
+    about: string;
+
+    @Prop({ default: 0 })
+    rating: number;
+
+    @Prop()
+    discount: number;
+
+    @Prop()
+    offer: string;
+
+    @Prop({ type: String, ref: "inventoryCategory", default: null })
     mainCategoryId: inventoryCategory;
 
-    @Prop({ type:String, ref: "inventoryCategory", default: null })
+    @Prop({ type: String, ref: "inventoryCategory", default: null })
     subCategoryId: inventoryCategory;
 
-    @Prop({ type:String, ref: "inventoryCategory", default: null })
+    @Prop({ type: String, ref: "inventoryCategory", default: null })
     subChildCategoryId: inventoryCategory;
-    
+
 
 }

@@ -19,13 +19,28 @@ export class Product extends commonDTO {
   @Prop()
   description: string;
 
-  @Prop({ type:String, ref: "inventoryCategory" })
+  @Prop()
+  brand: string;
+
+  @Prop()
+  about: string;
+
+  @Prop({ default: 0 })
+  rating: number;
+
+  @Prop()
+  discount: number;
+
+  @Prop()
+  offer: string;
+
+  @Prop({ type: String, ref: "inventoryCategory" })
   mainCategoryId: inventoryCategory;
 
-  @Prop({ type:String, ref: "inventoryCategory" })
+  @Prop({ type: String, ref: "inventoryCategory" })
   subCategoryId: inventoryCategory;
 
-  @Prop({ type:String, ref: "inventoryCategory" })
+  @Prop({ type: String, ref: "inventoryCategory" })
   subChildCategoryId: inventoryCategory;
 }
 

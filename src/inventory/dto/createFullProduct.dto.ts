@@ -6,7 +6,10 @@ export class FullVariantDTO {
     variantName: string;
 
     @Prop()
-    price: string;
+    salePrice: number;
+
+    @Prop()
+    offerPrice: number;
 
     @Prop()
     stock: string;
@@ -34,6 +37,21 @@ export class CreateFullProductDTO {
 
     @Prop()
     sku?: string;
+
+    @Prop()
+    brand: string;
+
+    @Prop()
+    about: string;
+
+    @Prop({ default: 0 })
+    rating: number;
+
+    @Prop()
+    discount: number;
+
+    @Prop()
+    offer: string;
 
     @Prop()
     mainCategoryId?: string;

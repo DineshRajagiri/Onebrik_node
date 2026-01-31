@@ -20,7 +20,10 @@ export class productVariants extends commonDTO {
     stock: string;
 
     @Prop()
-    price: string;
+    salePrice: number;
+
+    @Prop()
+    offerPrice: number;
 
     @Prop()
     variantSku: string;
