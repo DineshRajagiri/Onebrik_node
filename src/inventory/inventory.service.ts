@@ -1286,7 +1286,6 @@ export class InventoryService {
   // }
   async updateFullProduct(productId: string, dto: CreateFullProductDTO) {
     try {
-      /* -------------------- PRODUCT CHECK -------------------- */
       const product = await this.productModel.findById(productId);
       if (!product) {
         throw new NotFoundException("Product not found");
@@ -1300,7 +1299,6 @@ export class InventoryService {
         throw new BadRequestException("At least one variant is required");
       }
 
-      /* -------------------- CATEGORY VALIDATION -------------------- */
       const categoryIds = [
         dto.mainCategoryId,
         dto.subCategoryId,
@@ -1317,30 +1315,24 @@ export class InventoryService {
         }
       }
 
-      /* -------------------- UPDATE PRODUCT -------------------- */
       Object.assign(product, {
         productName: dto.productName.trim(),
         description: dto.description ?? "",
         price: dto.price ?? "",
         sku: dto.sku ?? product.sku,
-
-        // ✅ NEW FIELDS
         brand: dto.brand,
         about: dto.about,
         rating: dto.rating ?? product.rating,
         discount: dto.discount,
         offer: dto.offer,
-
         mainCategoryId: this.asId(dto.mainCategoryId),
         subCategoryId: this.asId(dto.subCategoryId),
         subChildCategoryId: this.asId(dto.subChildCategoryId),
-
         updatedAt: new Date(),
       });
 
       await product.save();
 
-      /* -------------------- REMOVE OLD VARIANTS -------------------- */
       const oldVariants = await this.productVarientsModel
         .find({ productId })
         .select("_id")
@@ -1359,8 +1351,6 @@ export class InventoryService {
           this.productVarientsModel.deleteMany({ productId }),
         ]);
       }
-
-      /* -------------------- INSERT NEW VARIANTS -------------------- */
       const newVariants = await this.productVarientsModel.insertMany(
         dto.variants.map(v => ({
           productId,
@@ -1371,8 +1361,6 @@ export class InventoryService {
           variantSku: v.variantSku,
         }))
       );
-
-      /* -------------------- ATTRIBUTES & IMAGES -------------------- */
       const attributeDocs = [];
       const imageDocs = [];
 
@@ -1403,8 +1391,6 @@ export class InventoryService {
           ? this.variantImageModel.insertMany(imageDocs)
           : [],
       ]);
-
-      /* -------------------- RESPONSE -------------------- */
       return {
         success: true,
         message: "Product updated successfully",
@@ -1999,6 +1985,126 @@ export class InventoryService {
     }
   }
 
+  async getAllFullProductsDetails(query: any) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const productFilter = { isActive: true, isDeleted: false };
+
+    const [products, total] = await Promise.all([
+      this.productModel
+        .find(productFilter)
+        .populate("mainCategoryId", "categoryName level")
+        .populate("subCategoryId", "categoryName level")
+        .populate("subChildCategoryId", "categoryName level")
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      this.productModel.countDocuments(productFilter),
+    ]);
+
+    const productIds = products.map(p => p._id);
+
+    const variants = await this.productVarientsModel
+      .find({ productId: { $in: productIds }, isActive: true, isDeleted: false })
+      .lean();
+
+    const variantIds = variants.map(v => v._id);
+
+    const [attributes, images] = await Promise.all([
+      this.variantAttributeValuesModel
+        .find({ productVariantId: { $in: variantIds } })
+        .populate("attributeId", "attributename")
+        .populate("attributeValuesId", "value")
+        .lean(),
+
+      this.variantImageModel
+        .find({ productVariantId: { $in: variantIds } })
+        .lean(),
+    ]);
+
+   
+    const attrMap = new Map<string, any[]>();
+    attributes.forEach(a => {
+      const key = String(a.productVariantId);
+      if (!attrMap.has(key)) attrMap.set(key, []);
+      attrMap.get(key)!.push(a);
+    });
+
+    const imageMap = new Map<string, string[]>();
+    images.forEach(i => {
+      const key = String(i.productVariantId);
+      if (!imageMap.has(key)) imageMap.set(key, []);
+      imageMap.get(key)!.push(i.imageUrl);
+    });
+
+    const variantMap = new Map<string, any[]>();
+    variants.forEach(v => {
+      const key = String(v.productId);
+      if (!variantMap.has(key)) variantMap.set(key, []);
+      variantMap.get(key)!.push(v);
+    });
+
+    const finalProducts = products.map(p => {
+      const productVariants = variantMap.get(String(p._id)) || [];
+
+      return {
+        id: p._id,
+        name: p.productName,
+        brand: p.brand,
+        description: p.description,
+        about: p.about,
+        rating: p.rating,
+        discount: p.discount,
+        offer: p.offer,
+        created: p.createdAt,
+
+        quantity: productVariants.reduce(
+          (sum, v) => sum + Number(v.stock || 0),
+          0
+        ),
+        isStock: productVariants.some(v => Number(v.stock) > 0),
+
+        inventoryCategories: [
+          p.mainCategoryId && {
+            id: p.mainCategoryId._id,
+            name: p.mainCategoryId.categoryName,
+            level: "MAIN",
+          },
+          p.subCategoryId && {
+            id: p.subCategoryId._id,
+            name: p.subCategoryId.categoryName,
+            level: "SUB",
+          },
+          p.subChildCategoryId && {
+            id: p.subChildCategoryId._id,
+            name: p.subChildCategoryId.categoryName,
+            level: "SUBCHILD",
+          },
+        ].filter(Boolean),
+
+        variants: productVariants.map(v => ({
+          variantId: v._id,
+          variantName: v.variantName,
+          stock: Number(v.stock),
+          salePrice: v.salePrice,
+          offerPrice: v.offerPrice,
+          attributes: (attrMap.get(String(v._id)) || []).map(a => ({
+            attributeId: a.attributeId?._id,
+            attributeName: a.attributeId?.attributename,
+            attributeValueId: a.attributeValuesId?._id,
+            attributeValue: a.attributeValuesId?.value,
+          })),
+          images: imageMap.get(String(v._id)) || [],
+        })),
+      };
+    });
+
+    return { data: finalProducts, total };
+  }
+ 
 
 
 
