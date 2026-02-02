@@ -13,8 +13,6 @@ import axios from 'axios';
 import { AdminLoginDTO } from './DTO/adminLogin.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { AadharDTO } from './DTO/aadhar.dto';
-import { PanDTO } from './DTO/pan.dto';
 import { STATUS_CODES } from 'src/utils/status-codes';
 import { RESPONSE_MESSAGES } from 'src/utils/response-messages';
 import { LoginDto } from './DTO/login.dto';
@@ -28,7 +26,7 @@ export class AuthService {
     @InjectModel(roles.name) private readonly roleModel: Model<rolesDetails>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   // ==============================
   // LOGIN (EMAIL + PASSWORD)
@@ -81,28 +79,28 @@ export class AuthService {
   // ==============================
   // TOKEN GENERATION
   // ==============================
-private async generateTokens(user: UserDocument, roleName: string) {
-  const payload = {
-    sub: user._id.toString(),
-    email: user.email,
-    role: roleName,   // ADMIN / VENDOR / DELIVERY
-  };
+  private async generateTokens(user: UserDocument, roleName: string) {
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: roleName,   // ADMIN / VENDOR / DELIVERY
+    };
 
-  const accessToken = this.jwtService.sign(payload, {
-    secret: this.configService.get('JWT_ACCESS_SECRET'),
-    expiresIn: '1d',
-  });
+    const accessToken = this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_ACCESS_SECRET'),
+      expiresIn: '1d',
+    });
 
-  const refreshToken = this.jwtService.sign(
-    { sub: user._id.toString() },
-    {
-      secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
-    },
-  );
+    const refreshToken = this.jwtService.sign(
+      { sub: user._id.toString() },
+      {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+        expiresIn: '7d',
+      },
+    );
 
-  return { accessToken, refreshToken };
-}
+    return { accessToken, refreshToken };
+  }
 
 
   // ==============================

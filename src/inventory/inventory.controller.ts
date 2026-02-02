@@ -256,14 +256,6 @@ export class InventoryController {
 
 
 
-    @Public()
-    @Get("getAllProducts")
-    async getAllFullProducts(@Query() query: PaginationQuery) {
-        const result = await this.service.getAllProducts(query);
-        return { success: true, products: result.data, pagination: { page: Number(query.page) || 1, limit: Number(query.limit) || 10, total: result.total, }, };
-    }
-
-
 
     @Public()
     @Delete('deleteProduct/:id')

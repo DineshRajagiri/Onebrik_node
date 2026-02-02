@@ -1,31 +1,55 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
-
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength, } from 'class-validator';
 export class UserDTO {
 
-  @IsString({ message: 'Name must be a string' })
-  @IsNotEmpty({ message: 'Name is required' })
-  name: string;  // matches schema
+  @ApiProperty({
+    example: 'John Doe',
+    description: 'Full name of the user',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
-  @IsEmail({}, { message: 'Invalid email format' })
-  @IsNotEmpty({ message: 'Email is required' })
+  @ApiProperty({
+    example: 'john@example.com',
+    description: 'User email address',
+  })
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
 
-  @IsString({ message: 'Password must be a string' })
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
-  @IsNotEmpty({ message: 'Password is required' })
-  passwordHash: string;  // matches schema name
+  @ApiProperty({
+    example: 'password123',
+    description: 'Plain password (will be hashed internally)',
+    minLength: 6,
+  })
+  @IsString()
+  @MinLength(6)
+  @IsNotEmpty()
+  passwordHash: string;
 
-
+  @ApiPropertyOptional({
+    example: 9876543210,
+    description: 'User mobile number',
+  })
   @IsNumber()
   @IsOptional()
-  mobilenumber: number;  // matches schema name
+  mobilenumber?: number;
 
-
-  @IsString({ message: 'Role ID must be a string' })
-  @IsNotEmpty({ message: 'Role ID is required' })
+  @ApiProperty({
+    example: '66c1f0a8c9e77a23d3b91234',
+    description: 'Role ID reference',
+  })
+  @IsString()
+  @IsNotEmpty()
   roleId: string;
 
-  @IsBoolean({ message: 'isActive must be a boolean' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'User active status',
+    default: true,
+  })
+  @IsBoolean()
   @IsOptional()
   isActive?: boolean = true;
 }
