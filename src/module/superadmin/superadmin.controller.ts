@@ -11,7 +11,7 @@ export class SuperAdminController {
     @Public()
     @Post('adduser')
     async adduser(@Body() body: UserDTO) {
-       return  await this.superAdminService.create(body); 
+        return await this.superAdminService.create(body);
     }
 
     @Public()
@@ -21,7 +21,7 @@ export class SuperAdminController {
     }
 
 
-      @Public()
+    @Public()
     @Post('users_new')
     async getusers() {
         return await this.superAdminService.getusers();

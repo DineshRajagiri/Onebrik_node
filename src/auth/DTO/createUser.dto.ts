@@ -9,13 +9,20 @@ export class CreateUserDTO {
   @ApiProperty({ type: String, description: 'This is a required property', required: true, example: 'user@21' })
   email: string;
 
+  @ApiProperty({ type: String, description: 'This is a required property', required: true, example: 'John Doe' })
   @IsNotEmpty()
   fullName: string;
 
+  @ApiProperty({ type: String, description: 'This is a required property', required: true, example: '1234567890' })
   @IsNotEmpty()
   mobileNumber: string;
+  @ApiProperty({ type: String, description: 'This is an optional property', required: false, example: 'REF12345' })
+  @MaxLength(10)
   referralCode: string;
+  @ApiProperty({ type: String, description: 'This is a required property', required: true, example: 'strongPassword123' })
+  @IsNotEmpty()
   passwordHash: string;
+
   accountStatus: boolean;
   customerCode: string;
   isVerifiedByAdmin: boolean;

@@ -7,8 +7,7 @@ import { CreateAdminDTO } from './DTO/createAdmin.dto';
 import { AdminLoginDTO } from './DTO/adminLogin.dto';
 import { VerifyOtpDto } from './DTO/verifyOtp.dto';
 import { Public } from 'src/decorators/public.decorator';
-import { AadharDTO } from './DTO/aadhar.dto';
-import { PanDTO } from './DTO/pan.dto';
+
 import { LoginDto } from './DTO/login.dto';
 
 @Controller('auth')
@@ -37,19 +36,19 @@ export class AuthController {
     return await this.authService.adminLogin(body);
   }
 
-  @Public()
-  @Post('verifyOtp')
-  async verifyOtp(@Body() body: { phoneNumber: string; logid: string; otp: string }) {
-    const { phoneNumber, logid, otp } = body;
-    return await this.authService.verifyOtp(phoneNumber, logid, otp);
-  }
+  // @Public()
+  // @Post('verifyOtp')
+  // async verifyOtp(@Body() body: { phoneNumber: string; logid: string; otp: string }) {
+  //   const { phoneNumber, logid, otp } = body;
+  //   return await this.authService.verifyOtp(phoneNumber, logid, otp);
+  // }
 
-  @Public()
-  @Post('verifyOtpAndSaveUser')
-  async verifyOtpAndSaveUser(@Body() body: { otp: string; userData: { email: string; fullName: string, mobileNumber: string; logid: string; referralCode: string } },) {
-    const { otp, userData } = body;
-    return await this.authService.verifyOtpAndSaveUser(otp, userData);
-  }
+  // @Public()
+  // @Post('verifyOtpAndSaveUser')
+  // async verifyOtpAndSaveUser(@Body() body: { otp: string; userData: { email: string; fullName: string, mobileNumber: string; logid: string; referralCode: string } },) {
+  //   const { otp, userData } = body;
+  //   return await this.authService.verifyOtpAndSaveUser(otp, userData);
+  // }
 
   // @Public()
   // @Post('login')
@@ -63,15 +62,15 @@ export class AuthController {
     return await this.authService.login(body);
   }
 
-  @Public()
-  @Post('verifyOtpLogin')
-  async verifyOtpAndLogin(@Body() verifyOtpDto: VerifyOtpDto) {
-    return await this.authService.verifyOtpAndLogin(
-      verifyOtpDto.phoneNumber,
-      verifyOtpDto.otp,
-      verifyOtpDto.logid,
-    );
-  }
+  // @Public()
+  // @Post('verifyOtpLogin')
+  // async verifyOtpAndLogin(@Body() verifyOtpDto: VerifyOtpDto) {
+  //   return await this.authService.verifyOtpAndLogin(
+  //     verifyOtpDto.phoneNumber,
+  //     verifyOtpDto.otp,
+  //     verifyOtpDto.logid,
+  //   );
+  // }
 
   @Public()
   @Post('refreshToken')
