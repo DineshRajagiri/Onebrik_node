@@ -1,56 +1,64 @@
-import { Prop } from "@nestjs/mongoose"
-import { IsNotEmpty, isNotEmpty, IsOptional } from "class-validator"
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator"
 import { region } from "src/schema/region.schema"
-import { isEnterpriseStatus } from "src/utils/constants"
 
 export class deliveryBoyDTO {
-
-    @Prop()
     @IsNotEmpty()
+    @IsString()
     devlieryBoyName: string
 
-    @Prop()
+    @IsOptional()
+    @IsEmail()
     emailid: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     phoneNO: string
 
-    @Prop({ type: String, ref: "region" })
+    @IsOptional()
+    @IsString()
     regionId: region
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     idProof: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     address: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     vechicleCBook: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     vechicleNumber: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     physicalDocuments: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     dob: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     bankAccountNumber: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     bankIfscCode: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     bankAccountHolderName: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     branchName: string
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     profilePicture: string
-
-
-
 }

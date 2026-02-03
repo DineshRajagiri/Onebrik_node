@@ -1,31 +1,31 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import mongoose, { Document, } from "mongoose";
-import { inventoryCategory } from "src/schema/inventoryCategory.schema";
-import { Product } from "src/schema/products.schema";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { VariantAttributeItem } from "./variantAttributeValues.dto";
-import Api from "twilio/lib/rest/Api";
-import { ApiProperty } from "@nestjs/swagger";
 
 export class productVariantsDTO {
-  @ApiProperty({ type: String, description: 'This is a required property', required: true, example: '64f7c2e8b4d1c2a1b2c3d4e5' })
-  @Prop()
+  @IsNotEmpty()
+  @IsString()
   productId: string;
-  @ApiProperty({ type: String, description: 'This is a required property', required: true, example: 'Red Color Variant' })
-  @Prop()
+  
+  @IsNotEmpty()
+  @IsString()
   variantName: string;
-  @ApiProperty({ type: String, description: 'This is a required property', required: true, example: '100' })
-  @Prop()
+  
+  @IsNotEmpty()
+  @IsString()
   stock: string;
 
-  @Prop()
+  @IsOptional()
+  @IsString()
   variantSku: string;
-  @ApiProperty({ type: Number, description: 'This is a required property', required: true, example: 199.99 })
-  @Prop()
+  
+  @IsNotEmpty()
+  @IsNumber()
   salePrice: number;
-  @ApiProperty({ type: Number, description: 'This is a required property', required: true, example: 149.99 })
-  @Prop()
+  
+  @IsNotEmpty()
+  @IsNumber()
   offerPrice: number;
 
-
+  @IsOptional()
   attributes?: VariantAttributeItem[];
 }

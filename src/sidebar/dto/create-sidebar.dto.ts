@@ -1,22 +1,18 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { IsArray, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
-export type SidebarDocument = Sidebar & Document;
-
-@Schema({ timestamps: true })
 export class Sidebar {
-
-  @Prop({ required: true })
+  @IsNotEmpty()
+  @IsString()
   id: string;
 
-  @Prop({ required: true })
+  @IsNotEmpty()
+  @IsString()
   title: string;
 
-  @Prop({ required: true, enum: ['group'] })
+  @IsEnum(['group'])
+  @IsNotEmpty()
   type: 'group';
 
-  @Prop({ type: [Object], default: [] })
+  @IsArray()
   children: any[];
 }
-
-export const SidebarSchema = SchemaFactory.createForClass(Sidebar);

@@ -1,94 +1,87 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsArray, IsNotEmpty, IsNumber, IsString, ValidateNested } from "class-validator";
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
 import { VariantAttributeItem } from "./variantAttributeValues.dto";
 import { Type } from "class-transformer";
 
 export class FullVariantDTO {
-
-    @ApiProperty({ example: 'Red 90m' })
     @IsString()
     @IsNotEmpty()
     variantName: string;
 
-    @ApiProperty({ example: '10' })
     @IsString()
+    @IsNotEmpty()
     stock: string;
 
-    @ApiProperty({ example: 999 })
+    @IsNumber()
+    @IsNotEmpty()
     salePrice: number;
 
-    @ApiProperty({ example: 899 })
+    @IsNumber()
+    @IsNotEmpty()
     offerPrice: number;
 
-    @Prop() variantSku?: string;
-    @ApiProperty({ type: [VariantAttributeItem] })
+    @IsOptional()
+    @IsString()
+    variantSku?: string;
+    
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => VariantAttributeItem)
     attributes: VariantAttributeItem[];
 
-    @ApiProperty({
-        example: [
-            'http://localhost:3002/uploads/variant-images/img1.jpeg',
-            'http://localhost:3002/uploads/variant-images/img2.jpeg',
-        ],
-    })
     @IsArray()
+    @IsString({ each: true })
     images: string[];
 }
 
 export class CreateFullProductDTO {
-
-    @ApiProperty({ example: 'Fin tech' })
     @IsString()
     @IsNotEmpty()
     productName: string;
 
-    @ApiProperty({ example: 'Finolex' })
     @IsString()
+    @IsOptional()
     brand: string;
 
-    @ApiProperty({ example: 'High quality pipe' })
     @IsString()
+    @IsOptional()
     description: string;
 
-    @ApiProperty({example:'Finolex pipes are known for durability, strength, and long life usage in electrical and plumbing applications.',})
     @IsString()
+    @IsOptional()
     about: string;
 
-    @ApiProperty({ example: '999' })
     @IsString()
+    @IsOptional()
     price: string; 
 
-    @ApiProperty({ example: 4.5 })
     @IsNumber()
+    @IsOptional()
     rating: number;
 
-    @ApiProperty({ example: 10 })
     @IsNumber()
+    @IsOptional()
     discount: number;
 
-    @ApiProperty({ example: '10% OFF' })
     @IsString()
+    @IsOptional()
     offer: string;
 
-    @Prop() sku?: string;
+    @IsOptional()
     @IsString()
-    @ApiProperty({ type: String, description: 'This is a required property', required: true, example: '64f7c2e8b4d1c2a1b2c3d4e5' })
+    sku?: string;
+    
+    @IsString()
+    @IsOptional()
     mainCategoryId?: string;
 
-    @ApiProperty({ type: String, description: 'This is a required property', required: true, example: '64f7c2e8b4d1c2a1b2c3d4e5' })
     @IsString()
+    @IsOptional()
     subCategoryId?: string;
 
-    @ApiProperty({ type: String, description: 'This is a required property', required: true, example: '64f7c2e8b4d1c2a1b2c3d4e5' })
     @IsString()
+    @IsOptional()
     subChildCategoryId?: string;
 
-    @ApiProperty({
-        type: [FullVariantDTO],
-    })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => FullVariantDTO)

@@ -1,52 +1,40 @@
-import { Prop } from "@nestjs/mongoose";
-import { IsNotEmpty, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { region } from "src/schema/region.schema";
-import { isAdminStatus, Roles } from "src/utils/constants";
+import { Roles } from "src/utils/constants";
 
 export class AdminDTO {
-    @Prop()
+    @IsOptional()
+    @IsEmail()
     email: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     fullName: string;
 
-    @Prop()
-
+    @IsOptional()
+    @IsString()
     mobileNo: string;
 
-    @Prop({ type: String, enum: Roles })
+    @IsOptional()
     role: Roles;
-    @Prop()
+    
+    @IsOptional()
+    @IsString()
     adminProfile: string;
 
-
-    @Prop({ default: null })
+    @IsOptional()
+    @IsString()
     passwordHash: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     salt: string;
 
-
-    @Prop({ required: true })
+    @IsNotEmpty()
+    @IsString()
     password: string;
 
-
-    @Prop({ type: String, ref: "region" })
-    regionId: region
-
-    // @Prop({ type: String, enum: isAdminStatus, default: isAdminStatus.ACTIVE }) 
-    // adminStatus: isAdminStatus;
-    // @IsNotEmpty()
-    // @IsString()
-    // oldPassword: string;
-
-    // @IsNotEmpty()
-    // @IsString()
-    // @MinLength(6, { message: 'New password must be at least 6 characters long' })
-    // newPassword: string;
-
-    // @IsNotEmpty()
-    // @IsString()
-    // @MinLength(6, { message: 'Confirm password must be at least 6 characters long' })
-    // confirmPassword: string;
+    @IsOptional()
+    @IsString()
+    regionId: region;
 }

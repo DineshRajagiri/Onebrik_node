@@ -1,14 +1,11 @@
-import { Prop } from "@nestjs/mongoose"
-import { IsNotEmpty } from "class-validator"
-
+import { IsNotEmpty, IsOptional, IsString } from "class-validator"
 
 export class categoryDTO {
-  
-  @Prop()
-   @IsNotEmpty()
+  @IsNotEmpty()
+  @IsString()
   categoryName: string
 
-  @Prop()
-  discription:string
-
+  @IsOptional()
+  @IsString()
+  discription: string
 }

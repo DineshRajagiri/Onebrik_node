@@ -1,21 +1,25 @@
-import { Prop } from "@nestjs/mongoose";
-import { IsNotEmpty } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { admin } from "src/schema/admin.schema";
 import { Permission } from "src/schema/permission.schema";
 import { Roles } from "src/utils/constants";
 
 export class roleDTO {
-    @Prop()
     @IsNotEmpty()
+    @IsString()
     name: string;
-    @Prop()
+    
+    @IsOptional()
+    @IsString()
     permissionId: Permission;
   
-    @Prop()
+    @IsOptional()
+    @IsString()
     adminId: admin;
   
-    @Prop()
-      role: Roles;
-    @Prop()
-      Description:string;
+    @IsOptional()
+    role: Roles;
+    
+    @IsOptional()
+    @IsString()
+    Description: string;
 }

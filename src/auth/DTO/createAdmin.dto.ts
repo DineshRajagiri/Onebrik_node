@@ -1,30 +1,24 @@
-import { Prop } from '@nestjs/mongoose';
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, MaxLength } from 'class-validator'
-import { Roles } from 'src/utils/constants';
-
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator'
 
 export class CreateAdminDTO {
-    @Prop()
     @IsNotEmpty()
-    fullName:string
+    @IsString()
+    fullName: string
   
-    @Prop()
     @IsNotEmpty()
-    mobileNo:string
+    @IsString()
+    mobileNo: string
   
-    @Prop()
-    @IsEmail( {},{message:"Email must be valid"})
+    @IsEmail({}, {message: "Email must be valid"})
     @IsNotEmpty()
-    email:string
+    email: string
   
-    @Prop()
     @IsNotEmpty()
-    password:string
+    @IsString()
+    password: string
   
-    @Prop()
     @IsNotEmpty()
-    confirmPassword:string
-    
+    @IsString()
+    confirmPassword: string
 }
 
