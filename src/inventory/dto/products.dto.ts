@@ -1,43 +1,52 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import mongoose, { Document, } from "mongoose";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { inventoryCategory } from "src/schema/inventoryCategory.schema";
 
 export class productDTO {
-    @Prop({ required: true })
+    @IsNotEmpty()
+    @IsString()
     productName: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     sku: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     price: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     description: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     brand: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     about: string;
 
-    @Prop({ default: 0 })
+    @IsOptional()
+    @IsNumber()
     rating: number;
 
-    @Prop()
+    @IsOptional()
+    @IsNumber()
     discount: number;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     offer: string;
 
-    @Prop({ type: String, ref: "inventoryCategory", default: null })
+    @IsOptional()
+    @IsString()
     mainCategoryId: inventoryCategory;
 
-    @Prop({ type: String, ref: "inventoryCategory", default: null })
+    @IsOptional()
+    @IsString()
     subCategoryId: inventoryCategory;
 
-    @Prop({ type: String, ref: "inventoryCategory", default: null })
+    @IsOptional()
+    @IsString()
     subChildCategoryId: inventoryCategory;
-
-
 }

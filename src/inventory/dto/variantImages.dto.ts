@@ -1,11 +1,12 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { IsNotEmpty, IsString } from "class-validator";
 import { productVariants } from "src/schema/productVariants.schema";
 
 export class VariantImagesDTO {
-
-    @Prop({ type: String, ref: "productVariant" ,required: true})
+    @IsNotEmpty()
+    @IsString()
     productVariantId: productVariants;
 
-    @Prop({ required: true })
+    @IsNotEmpty()
+    @IsString()
     imageUrl: string;
 }

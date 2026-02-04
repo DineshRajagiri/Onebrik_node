@@ -1,11 +1,15 @@
-import { Prop } from '@nestjs/mongoose';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class notification_token_Dto {
   @IsNotEmpty()
+  @IsString()
   userId: string;
+  
   @IsNotEmpty()
+  @IsString()
   notification_token: string;
-  @Prop()
+  
+  @IsOptional()
+  @IsString()
   deviceType: string;
 }

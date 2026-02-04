@@ -1,56 +1,66 @@
-import { Prop } from "@nestjs/mongoose"
-import { IsNotEmpty, IsOptional } from "class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { admin } from "src/schema/admin.schema";
 import { category } from "src/schema/category.schema";
 import { region } from "src/schema/region.schema";
 
 export class vendorDTO {
-    @Prop()
     @IsNotEmpty()
+    @IsString()
     vendorName: string;
 
-    @Prop()
+    @IsOptional()
+    @IsEmail()
     emailID: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     mobileNumber: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     category: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     region: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     adress1: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     country: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     state: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     city: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     postalCode: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     gstNumber: string;
 
-    @Prop()
+    @IsOptional()
+    @IsString()
     uploadLogo: string;
 
     @IsNotEmpty()
-    @Prop({ type: String, ref: "admin" })
+    @IsString()
     adminId: admin;
 
     @IsNotEmpty()
-    @Prop({ type: String, ref: "region" })
+    @IsString()
     regionId: region;
 
     @IsNotEmpty()
-    @Prop({ type: String, ref: "category" })
+    @IsString()
     categoryId: category;
 }
