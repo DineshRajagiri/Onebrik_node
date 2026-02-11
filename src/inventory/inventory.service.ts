@@ -200,110 +200,110 @@ export class InventoryService {
   //   }
   // }
 
- async createInventoryCategory(
-  dto: inventoryCategoryDTO,
-  imageUrl: string,
-) {
-  try {
+  async createInventoryCategory(
+    dto: inventoryCategoryDTO,
+    imageUrl: string,
+  ) {
+    try {
 
-    if (!dto.categoryName?.trim()) {
-      throw new BadRequestException("Category name is required");
-    }
-
-    if (!dto.level?.trim()) {
-      throw new BadRequestException("Category level is required");
-    }
-
-    if (!imageUrl) {
-      throw new BadRequestException("Category image is required");
-    }
-
-    const categoryName = dto.categoryName.trim();
-    const level = dto.level.trim().toUpperCase();
-
-    if (!["MAIN", "SUB", "SUBCHILD"].includes(level)) {
-      throw new BadRequestException(
-        "Invalid level. Allowed: MAIN, SUB, SUBCHILD"
-      );
-    }
-
-    if (level === "MAIN" && dto.parentId) {
-      throw new BadRequestException(
-        "MAIN category cannot have parentId"
-      );
-    }
-
-    if (level !== "MAIN" && !dto.parentId) {
-      throw new BadRequestException(
-        `${level} category must have parentId`
-      );
-    }
-
-    const exists = await this.inventoryCategoryModel
-      .findOne({ categoryName })
-      .lean();
-
-    if (exists) {
-      throw new ConflictException("Category name already exists");
-    }
-
-    let parentId = null;
-    let parentName = null;
-
-    if (dto.parentId) {
-      const parent = await this.inventoryCategoryModel
-        .findById(dto.parentId)
-        .lean();
-
-      if (!parent) {
-        throw new BadRequestException("Invalid parentId");
+      if (!dto.categoryName?.trim()) {
+        throw new BadRequestException("Category name is required");
       }
 
-      parentId = parent._id;
-      parentName = parent.categoryName;
+      if (!dto.level?.trim()) {
+        throw new BadRequestException("Category level is required");
+      }
+
+      if (!imageUrl) {
+        throw new BadRequestException("Category image is required");
+      }
+
+      const categoryName = dto.categoryName.trim();
+      const level = dto.level.trim().toUpperCase();
+
+      if (!["MAIN", "SUB", "SUBCHILD"].includes(level)) {
+        throw new BadRequestException(
+          "Invalid level. Allowed: MAIN, SUB, SUBCHILD"
+        );
+      }
+
+      if (level === "MAIN" && dto.parentId) {
+        throw new BadRequestException(
+          "MAIN category cannot have parentId"
+        );
+      }
+
+      if (level !== "MAIN" && !dto.parentId) {
+        throw new BadRequestException(
+          `${level} category must have parentId`
+        );
+      }
+
+      const exists = await this.inventoryCategoryModel
+        .findOne({ categoryName })
+        .lean();
+
+      if (exists) {
+        throw new ConflictException("Category name already exists");
+      }
+
+      let parentId = null;
+      let parentName = null;
+
+      if (dto.parentId) {
+        const parent = await this.inventoryCategoryModel
+          .findById(dto.parentId)
+          .lean();
+
+        if (!parent) {
+          throw new BadRequestException("Invalid parentId");
+        }
+
+        parentId = parent._id;
+        parentName = parent.categoryName;
+      }
+
+      const created = await this.inventoryCategoryModel.create({
+        categoryName,
+        level,
+        parentId,
+        imageUrl,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return {
+        success: true,
+        message: "Inventory category created successfully",
+        data: {
+          _id: created._id,
+          categoryName: created.categoryName,
+          level: created.level,
+          parentId: created.parentId,
+          parentName,
+          imageUrl: created.imageUrl,
+          createdAt: created.createdAt,
+          updatedAt: created.updatedAt,
+        },
+      };
+
+    } catch (err) {
+
+      console.error("Error in createInventoryCategory:", err);
+
+      if (
+        err instanceof BadRequestException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+
+      throw new HttpException(
+        err.message || "Unexpected error while creating category",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
-
-    const created = await this.inventoryCategoryModel.create({
-      categoryName,
-      level,
-      parentId,
-      imageUrl,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    return {
-      success: true,
-      message: "Inventory category created successfully",
-      data: {
-        _id: created._id,
-        categoryName: created.categoryName,
-        level: created.level,
-        parentId: created.parentId,
-        parentName,
-        imageUrl: created.imageUrl,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-      },
-    };
-
-  } catch (err) {
-
-    console.error("Error in createInventoryCategory:", err);
-
-    if (
-      err instanceof BadRequestException ||
-      err instanceof ConflictException
-    ) {
-      throw err;
-    }
-
-    throw new HttpException(
-      err.message || "Unexpected error while creating category",
-      HttpStatus.INTERNAL_SERVER_ERROR
-    );
   }
-}
 
 
   async createProduct(dto: productDTO) {
@@ -1102,71 +1102,35 @@ export class InventoryService {
     }
   }
 
-  async updateInventoryCategory(id: string, dto: inventoryCategoryDTO) {
-    try {
-      const category = await this.inventoryCategoryModel.findById(id);
-      if (!category) {
-        throw new NotFoundException("Category not found");
-      }
+  async updateInventoryCategory(id: string,
+    dto: inventoryCategoryDTO,
+    imageUrl?: string
+  ) {
 
-      const effectiveLevel = dto.level ?? category.level;
-      const effectiveParentId =
-        dto.parentId !== undefined ? dto.parentId : category.parentId;
+    const updateData: any = {
+      categoryName: dto.categoryName,
+      level: dto.level,
+      parentId: dto.parentId || null,
+      updatedAt: new Date(),
+    };
 
-      if (effectiveLevel === "MAIN" && effectiveParentId) {
-        throw new BadRequestException("MAIN category cannot have parentId");
-      }
-
-      if (effectiveLevel !== "MAIN" && !effectiveParentId) {
-        throw new BadRequestException(
-          `${effectiveLevel} category must have parentId`
-        );
-      }
-
-      if (dto.categoryName) {
-        const exists = await this.inventoryCategoryModel.findOne({
-          categoryName: dto.categoryName.trim(),
-          _id: { $ne: id }
-        });
-        if (exists) {
-          throw new ConflictException("Category name already exists");
-        }
-        category.categoryName = dto.categoryName.trim();
-      }
-
-      if (dto.level) {
-        category.level = dto.level;
-      }
-
-      if (dto.parentId !== undefined) {
-        if (dto.parentId) {
-          const parent = await this.inventoryCategoryModel.findById(dto.parentId);
-          if (!parent) {
-            throw new BadRequestException("Invalid parentId");
-          }
-        }
-        category.parentId = dto.parentId || null;
-      }
-
-      category.updatedAt = new Date();
-      await category.save();
-
-      return {
-        success: true,
-        message: "Category updated successfully",
-        data: category
-      };
-
-    } catch (err) {
-      console.error("Error in updateInventoryCategory:", err);
-      throw err instanceof HttpException
-        ? err
-        : new HttpException(
-          "Unexpected error while updating category",
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
+    if (imageUrl) {
+      updateData.imageUrl = imageUrl;
     }
+
+    const updated = await this.inventoryCategoryModel.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    return {
+      success: true,
+      message: "Category updated successfully",
+      data: updated,
+    };
   }
+
 
   async updateVariantAttributeValue(productVariantId: string, dto: VariantAttributeValuesDTO) {
     try {
@@ -1543,12 +1507,23 @@ export class InventoryService {
     return this.createAttributeValue(dto);
   }
 
-  // async upsertInventoryCategory(dto: inventoryCategoryDTO & { id?: string }) {
-  //   if (dto.id) {
-  //     return this.updateInventoryCategory(dto.id, dto);
-  //   }
-  //   return this.createInventoryCategory(dto);
-  // }
+  async upsertInventoryCategory(
+    dto: inventoryCategoryDTO & { id?: string },
+    imageUrl?: string
+  ) {
+    if (dto.id) {
+      // Update case
+      return this.updateInventoryCategory(dto.id, dto, imageUrl);
+    }
+
+    if (!imageUrl) {
+      throw new BadRequestException("Category image is required");
+    }
+
+    // Create case
+    return this.createInventoryCategory(dto, imageUrl);
+  }
+
 
   async upsertProduct(dto: productDTO & { id?: string }) {
     if (dto.id) {
@@ -1723,7 +1698,7 @@ export class InventoryService {
         _id: cat._id,
         categoryName: cat.categoryName,
         level: cat.level,
-        imageUrl: cat.imageUrl || null, 
+        imageUrl: cat.imageUrl || null,
         parentId: cat.parentId?._id || null,
         parentCategoryName: cat.parentId?.categoryName || null,
         parentCategoryLevel: cat.parentId?.level || null,

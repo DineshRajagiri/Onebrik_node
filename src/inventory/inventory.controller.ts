@@ -178,9 +178,35 @@ export class InventoryController {
 
     @Public()
     @Post('upsertInventoryCategory')
-    upsertInventoryCategory(@Body() dto: inventoryCategoryDTO & { id?: string }) {
-        return this.service.upsertInventoryCategory(dto);
+    @UseInterceptors(
+        FileInterceptor('image', {
+            storage: diskStorage({
+                destination: './uploads/category-images',
+                filename: (req, file, cb) => {
+                    const unique =
+                        Date.now() + '-' + Math.round(Math.random() * 1e9);
+                    const clean = file.originalname.replace(/\s+/g, '-');
+                    cb(null, `${unique}-${clean}`);
+                },
+            }),
+        }),
+    )
+    async upsertInventoryCategory(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() dto: inventoryCategoryDTO & { id?: string },
+        @Req() req: Request,
+    ) {
+
+        let imageUrl: string | undefined;
+
+        if (file) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            imageUrl = `${baseUrl}/uploads/category-images/${file.filename}`;
+        }
+
+        return this.service.upsertInventoryCategory(dto, imageUrl);
     }
+
 
     @Public()
     @Post('upsertProduct')
