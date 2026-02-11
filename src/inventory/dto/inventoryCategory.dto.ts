@@ -5,12 +5,15 @@ export class inventoryCategoryDTO {
     @IsString()
     @IsNotEmpty()
     categoryName: string;
-    
+
     @IsOptional()
     @IsString()
     parentId: inventoryCategory;
-    
+
     @IsEnum(["MAIN", "SUB", "SUBCHILD"])
     @IsNotEmpty()
     level: string;
+
+    // @IsNotEmpty()
+    // imageUrl: string;
 }
