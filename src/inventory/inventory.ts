@@ -18,7 +18,7 @@ export interface IInventoryService {
     createAttribute(dto: attributesDTO): Promise<any>;
     createAttributeValue(dto: attributesValuesDTO): Promise<any>;
     // createInventoryCategory(dto: inventoryCategoryDTO): Promise<any>;
-    createInventoryCategory(dto: inventoryCategoryDTO,imageUrl: string): Promise<any>;
+    createInventoryCategory(dto: inventoryCategoryDTO, imageUrl: string): Promise<any>;
     createProduct(dto: productDTO): Promise<any>;
     createProductVariant(dto: productVariantsDTO): Promise<any>;
     createVariantAttributeValue(dto: VariantAttributeValuesDTO): Promise<any>;
@@ -38,7 +38,11 @@ export interface IInventoryService {
 
     upsertAttribute(dto: attributesDTO & { id?: string }): Promise<any>;
     upsertAttributeValue(dto: attributesValuesDTO & { id?: string }): Promise<any>;
-    upsertInventoryCategory(dto: inventoryCategoryDTO & { id?: string }): Promise<any>;
+    upsertInventoryCategory(
+        dto: inventoryCategoryDTO & { id?: string },
+        imageUrl?: string
+    )
+
     upsertProduct(dto: productDTO & { id?: string }): Promise<any>;
     upsertProductVariant(dto: productVariantsDTO & { id?: string }): Promise<any>;
     upsertVariantAttributeValues(dto: VariantAttributeValuesDTO & { id?: string }): Promise<any>;
