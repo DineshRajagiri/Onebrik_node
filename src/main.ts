@@ -49,7 +49,7 @@ async function bootstrap() {
         'JWT-auth'
       )
       .addServer('http://localhost:3000', 'Development Server')
-      .addServer('https://api.onebrik.com', 'Production Server')
+      .addServer('https://onebrik-node.onrender.com', 'Production Server')
       .addTag('Authentication', 'User and admin authentication endpoints')
       .addTag('Users Management', 'User, admin, vendor, and delivery partner management')
       .addTag('Inventory Management', 'Product, category, and inventory management')
