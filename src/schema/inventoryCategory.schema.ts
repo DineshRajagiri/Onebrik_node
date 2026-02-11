@@ -16,5 +16,8 @@ export class inventoryCategory extends commonDTO {
     level: string;
 
 
+    @Prop({ required: true })
+    imageUrl: string;
+
 }
 export const inventoryCategorySchemaFile = SchemaFactory.createForClass(inventoryCategory);

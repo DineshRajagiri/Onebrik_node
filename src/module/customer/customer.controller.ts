@@ -30,7 +30,7 @@ import { Public } from 'src/decorators/public.decorator';
 export class CustomerController {
   constructor(
     @Inject(Services.CUSTOMER) private customerService: ICustomerService,
-  ) {}
+  ) { }
 
   // ==============================
   // PRODUCTS/ITEMS ENDPOINTS
@@ -200,7 +200,7 @@ export class CustomerController {
   // ==============================
   // ORDER ENDPOINTS
   // ==============================
-  @Post('order')  
+  @Post('order')
   @Public()
   async createOrder(
     @Body() body: CreateOrderDto,
@@ -247,7 +247,7 @@ export class CustomerController {
     );
   }
 
-  @Get('order/:orderId')  
+  @Get('order/:orderId')
   @Public()
   async getOrderById(
     @Param('orderId') orderId: string,

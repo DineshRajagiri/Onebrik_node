@@ -17,7 +17,8 @@ export interface PaginationQuery {
 export interface IInventoryService {
     createAttribute(dto: attributesDTO): Promise<any>;
     createAttributeValue(dto: attributesValuesDTO): Promise<any>;
-    createInventoryCategory(dto: inventoryCategoryDTO): Promise<any>;
+    // createInventoryCategory(dto: inventoryCategoryDTO): Promise<any>;
+    createInventoryCategory(dto: inventoryCategoryDTO,imageUrl: string): Promise<any>;
     createProduct(dto: productDTO): Promise<any>;
     createProductVariant(dto: productVariantsDTO): Promise<any>;
     createVariantAttributeValue(dto: VariantAttributeValuesDTO): Promise<any>;

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { Services } from 'src/utils/constants';
 import { IInventoryService, PaginationQuery } from './inventory';
 import { Public } from 'src/decorators/public.decorator';
@@ -9,7 +9,7 @@ import { productDTO } from './dto/products.dto';
 import { productVariantsDTO } from './dto/productVariants.dto';
 import { VariantImagesDTO } from './dto/variantImages.dto';
 import { VariantAttributeValuesDTO } from './dto/variantAttributeValues.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Request } from 'express';
 import { CreateFullProductDTO } from './dto/createFullProduct.dto';
@@ -17,47 +17,47 @@ import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/deco
 
 // Safe wrapper for documentation - errors won't affect the API
 const SafeInventoryTags = SafeSwaggerClassDecorator(() => {
-  const { InventoryTags } = require('../doc/inventory/inventory.swagger');
-  return InventoryTags;
+    const { InventoryTags } = require('../doc/inventory/inventory.swagger');
+    return InventoryTags;
 });
 
 const SafeInventoryDecorators = {
-  createAttribute: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.createAttribute;
-  }),
-  createAttributeValue: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.createAttributeValue;
-  }),
-  createInventoryCategory: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.createInventoryCategory;
-  }),
-  createVariantImages: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.createVariantImages;
-  }),
-  createFullProduct: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.createFullProduct;
-  }),
-  getAllProducts: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.getAllProducts;
-  }),
-  getProductById: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.getProductById;
-  }),
-  updateFullProduct: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.updateFullProduct;
-  }),
-  deleteProduct: SafeSwaggerDecorator(() => {
-    const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-    return InventoryDecorators.deleteProduct;
-  })
+    createAttribute: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.createAttribute;
+    }),
+    createAttributeValue: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.createAttributeValue;
+    }),
+    createInventoryCategory: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.createInventoryCategory;
+    }),
+    createVariantImages: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.createVariantImages;
+    }),
+    createFullProduct: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.createFullProduct;
+    }),
+    getAllProducts: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.getAllProducts;
+    }),
+    getProductById: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.getProductById;
+    }),
+    updateFullProduct: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.updateFullProduct;
+    }),
+    deleteProduct: SafeSwaggerDecorator(() => {
+        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
+        return InventoryDecorators.deleteProduct;
+    })
 };
 
 @SafeInventoryTags
@@ -82,9 +82,35 @@ export class InventoryController {
     @Public()
     @Post('createInventoryCategory')
     @SafeInventoryDecorators.createInventoryCategory
-    async createInventoryCategory(@Body() dto: inventoryCategoryDTO) {
-        return this.service.createInventoryCategory(dto);
+    @UseInterceptors(
+        FileInterceptor('image', {
+            storage: diskStorage({
+                destination: './uploads/category-images',
+                filename: (req, file, cb) => {
+                    const unique =
+                        Date.now() + '-' + Math.round(Math.random() * 1e9);
+                    const clean = file.originalname.replace(/\s+/g, '-');
+                    cb(null, `${unique}-${clean}`);
+                },
+            }),
+        }),
+    )
+    async createInventoryCategory(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() dto: inventoryCategoryDTO,
+        @Req() req: Request,
+    ) {
+
+        if (!file) {
+            throw new BadRequestException("Category image is required");
+        }
+
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const imageUrl = `${baseUrl}/uploads/category-images/${file.filename}`;
+
+        return this.service.createInventoryCategory(dto, imageUrl);
     }
+
 
     @Public()
     @Post('createProductVariant')
