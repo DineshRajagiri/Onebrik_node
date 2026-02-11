@@ -6,7 +6,8 @@ export const inventoryCategoryTableMetadata = {
         { field: "categoryName", title: "Category Name" },
         { field: "level", title: "Category Level" },
         { field: "parentCategoryName", title: "Parent Category" },
-        { field: "parentCategoryLevel", title: "Parent Level" }
+        { field: "parentCategoryLevel", title: "Parent Level" },
+        { field: "imageUrl", title: "Category Image" },
 
     ],
 

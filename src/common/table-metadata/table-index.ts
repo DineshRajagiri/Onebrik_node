@@ -21,6 +21,6 @@ export const TableMetadataMap: Record<string, any> = {
   varientAttributeValues: varientAttributeValuesTableMetadata,
   submodulechild: SubModuleChildTableMetadata,
   roles: RolesTableMetadata,
-   users_new:UserTableMetadata
+  users_new: UserTableMetadata
 
 };
