@@ -5,6 +5,8 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import passport from 'passport';
 import * as dotenv from 'dotenv';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import * as express from 'express';
+import { join } from 'path';
 
 dotenv.config();
 
@@ -12,6 +14,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   const logger = new Logger('Bootstrap');
 
+  app.use(
+    '/uploads',
+    express.static(join(__dirname, '..', 'uploads')),
+  );
   // Global configuration
   app.setGlobalPrefix('api');
   app.enableCors();
@@ -26,7 +32,7 @@ async function bootstrap() {
   // Swagger configuration with error isolation - Documentation errors won't affect the main app
   try {
     logger.log('Setting up Swagger documentation...', 'Documentation');
-    
+
     const config = new DocumentBuilder()
       .setTitle('OneBrik API')
       .setDescription('OneBrik E-commerce Platform API Documentation')
@@ -59,7 +65,7 @@ async function bootstrap() {
       extraModels: [], // Don't include any DTO models
       operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
     });
-    
+
     SwaggerModule.setup('api-doc', app, document, {
       swaggerOptions: {
         persistAuthorization: true,
@@ -83,7 +89,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || process.env.PORT_LOCAL || 3000;
   await app.listen(port, '0.0.0.0');
-  
+
   logger.log(`😼======================================================== 😼`);
   logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`, 'NestApplication');
   logger.log(`😼======================================================== 😼`);

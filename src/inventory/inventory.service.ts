@@ -1723,7 +1723,7 @@ export class InventoryService {
         _id: cat._id,
         categoryName: cat.categoryName,
         level: cat.level,
-
+        imageUrl: cat.imageUrl || null, 
         parentId: cat.parentId?._id || null,
         parentCategoryName: cat.parentId?.categoryName || null,
         parentCategoryLevel: cat.parentId?.level || null,
