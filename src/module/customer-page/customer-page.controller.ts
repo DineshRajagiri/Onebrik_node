@@ -2,7 +2,8 @@ import {
   Body,
   Controller,
   Get,
-  Post
+  Post,
+  Query
 } from '@nestjs/common';
 import { CustomerPageService } from './customer-page.service';
 import { Public } from 'src/decorators/public.decorator';
@@ -10,42 +11,55 @@ import { CreateSubCursorDto } from './dto/sub.dto';
 
 @Controller('customerPage')
 export class CustomerpageController {
-  constructor( private readonly customerPageService: CustomerPageService ) {}
+  constructor(private readonly customerPageService: CustomerPageService) { }
 
   @Public()
-  @Get('getHeaderMaindata')  
+  @Get('getHeaderMaindata')
   async customerViewedheader() {
-   const data = await this.customerPageService.customerViewedheader();
+    const data = await this.customerPageService.customerViewedheader();
+    return data
+  }
+  @Public()
+  @Get('getSubCatHearder')
+  async customerViewedSubCatheader() {
+    const data = await this.customerPageService.customerViewedSubCatheader();
     return data
   }
 
   @Public()
-  @Post('getSubheaderMaindata')  
+  @Post('getSubheaderMaindata')
   async customerViewedSubheader(@Body() body: { id: string }) {
-   const data = await this.customerPageService.customerViewedSubheader(body.id);
-  return data
+    const data = await this.customerPageService.customerViewedSubheader(body.id);
+    return data
   }
 
   @Public()
-  @Post('getSubCatHeaderMaindata')  
+  @Post('getSubCatHeaderMaindata')
   async getSubHeaderMaindata() {
-   const data = await this.customerPageService.getSubHeaderMaindata();
-  return data
+    const data = await this.customerPageService.getSubHeaderMaindata();
+    return data
   }
 
 
   @Public()
-  @Post('CreateSubCursor')  
+  @Post('CreateSubCursor')
   async getAttributesByCategory(@Body() body: CreateSubCursorDto) {
-   const data = await this.customerPageService.getAttributesByCategory(body);
-  return data
+    const data = await this.customerPageService.getAttributesByCategory(body);
+    return data
   }
 
   @Public()
-  @Get('GetSubCursor')  
+  @Get('GetSubCursor')
   async GetSubCursor() {
-   const data = await this.customerPageService.GetSubCursor();
-  return data
+    const data = await this.customerPageService.GetSubCursor();
+    return data
   }
+
+  @Public()
+  @Get("getLatestProducts")
+  async getLatestProducts(@Query() query: any) {
+    return this.customerPageService.getLatestProducts(query);
+  }
+
 }
 
