@@ -1523,8 +1523,7 @@ export class InventoryService {
     // Create case
     return this.createInventoryCategory(dto, imageUrl);
   }
-
-
+  
   async upsertProduct(dto: productDTO & { id?: string }) {
     if (dto.id) {
       return this.updateProduct(dto.id, dto);
