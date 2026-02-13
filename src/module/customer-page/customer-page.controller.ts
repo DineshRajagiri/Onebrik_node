@@ -60,6 +60,11 @@ export class CustomerpageController {
   async getProductsBySubCategory(@Query() query: any, @Body() body: { id: string }) {
     return this.customerPageService.getProductsBySubCategory(query, body);
   }
+  @Public()
+  @Get('getAllProducts')
+  async getAllProducts(@Query() query: any) {
+    return await this.customerPageService.getAllProducts(query);
+  }
 
 }
 
