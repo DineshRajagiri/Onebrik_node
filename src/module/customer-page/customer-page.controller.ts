@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { CustomerPageService } from './customer-page.service';
 import { Public } from 'src/decorators/public.decorator';
 import { CreateSubCursorDto } from './dto/sub.dto';
@@ -59,6 +53,12 @@ export class CustomerpageController {
   @Get("getLatestProducts")
   async getLatestProducts(@Query() query: any) {
     return this.customerPageService.getLatestProducts(query);
+  }
+
+  @Public()
+  @Post('getProductsBySubCategory')
+  async getProductsBySubCategory(@Query() query: any, @Body() body: { id: string }) {
+    return this.customerPageService.getProductsBySubCategory(query, body);
   }
 
 }
