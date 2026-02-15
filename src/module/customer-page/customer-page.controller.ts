@@ -66,5 +66,13 @@ export class CustomerpageController {
     return await this.customerPageService.getAllProducts(query);
   }
 
+  @Public()
+  @Post("productDetailsById")
+  async productDetailsById(@Body() body: { id: string }) {
+    return this.customerPageService.productDetailsById(body);
+  }
+
+
+
 }
 

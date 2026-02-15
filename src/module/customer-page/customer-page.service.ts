@@ -630,6 +630,146 @@ export class CustomerPageService {
     }
   }
 
+  async productDetailsById(body: { id: string }) {
+    try {
+      const { id } = body;
+
+      if (!id) {
+        throw new HttpException(
+          "productId is required",
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      const product = await this.productModel
+        .findOne({
+          _id: id,
+          isActive: true,
+          isDeleted: false,
+        })
+        .populate("mainCategoryId", "categoryName level")
+        .populate("subCategoryId", "categoryName level")
+        .populate("subChildCategoryId", "categoryName level")
+        .lean();
+
+      if (!product) {
+        throw new HttpException(
+          "Product not found",
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      const variants = await this.productVariantsModel
+        .find({
+          productId: id,
+          isActive: true,
+          isDeleted: false,
+        })
+        .lean();
+
+      const variantIds = variants.map(v => v._id);
+
+      const [attributes, images] = await Promise.all([
+        this.variantAttributeValuesModel
+          .find({ productVariantId: { $in: variantIds } })
+          .populate("attributeId", "attributename")
+          .populate("attributeValuesId", "value")
+          .lean(),
+
+        this.variantImageModel
+          .find({ productVariantId: { $in: variantIds } })
+          .lean(),
+      ]);
+
+      const attrMap = new Map<string, any[]>();
+      attributes.forEach(a => {
+        const key = String(a.productVariantId);
+        if (!attrMap.has(key)) attrMap.set(key, []);
+        attrMap.get(key)!.push(a);
+      });
+
+      const imageMap = new Map<string, string[]>();
+      images.forEach(i => {
+        const key = String(i.productVariantId);
+        if (!imageMap.has(key)) imageMap.set(key, []);
+        imageMap.get(key)!.push(i.imageUrl);
+      });
+
+      const totalStock = variants.reduce(
+        (sum, v) => sum + Number(v.stock || 0),
+        0
+      );
+
+      const formattedVariants = variants.map(v => ({
+        variantId: v._id,
+        variantName: v.variantName,
+        stock: Number(v.stock),
+        salePrice: v.salePrice,
+        offerPrice: v.offerPrice,
+
+        attributes: (attrMap.get(String(v._id)) || []).map(a => ({
+          attributeId: a.attributeId?._id,
+          attributeName: a.attributeId?.attributename,
+          attributeValueId: a.attributeValuesId?._id,
+          attributeValue: a.attributeValuesId?.value,
+        })),
+
+        images: imageMap.get(String(v._id)) || [],
+      }));
+
+      return {
+        success: true,
+        message: "Product details fetched successfully",
+        data: {
+          id: product._id,
+          name: product.productName,
+          brand: product.brand,
+          description: product.description,
+          about: product.about,
+          rating: product.rating,
+          discount: product.discount,
+          offer: product.offer,
+          created: product.createdAt,
+
+          quantity: totalStock,
+          isStock: totalStock > 0,
+
+          inventoryCategories: [
+            product.mainCategoryId && {
+              id: product.mainCategoryId._id,
+              name: product.mainCategoryId.categoryName,
+              level: "MAIN",
+            },
+            product.subCategoryId && {
+              id: product.subCategoryId._id,
+              name: product.subCategoryId.categoryName,
+              level: "SUB",
+            },
+            product.subChildCategoryId && {
+              id: product.subChildCategoryId._id,
+              name: product.subChildCategoryId.categoryName,
+              level: "SUBCHILD",
+            },
+          ].filter(Boolean),
+
+          variants: formattedVariants,
+        },
+      };
+
+    } catch (err) {
+      console.error("Error in productDetailsById:", err);
+
+      throw err instanceof HttpException
+        ? err
+        : new HttpException(
+          "Failed to fetch product details",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+
+
+
 
 }
 
