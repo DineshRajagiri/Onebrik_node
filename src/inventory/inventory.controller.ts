@@ -14,6 +14,7 @@ import { diskStorage } from 'multer';
 import { Request } from 'express';
 import { CreateFullProductDTO } from './dto/createFullProduct.dto';
 import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
+import { AwsS3BucketService } from 'src/common/services/aws-s3-bucket/aws-s3-bucket.service';
 
 // Safe wrapper for documentation - errors won't affect the API
 const SafeInventoryTags = SafeSwaggerClassDecorator(() => {
@@ -63,7 +64,8 @@ const SafeInventoryDecorators = {
 @SafeInventoryTags
 @Controller('inventory')
 export class InventoryController {
-    constructor(@Inject(Services.INVENTORY) private service: IInventoryService) { }
+    constructor(@Inject(Services.INVENTORY) private service: IInventoryService,
+         private readonly awsS3BucketService: AwsS3BucketService, ) { }
 
     @Public()
     @Post('createAttribute')
@@ -81,35 +83,23 @@ export class InventoryController {
 
     @Public()
     @Post('createInventoryCategory')
-    @SafeInventoryDecorators.createInventoryCategory
-    @UseInterceptors(
-        FileInterceptor('image', {
-            storage: diskStorage({
-                destination: './uploads/category-images',
-                filename: (req, file, cb) => {
-                    const unique =
-                        Date.now() + '-' + Math.round(Math.random() * 1e9);
-                    const clean = file.originalname.replace(/\s+/g, '-');
-                    cb(null, `${unique}-${clean}`);
-                },
-            }),
-        }),
-    )
+    @UseInterceptors(FileInterceptor('image'))
     async createInventoryCategory(
         @UploadedFile() file: Express.Multer.File,
         @Body() dto: inventoryCategoryDTO,
-        @Req() req: Request,
     ) {
-
         if (!file) {
             throw new BadRequestException("Category image is required");
         }
 
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const imageUrl = `${baseUrl}/uploads/category-images/${file.filename}`;
+        const imageUrl = await this.awsS3BucketService.uploadFile(
+            file,
+            'category-images',
+        );
 
         return this.service.createInventoryCategory(dto, imageUrl);
     }
+
 
 
     @Public()

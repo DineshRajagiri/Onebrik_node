@@ -1,3 +1,4 @@
+import { AwsS3BucketService } from "src/common/services/aws-s3-bucket/aws-s3-bucket.service";
 
 
 export enum Services {
@@ -21,7 +22,8 @@ export enum Services {
     WITHDRAWAL="WITHDRAWAL",
     DELIVERYBOY="DELIVERYBOY",
     INVENTORY="INVENTORY",
-    CUSTOMER="CUSTOMER"
+    CUSTOMER="CUSTOMER",
+    AwsS3BucketService="AWS-S3-BUCKET"
 }
 
 export enum Roles{
