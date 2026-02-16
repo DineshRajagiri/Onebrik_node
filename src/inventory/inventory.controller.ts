@@ -10,7 +10,7 @@ import { productVariantsDTO } from './dto/productVariants.dto';
 import { VariantImagesDTO } from './dto/variantImages.dto';
 import { VariantAttributeValuesDTO } from './dto/variantAttributeValues.dto';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { Request } from 'express';
 import { CreateFullProductDTO } from './dto/createFullProduct.dto';
 import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
@@ -65,7 +65,7 @@ const SafeInventoryDecorators = {
 @Controller('inventory')
 export class InventoryController {
     constructor(@Inject(Services.INVENTORY) private service: IInventoryService,
-         private readonly awsS3BucketService: AwsS3BucketService, ) { }
+        private readonly awsS3BucketService: AwsS3BucketService,) { }
 
     @Public()
     @Post('createAttribute')
@@ -114,25 +114,18 @@ export class InventoryController {
         return this.service.createVariantAttributeValue(dto);
     }
 
+
     @Public()
     @Post('createVariantImages')
     @SafeInventoryDecorators.createVariantImages
     @UseInterceptors(
         FilesInterceptor('images', 10, {
-            storage: diskStorage({
-                destination: './uploads/variant-images',
-                filename: (req, file, callback) => {
-                    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-                    const clean = file.originalname.replace(/\s+/g, '-');
-                    callback(null, `${unique}-${clean}`);
-                }
-            })
-        })
+            storage: memoryStorage(),
+        }),
     )
     async createVariantImages(
         @UploadedFiles() files: Express.Multer.File[],
         @Body('productVariantId') productVariantId: string,
-        @Req() req: Request,
     ) {
         if (!productVariantId) {
             throw new BadRequestException("productVariantId is required");
@@ -141,11 +134,17 @@ export class InventoryController {
         if (!files || files.length === 0) {
             throw new BadRequestException("No images uploaded");
         }
-        const base = `${req.protocol}://${req.get('host')}`;
-        const fileUrls = files.map(f => `${base}/uploads/variant-images/${f.filename}`);
+
+        const uploadPromises = files.map(file =>
+            this.awsS3BucketService.uploadFile(file, 'variants')
+        );
+
+        const fileUrls = await Promise.all(uploadPromises);
 
         return this.service.createVariantImages(productVariantId, fileUrls);
     }
+
+
 
     @Public()
     @Post("createProducts")
@@ -170,32 +169,22 @@ export class InventoryController {
     @Post('upsertInventoryCategory')
     @UseInterceptors(
         FileInterceptor('image', {
-            storage: diskStorage({
-                destination: './uploads/category-images',
-                filename: (req, file, cb) => {
-                    const unique =
-                        Date.now() + '-' + Math.round(Math.random() * 1e9);
-                    const clean = file.originalname.replace(/\s+/g, '-');
-                    cb(null, `${unique}-${clean}`);
-                },
-            }),
+            storage: memoryStorage(),
         }),
     )
     async upsertInventoryCategory(
         @UploadedFile() file: Express.Multer.File,
         @Body() dto: inventoryCategoryDTO & { id?: string },
-        @Req() req: Request,
     ) {
-
         let imageUrl: string | undefined;
 
         if (file) {
-            const baseUrl = `${req.protocol}://${req.get('host')}`;
-            imageUrl = `${baseUrl}/uploads/category-images/${file.filename}`;
+            imageUrl = await this.awsS3BucketService.uploadFile(file, 'categories');
         }
 
         return this.service.upsertInventoryCategory(dto, imageUrl);
     }
+
 
 
     @Public()
@@ -260,20 +249,12 @@ export class InventoryController {
     @Put('updateVariantImages/:productVariantId')
     @UseInterceptors(
         FilesInterceptor('images', 10, {
-            storage: diskStorage({
-                destination: './uploads/variant-images',
-                filename: (req, file, callback) => {
-                    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-                    const clean = file.originalname.replace(/\s+/g, '-');
-                    callback(null, `${unique}-${clean}`);
-                }
-            })
-        })
+            storage: memoryStorage(),
+        }),
     )
     async updateVariantImages(
         @Param('productVariantId') productVariantId: string,
         @UploadedFiles() files: Express.Multer.File[],
-        @Req() req: Request
     ) {
         if (!productVariantId) {
             throw new BadRequestException("productVariantId is required");
@@ -283,11 +264,15 @@ export class InventoryController {
             throw new BadRequestException("No images uploaded");
         }
 
-        const base = `${req.protocol}://${req.get('host')}`;
-        const fileUrls = files.map(f => `${base}/uploads/variant-images/${f.filename}`);
+        const uploadPromises = files.map(file =>
+            this.awsS3BucketService.uploadFile(file, 'variants')
+        );
+
+        const fileUrls = await Promise.all(uploadPromises);
 
         return this.service.updateVariantImages(productVariantId, fileUrls);
     }
+
 
     @Public()
     @Get('GetValuesByattributeId/:attributeId')
