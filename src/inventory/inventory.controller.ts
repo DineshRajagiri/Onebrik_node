@@ -145,6 +145,28 @@ export class InventoryController {
     }
 
 
+    @Public()
+    @Post('uploadImage')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            storage: memoryStorage(),
+        }),
+    )
+    async uploadImage(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            throw new BadRequestException("File is required");
+        }
+
+        const imageUrl = await this.awsS3BucketService.uploadFile(
+            file,
+            'variants',
+        );
+
+        return {
+            success: true,
+            url: imageUrl,
+        };
+    }
 
     @Public()
     @Post("createProducts")
