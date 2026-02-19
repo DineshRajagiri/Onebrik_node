@@ -717,23 +717,63 @@ export class CustomerPageService {
         images: imageMap.get(String(v._id)) || [],
       }));
 
+      // return {
+      //   success: true,
+      //   message: "Product details fetched successfully",
+      //   data: {
+      //     id: product._id,
+      //     name: product.productName,
+      //     brand: product.brand,
+      //     description: product.description,
+      //     about: product.about,
+      //     rating: product.rating,
+      //     discount: product.discount,
+      //     offer: product.offer,
+      //     created: product.createdAt,
+
+      //     quantity: totalStock,
+      //     isStock: totalStock > 0,
+
+      //     inventoryCategories: [
+      //       product.mainCategoryId && {
+      //         id: product.mainCategoryId._id,
+      //         name: product.mainCategoryId.categoryName,
+      //         level: "MAIN",
+      //       },
+      //       product.subCategoryId && {
+      //         id: product.subCategoryId._id,
+      //         name: product.subCategoryId.categoryName,
+      //         level: "SUB",
+      //       },
+      //       product.subChildCategoryId && {
+      //         id: product.subChildCategoryId._id,
+      //         name: product.subChildCategoryId.categoryName,
+      //         level: "SUBCHILD",
+      //       },
+      //     ].filter(Boolean),
+
+      //     variants: formattedVariants,
+      //   },
+      // };
       return {
         success: true,
         message: "Product details fetched successfully",
         data: {
-          id: product._id,
-          name: product.productName,
+          productName: product.productName,
           brand: product.brand,
           description: product.description,
           about: product.about,
+          price: product.price,
           rating: product.rating,
           discount: product.discount,
           offer: product.offer,
-          created: product.createdAt,
 
-          quantity: totalStock,
-          isStock: totalStock > 0,
+          // ✅ Direct IDs for form binding
+          mainCategoryId: product.mainCategoryId?._id || null,
+          subCategoryId: product.subCategoryId?._id || null,
+          subChildCategoryId: product.subChildCategoryId?._id || null,
 
+          // ✅ Keep full category info for display
           inventoryCategories: [
             product.mainCategoryId && {
               id: product.mainCategoryId._id,
@@ -752,7 +792,19 @@ export class CustomerPageService {
             },
           ].filter(Boolean),
 
-          variants: formattedVariants,
+          variants: formattedVariants.map(v => ({
+            variantName: v.variantName,
+            stock: v.stock,
+            salePrice: v.salePrice,
+            offerPrice: v.offerPrice,
+
+            attributes: v.attributes.map(a => ({
+              attributeId: a.attributeId,
+              attributeValuesId: a.attributeValueId,
+            })),
+
+            images: v.images,
+          })),
         },
       };
 
