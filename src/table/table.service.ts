@@ -19,7 +19,7 @@ export class TableService {
     private readonly superAdminService: SuperAdminService,
   ) { }
 
-  async buildTable(tableKey: string, page: number, limit: number) {
+  async buildTable(tableKey: string, page: number, limit: number, query?: any) {
 
     if (page <= 0 || limit <= 0) {
       throw new BadRequestException("Invalid page or limit");
@@ -50,8 +50,9 @@ export class TableService {
         break;
 
       case "inventoryCategory":
-        result = await this.inventoryService.getAllInventoryCategories({ page, limit, search: "" });
+        result = await this.inventoryService.getAllInventoryCategories({page,limit,search: query?.search || "",level: query?.level || "",parentId: query?.parentId || ""});
         break;
+
 
       case "products":
         result = await this.inventoryService.getAllProducts({ page, limit, search: "" });

@@ -1523,7 +1523,7 @@ export class InventoryService {
     // Create case
     return this.createInventoryCategory(dto, imageUrl);
   }
-  
+
   async upsertProduct(dto: productDTO & { id?: string }) {
     if (dto.id) {
       return this.updateProduct(dto.id, dto);
@@ -1675,12 +1675,24 @@ export class InventoryService {
     try {
       const { page, limit, skip } = this.paginate(query);
       const search = query.search?.trim() || "";
+      const level = query.level?.trim() || "";
 
       const filter: any = {};
 
       if (search) {
         filter.categoryName = { $regex: search, $options: "i" };
       }
+
+      // 🎯 Filter by Level (MAIN / SUB / SUBCHILD)
+      if (level) {
+        filter.level = level;
+      }
+      const parentId = query.parentId?.trim() || "";
+
+      if (parentId) {
+        filter.parentId = parentId;
+      }
+
 
       const [list, total] = await Promise.all([
         this.inventoryCategoryModel
@@ -1701,7 +1713,6 @@ export class InventoryService {
         parentId: cat.parentId?._id || null,
         parentCategoryName: cat.parentId?.categoryName || null,
         parentCategoryLevel: cat.parentId?.level || null,
-
         createdAt: cat.createdAt,
         updatedAt: cat.updatedAt
       }));
@@ -1717,9 +1728,13 @@ export class InventoryService {
 
     } catch (err) {
       console.error("Error in getAllInventoryCategories:", err);
-      throw new HttpException("Failed to fetch categories", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        "Failed to fetch categories",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
+
 
   async getAllProductVariants(query: any) {
     try {
