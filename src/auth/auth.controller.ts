@@ -45,6 +45,7 @@ import {
   CustomerVerifyOtpLoginDto,
 } from './DTO/customer-verify-otp.dto';
 import { UpdateCustomerProfileDto } from './DTO/update-customer-profile.dto';
+import { ChangePasswordDto } from './DTO/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -153,5 +154,14 @@ export class AuthController {
     @Body() dto: UpdateCustomerProfileDto,
   ) {
     return await this.authService.updateCustomerProfile(req.user.id, dto);
+  }
+
+  /** Change password (customer only, JWT required). */
+  @Patch('customer/change-password')
+  async changeCustomerPassword(
+    @Req() req: { user: { id: string } },
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return await this.authService.changeCustomerPassword(req.user.id, dto);
   }
 }

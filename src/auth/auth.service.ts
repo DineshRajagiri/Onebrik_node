@@ -18,6 +18,7 @@ import { MailService } from 'src/mail/mail.service';
 import { OtpPurpose } from './DTO/customer-send-otp.dto';
 import { CustomerSignupDto } from './DTO/customer-signup.dto';
 import { UpdateCustomerProfileDto } from './DTO/update-customer-profile.dto';
+import { ChangePasswordDto } from './DTO/change-password.dto';
 import { GHIBLI_AVATARS, getGhibliAvatarUrlById } from './constants/ghibli-avatars';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -528,6 +529,33 @@ export class AuthService {
     return {
       success: true,
       data: GHIBLI_AVATARS.map((a) => ({ id: a.id, name: a.name, url: a.url })),
+    };
+  }
+
+  // ==============================
+  // CUSTOMER - CHANGE PASSWORD (JWT required)
+  // ==============================
+  async changeCustomerPassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    const role = await this.roleModel.findById(user.roleId);
+    if (!role || !/customer/i.test(role.name)) {
+      throw new ForbiddenException('Not a customer account');
+    }
+
+    const match = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!match) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.userModel.updateOne({ _id: userId }, { passwordHash });
+
+    return {
+      success: true,
+      message: 'Password changed successfully',
     };
   }
 }

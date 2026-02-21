@@ -49,6 +49,7 @@ export interface IAuthService {
   customerVerifyOtpLogin(email: string, otp: string): Promise<any>;
   getCustomerProfile(userId: string): Promise<any>;
   updateCustomerProfile(userId: string, dto: any): Promise<any>;
+  changeCustomerPassword(userId: string, dto: any): Promise<any>;
   getGhibliAvatars(): Promise<any>;
 }
 

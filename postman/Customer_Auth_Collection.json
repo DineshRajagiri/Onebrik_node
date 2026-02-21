@@ -160,6 +160,22 @@
           }
         },
         {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"securePass123\",\n  \"newPassword\": \"newSecurePass456\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/customer/change-password",
+            "description": "Change password for logged-in customer. Requires current password and new password (min 6 chars). JWT required."
+          }
+        },
+        {
           "name": "Get Ghibli Avatars",
           "request": {
             "method": "GET",
