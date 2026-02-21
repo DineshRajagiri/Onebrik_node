@@ -39,8 +39,16 @@ export interface IAuthService {
       };
     }
   >;
-  initiateLogin(data: any)
+  initiateLogin(data: any);
   refreshToken(refreshToken: any): Promise<{ success: boolean; message: string; data: any }>;
-  login(data: any)
+  login(data: any);
+  customerPasswordLogin(email: string, password: string): Promise<any>;
+  sendOtpForCustomer(email: string, purpose: string): Promise<any>;
+  verifyOtpForCustomer(email: string, otp: string, purpose: string): Promise<any>;
+  customerSignup(dto: any): Promise<any>;
+  customerVerifyOtpLogin(email: string, otp: string): Promise<any>;
+  getCustomerProfile(userId: string): Promise<any>;
+  updateCustomerProfile(userId: string, dto: any): Promise<any>;
+  getGhibliAvatars(): Promise<any>;
 }
 

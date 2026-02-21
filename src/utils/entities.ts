@@ -31,6 +31,7 @@ import { Payment, PaymentSchemaFile } from "src/schema/payment.schema";
 import { Order, OrderSchemaFile } from "src/schema/order.schema";
 import { OrderItem, OrderItemSchemaFile } from "src/schema/orderItem.schema";
 import { SubCursor, SubCursorSchema } from "src/schema/subcursore.schema";
+import { Otp, OtpSchema } from "src/schema/otp.schema";
 
 
 
@@ -68,6 +69,7 @@ export const entities = [
     { name: Order.name, schema: OrderSchemaFile },
     { name: OrderItem.name, schema: OrderItemSchemaFile },
     { name: SubCursor.name, schema: SubCursorSchema },
+    { name: Otp.name, schema: OtpSchema },
     // { name: Permission.name,schema:permissionSchemaFile},
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},

@@ -14,6 +14,28 @@ export class MailService {
     });
   }
 
+  async sendOtpEmail(to: string, otp: string, purpose: string = 'verification') {
+    const subject =
+      purpose === 'signup'
+        ? 'Verify your email - OneBrik Signup'
+        : 'Your login OTP - OneBrik';
+
+    await this.transporter.sendMail({
+      from: `"OneBrik" <Bhushanpawar2112001@gmail.com>`,
+      to,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px;">
+          <h2 style="color: #333;">OneBrik Verification</h2>
+          <p>Your OTP for ${purpose} is:</p>
+          <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #2563eb;">${otp}</p>
+          <p style="color: #666;">This OTP expires in 10 minutes. Do not share it with anyone.</p>
+          <p style="font-size: 12px; color: #999;">OneBrik Team</p>
+        </div>
+      `,
+    });
+  }
+
   async sendMail(email: string, name: string ,password:string) {
     return this.transporter.sendMail({
       from: `"Bhushan" <Bhushanpawar2112001@gmail.com>`,

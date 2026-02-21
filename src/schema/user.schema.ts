@@ -22,8 +22,15 @@ export class User extends commonDTO {
   @Prop({ default: true })
   isActive: boolean;
 
-  @Prop()
+  @Prop({ unique: true, sparse: true })
   userid: string;
+
+  /** Profile avatar / personality image URL (e.g. Ghibli-style photo). */
+  @Prop()
+  avatarUrl?: string;
+
+  @Prop()
+  refreshToken?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
