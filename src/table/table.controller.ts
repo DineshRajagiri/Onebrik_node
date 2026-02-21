@@ -16,7 +16,8 @@ export class TableController {
         @Param('tableKey') tableKey: string,
         @Query('page') page = 1,
         @Query('limit') limit = 10,
+        @Query() query: any
     ) {
-        return this.service.buildTable(tableKey, Number(page), Number(limit));
+        return this.service.buildTable(tableKey, Number(page), Number(limit),query);
     }
 }
