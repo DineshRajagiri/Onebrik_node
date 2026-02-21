@@ -8,11 +8,10 @@ export class MailService {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: 'Bhushanpawar2112001@gmail.com',
+        pass: 'dotfssveobnnqexx',
       },
     });
-
   }
 
   async sendOtpEmail(to: string, otp: string, purpose: string = 'verification') {
@@ -37,12 +36,12 @@ export class MailService {
     });
   }
 
-  async sendMail(email: string, name: string, password: string) {
+  async sendMail(email: string, name: string ,password:string) {
     return this.transporter.sendMail({
       from: `"Bhushan" <Bhushanpawar2112001@gmail.com>`,
       to: `${email}`,
       subject: 'Account Activated',
-      html: `
+    html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -127,7 +126,7 @@ export class MailService {
 </body>
 </html>
 `
-      ,
+,
     });
   }
 }

@@ -31,7 +31,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
-  ) { }
+  ) {}
 
   // ==============================
   // LOGIN (EMAIL + PASSWORD)
@@ -217,13 +217,11 @@ export class AuthService {
     if (p?.includes('@')) return this.customerVerifyOtpLogin(p, o);
     throw new BadRequestException('Use customer OTP endpoints');
   }
-  validateUser(_d: any) { }
-  createAccessToken(_d: any) { }
+  validateUser(_d: any) {}
+  createAccessToken(_d: any) {}
   async initiateLogin(_d: any) {
     throw new BadRequestException('Use customer OTP flow');
   }
-
-
 
   // ==============================
   // CUSTOMER - SEND OTP
@@ -254,9 +252,7 @@ export class AuthService {
       expiresAt,
     });
 
-    this.mailService.sendOtpEmail(normalizedEmail, otp, purpose)
-      .catch(err => console.error('Mail error:', err));
-
+    await this.mailService.sendOtpEmail(normalizedEmail, otp, purpose);
 
     return {
       success: true,
