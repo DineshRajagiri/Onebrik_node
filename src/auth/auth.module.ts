@@ -14,10 +14,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { APP_GUARD } from '@nestjs/core';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
     HttpModule,
+    MailModule,
     forwardRef(() => UsersModule),
     MongooseModule.forFeature(entities),
     NotificationModule,
