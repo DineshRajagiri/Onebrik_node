@@ -1,6 +1,7 @@
 import { CreateAppModuleDto } from "./DTO/create-module.dto";
 import { UpsertModuleDto } from "./DTO/upsert-module.dto";
 import { UpsertSubModuleDto } from "./DTO/upsert-sub-module.dto";
+import { UpsertSubModuleChildDto } from "./DTO/upsert-submodule-child-dto";
 
 export interface IPermissionService {
 
@@ -17,16 +18,20 @@ export interface IPermissionService {
   getSubModulesByModuleId(moduleId: string): Promise<{ success: boolean; message: string; data: any[]; }>;
 
 
+  getPaginatedSubModuleChild(page: number,limit: number): Promise<{data: any[];total: number;page: number;limit: number;}>;
+  upsertSubModuleChild(dto: UpsertSubModuleChildDto): Promise<{success: boolean;message: string;data: any;}>;
+  getSubModuleChildById(id: string): Promise<{success: boolean;message: string;data: any;}>;
+  deleteSubModuleChild(id: string): Promise<{success: boolean;message: string;data: null;}>;
+  getSubModuleChildrenBySubModuleId(subModuleId: string): Promise<{success: boolean;message: string;data: any[];}>;
+
+
 
   getList(data: any): Promise<any>;
 
 
-  upsertSubModuleChild(dto: any): Promise<any>;
-  getSubModules(moduleId?: any): Promise<any>;
-  deleteSubModule(id: string): Promise<any>;
-  createSubModuleChild(dto: any): Promise<any>;
-  getSubModuleChildren(subModuleId?: any): Promise<any>;
-  deleteSubModuleChild(id: string): Promise<any>;
+
+
+
   upsertPermissionsForRole(dto: any): Promise<any>;
   getPermissionsByRole(dto: any): Promise<any>;
   getSidebarForUser(userId: any): Promise<any>;

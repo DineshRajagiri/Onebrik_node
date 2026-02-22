@@ -10,6 +10,7 @@ import { IPermissionService } from './permission';
 import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
 import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
+import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
 
 // Safe wrapper for documentation - errors won't affect the API
 const SafePermissionTags = SafeSwaggerClassDecorator(() => {
@@ -105,6 +106,46 @@ export class PermissionController {
     return this.service.getSubModulesByModuleId(moduleId);
   }
 
+  @Public()
+  @Get('getAllSubModuleChild')
+  async getAllSubModuleChild(@Query('page') page = 1, @Query('limit') limit = 10) {
+    const result = await this.service.getPaginatedSubModuleChild(Number(page), Number(limit));
+    return {
+      success: true, message: "SubModuleChild fetched successfully", data: result.data,
+      pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: Math.ceil(result.total / result.limit) }
+    };
+  }
+
+  @Public()
+  @Post('upsertSubModuleChild')
+  async upsertSubModuleChild(
+    @Body() dto: UpsertSubModuleChildDto) {
+    return this.service.upsertSubModuleChild(dto);
+  }
+
+  @Public()
+  @Get('getSubModuleChildById/:id')
+  async getSubModuleChildById(@Param('id') id: string) {
+    return this.service.getSubModuleChildById(id);
+  }
+
+  @Public()
+  @Delete('deleteSubModuleChild/:id')
+  async deleteSubModuleChild(@Param('id') id: string) {
+    return this.service.deleteSubModuleChild(id);
+  }
+
+
+  @Public()
+  @Get('getSubModuleChildBySubModuleId/:subModuleId')
+  async getSubModuleChildBySubModuleId(
+    @Param('subModuleId') subModuleId: string
+  ) {
+    return this.service.getSubModuleChildrenBySubModuleId(subModuleId);
+  }
+
+
+
 
 
   @Public()
@@ -138,33 +179,11 @@ export class PermissionController {
 
 
 
-  @Public()
-  @Get('submodule')
-  async getSubModules(@Query('moduleId') moduleId?: string) {
-    const list = await this.service.getSubModules(moduleId);
-    return BaseResponse.ok(list);
-  }
 
 
-  @Public()
-  @Post('submodule-child')
-  async upsertSubModuleChild(@Body() body: any) {
-    const child = await this.service.upsertSubModuleChild(body);
-    return BaseResponse.ok(child, 'SubModuleChild created');
-  }
-
-  @Public()
-  @Get('submodule-child')
-  async getSubModuleChildren(@Query('subModuleId') subModuleId?: string) {
-    const list = await this.service.getSubModuleChildren(subModuleId);
-    return BaseResponse.ok(list);
-  }
 
 
-  @Delete('submodule/child/:id')
-  deleteSubModuleChild(@Param('id') id: string) {
-    return this.service.deleteSubModuleChild(id);
-  }
+
 
   @Public()
   @Get('module-tree')
