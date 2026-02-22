@@ -8,6 +8,7 @@ import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.d
 import { CreateAppModuleDto } from './DTO/create-module.dto';
 import { IPermissionService } from './permission';
 import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
+import { UpsertModuleDto } from './DTO/upsert-module.dto';
 
 // Safe wrapper for documentation - errors won't affect the API
 const SafePermissionTags = SafeSwaggerClassDecorator(() => {
@@ -32,13 +33,40 @@ export class PermissionController {
 
   constructor(@Inject(Services.PERMISSION) private service: IPermissionService) { }
 
+
   @Public()
-  @Post('module')
-  @SafePermissionDecorators.createModule
-  async upsertModule(@Body() dto: CreateAppModuleDto) {
-    const module = await this.service.upsertModule(dto);
-    return BaseResponse.ok(module, 'Module created');
+  @Get('getAllModules')
+  async getAllModules(@Query('page') page: number,
+    @Query('limit') limit: number,) {
+    const modules = await this.service.getPaginatedModules(page, limit);
+    return BaseResponse.ok(modules);
   }
+
+  @Public()
+  @Public()
+  @Post('upsertModule')
+  @SafePermissionDecorators.createModule
+  async upsertModule(@Body() dto: UpsertModuleDto) {
+    const result = await this.service.upsertModule(dto);
+    return result;
+  }
+
+  @Public()
+  @Get('getmodulesById/:id')
+  async getmodulesById(@Param('id') id: string) {
+    return this.service.getmodulesById(id);
+  }
+
+  @Public()
+  @Delete('deleteModule/:id')
+  async deleteModule(@Param('id') id: string) {
+    await this.service.deleteModule(id);
+    return BaseResponse.ok(null, 'Module deleted');
+  }
+
+
+
+
 
   @Public()
   @Get('list/:entity')
@@ -69,19 +97,6 @@ export class PermissionController {
     };
   }
 
-  @Public()
-  @Get('module')
-  async getModules() {
-    const modules = await this.service.getModules();
-    return BaseResponse.ok(modules);
-  }
-
-  @Public()
-  @Delete('module/:id')
-  async deleteModule(@Param('id') id: string) {
-    await this.service.deleteModule(id);
-    return BaseResponse.ok(null, 'Module deleted');
-  }
 
   @Public()
   @Post('submodule')
@@ -146,7 +161,7 @@ export class PermissionController {
 
   @Post('give-permissions-sidebar')
   async givepermissions(@Body() body: any) {
-   await this.service.givePermissions(body);
+    await this.service.givePermissions(body);
   }
 
   @Post('paginated-modules')
@@ -156,5 +171,5 @@ export class PermissionController {
   }
 
 
-  
+
 }
