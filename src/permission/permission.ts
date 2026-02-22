@@ -1,5 +1,6 @@
 import { CreateAppModuleDto } from "./DTO/create-module.dto";
 import { UpsertModuleDto } from "./DTO/upsert-module.dto";
+import { UpsertSubModuleDto } from "./DTO/upsert-sub-module.dto";
 
 export interface IPermissionService {
 
@@ -8,9 +9,18 @@ export interface IPermissionService {
   getmodulesById(id: string): Promise<any>;
   deleteModule(id: string): Promise<any>;
 
+
+  getPaginatedSubModules(page: number, limit: number): Promise<{ data: any[]; total: number; page: number; limit: number; }>;
+  upsertSubModule(dto: UpsertSubModuleDto): Promise<{ success: boolean; message: string; data: any; }>;
+  getSubModuleById(id: string): Promise<{ success: boolean; message: string; data: any; }>;
+  deleteSubModule(id: string): Promise<{ success: boolean; message: string; data: null; }>;
+  getSubModulesByModuleId(moduleId: string): Promise<{ success: boolean; message: string; data: any[]; }>;
+
+
+
   getList(data: any): Promise<any>;
 
-  upsertSubModule(dto: any): Promise<any>;
+
   upsertSubModuleChild(dto: any): Promise<any>;
   getSubModules(moduleId?: any): Promise<any>;
   deleteSubModule(id: string): Promise<any>;
