@@ -7,7 +7,7 @@ export type subModulesDetails = subModules & Document;
 
 @Schema({ timestamps: true })
 export class subModules extends commonDTO {
-   @Prop({ type: String, ref: 'AppModule', required: true })
+   @Prop({ type: String, ref: 'modules', required: true })
   moduleId: string;
 
   @Prop({ required: true })
