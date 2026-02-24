@@ -25,7 +25,6 @@ export class User extends commonDTO {
   @Prop({ unique: true, sparse: true })
   userid: string;
 
-  /** Profile avatar / personality image URL (e.g. Ghibli-style photo). */
   @Prop()
   avatarUrl?: string;
 

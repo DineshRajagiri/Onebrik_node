@@ -1,12 +1,12 @@
 import { Injectable, HttpException, HttpStatus, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Permission, permissionDetails } from 'src/schema/permission.schema';
-import { Model } from 'mongoose';
+import { Model, modelNames } from 'mongoose';
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { modules, modulesDetails } from 'src/schema/module.schema';
 import { subModules, subModulesDetails } from 'src/schema/subModule.schema';
 import { subModuleChild, subModuleChildDetails } from 'src/schema/subModuleChild.schema';
-import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { GetPermissionsDto, UpsertPermissionsDto, UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { isUUID } from 'class-validator';
 import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
@@ -196,6 +196,19 @@ export class PermissionService {
     return { data, total, page, limit };
   }
 
+  async getModuleDropdown() {
+    const data = await this.modules
+      .find({ isDeleted: { $ne: true }, isActive: true })
+      .select('_id title')
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'Module dropdown fetched successfully',
+      data
+    };
+  }
 
 
 
@@ -357,6 +370,31 @@ export class PermissionService {
     }
   }
 
+  async getSubModuleDropdown(moduleId?: string) {
+
+    const filter: any = {
+      isDeleted: { $ne: true },
+      isActive: true
+    };
+
+    if (moduleId) {
+      filter.moduleId = moduleId;
+    }
+
+    const data = await this.subModules
+      .find(filter)
+      .select('_id title moduleId')
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'SubModule dropdown fetched successfully',
+      data
+    };
+  }
+
+
 
   async upsertSubModuleChild(dto: UpsertSubModuleChildDto) {
 
@@ -482,6 +520,31 @@ export class PermissionService {
       data: list
     };
   }
+
+  async getSubModuleChildDropdown(subModuleId?: string) {
+
+    const filter: any = {
+      isDeleted: { $ne: true },
+      isActive: true
+    };
+
+    if (subModuleId) {
+      filter.subModuleId = subModuleId;
+    }
+
+    const data = await this.subModuleChild
+      .find(filter)
+      .select('_id title subModuleId')
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'SubModuleChild dropdown fetched successfully',
+      data
+    };
+  }
+
 
 
 
@@ -791,5 +854,186 @@ export class PermissionService {
     }
     const permissions = await this.permissionModel.find({ userId: user._id }).lean();
     return permissions;
+  }
+
+
+  async upsertPermissions(dto: UpsertPermissionsDto) {
+
+    if (!isUUID(dto.roleId)) {
+      throw new BadRequestException('Invalid roleId');
+    }
+
+    const role = await this.roleModel.findById(dto.roleId);
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    let user = null;
+    if (dto.userId) {
+
+      if (!isUUID(dto.userId)) {
+        throw new BadRequestException('Invalid userId');
+      }
+
+      user = await this.userModel.findById(dto.userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (String(user.roleId) !== String(dto.roleId)) {
+        throw new BadRequestException('User does not belong to given role');
+      }
+
+      await this.permissionModel.deleteMany({ userId: dto.userId });
+    }
+    else {
+      await this.permissionModel.deleteMany({
+        roleId: dto.roleId,
+        userId: null
+      });
+    }
+
+    const docs = [];
+
+    for (const item of dto.items) {
+
+      let moduleId: string | null = null;
+      let subModuleId: string | null = null;
+      let subModuleChildId: string | null = null;
+
+      if (item.subModuleChildId) {
+        const child = await this.subModuleChild.findById(item.subModuleChildId);
+        if (!child) continue;
+
+        subModuleChildId = child._id;
+        subModuleId = child.subModuleId;
+        moduleId = child.moduleId;
+      }
+
+      else if (item.subModuleId) {
+        const subModule = await this.subModules.findById(item.subModuleId);
+        if (!subModule) continue;
+
+        subModuleId = subModule._id;
+        moduleId = subModule.moduleId;
+      }
+
+
+      else if (item.moduleId) {
+        const module = await this.modules.findById(item.moduleId);
+        if (!module) continue;
+
+        moduleId = module._id;
+      }
+
+      if (!moduleId) continue;
+
+      docs.push({
+        roleId: dto.roleId,
+        userId: dto.userId ?? null,
+        moduleId,
+        subModuleId,
+        subModuleChildId,
+        canView: Boolean(item.canView),
+        canCreate: Boolean(item.canCreate),
+        canUpdate: Boolean(item.canUpdate),
+        canDelete: Boolean(item.canDelete)
+      });
+    }
+
+    if (!docs.length) {
+      throw new BadRequestException('No valid permissions to insert');
+    }
+
+    const created = await this.permissionModel.insertMany(docs);
+
+    return {
+      success: true,
+      message: dto.userId
+        ? 'User permissions updated successfully'
+        : 'Role permissions updated successfully',
+      data: created
+    };
+  }
+
+  async getPermissions(dto: GetPermissionsDto) {
+
+    if (!isUUID(dto.roleId)) {
+      throw new BadRequestException('Invalid roleId format');
+    }
+
+    const role = await this.roleModel
+      .findOne({
+        _id: dto.roleId,
+        isDeleted: { $ne: true }
+      })
+      .lean();
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    if (dto.userId) {
+
+      if (!isUUID(dto.userId)) {
+        throw new BadRequestException('Invalid userId format');
+      }
+
+
+      const user = await this.userModel.findOne({
+        _id: dto.userId,
+        isDeleted: { $ne: true }
+      }).lean();
+
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (user.roleId !== dto.roleId) {
+        throw new BadRequestException('User does not belong to this role');
+      }
+
+      const userPermissions = await this.permissionModel
+        .find({
+          roleId: dto.roleId,
+          userId: dto.userId
+        })
+        .lean();
+
+      if (userPermissions.length > 0) {
+        return {
+          success: true,
+          message: 'User permissions fetched successfully',
+          data: userPermissions
+        };
+      }
+
+      const rolePermissions = await this.permissionModel
+        .find({
+          roleId: dto.roleId,
+          userId: null
+        })
+        .lean();
+
+      return {
+        success: true,
+        message: 'Role permissions fetched successfully',
+        data: rolePermissions
+      };
+    }
+
+    const rolePermissions = await this.permissionModel
+      .find({
+        roleId: dto.roleId,
+        userId: null
+      })
+      .lean();
+
+    return {
+      success: true,
+      message: 'Role permissions fetched successfully',
+      data: rolePermissions
+    };
   }
 }

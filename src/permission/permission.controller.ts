@@ -4,7 +4,7 @@ import { BaseResponse } from 'src/common/DTO/base-response.dto';
 import { User } from 'src/decorators/getid.decorator';
 import { Public } from 'src/decorators/public.decorator';
 import { Services } from 'src/utils/constants';
-import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { GetPermissionsDto, UpsertPermissionsDto, UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { CreateAppModuleDto } from './DTO/create-module.dto';
 import { IPermissionService } from './permission';
 import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
@@ -71,6 +71,16 @@ export class PermissionController {
   }
 
   @Public()
+  @Get('moduleDropdown')
+  async moduleDropdown() {
+    return this.service.getModuleDropdown();
+  }
+
+
+
+
+
+  @Public()
   @Get('getAllSubModules')
   async getAllSubModules(@Query('page') page = 1, @Query('limit') limit = 10) {
     const result = await this.service.getPaginatedSubModules(Number(page), Number(limit));
@@ -105,6 +115,15 @@ export class PermissionController {
   ) {
     return this.service.getSubModulesByModuleId(moduleId);
   }
+
+  @Public()
+  @Get('subModuleDropdown')
+  async subModuleDropdown(
+    @Query('moduleId') moduleId?: string
+  ) {
+    return this.service.getSubModuleDropdown(moduleId);
+  }
+
 
   @Public()
   @Get('getAllSubModuleChild')
@@ -142,6 +161,14 @@ export class PermissionController {
     @Param('subModuleId') subModuleId: string
   ) {
     return this.service.getSubModuleChildrenBySubModuleId(subModuleId);
+  }
+
+  @Public()
+  @Get('subChildModuleDropdown')
+  async subChildModuleDropdown(
+    @Query('subModuleId') subModuleId?: string
+  ) {
+    return this.service.getSubModuleChildDropdown(subModuleId);
   }
 
 
@@ -192,13 +219,13 @@ export class PermissionController {
     return BaseResponse.ok(data);
   }
 
-  @Public()
-  @Post('role-permissions')
-  @SafePermissionDecorators.bulkUpdatePermissionRole
-  async upsertPermissions(@Body() dto: UpsertPermissionsForRoleDto) {
-    const data = await this.service.upsertPermissionsForRole(dto);
-    return BaseResponse.ok(data, 'Permissions updated for role');
-  }
+  // @Public()
+  // @Post('role-permissions')
+  // @SafePermissionDecorators.bulkUpdatePermissionRole
+  // async upsertPermissions(@Body() dto: UpsertPermissionsForRoleDto) {
+  //   const data = await this.service.upsertPermissionsForRole(dto);
+  //   return BaseResponse.ok(data, 'Permissions updated for role');
+  // }
 
   @Public()
   @Get('role-permissions/:roleId')
@@ -218,6 +245,16 @@ export class PermissionController {
     return BaseResponse.ok(data);
   }
 
+  @Public()
+  @Post('upsertPermissions')
+  async upsertPermissions(@Body() dto: UpsertPermissionsDto) {
+    return this.service.upsertPermissions(dto);
+  }
 
+  @Public()
+  @Post('getPermissions')
+  async getPermissions(@Body() dto: GetPermissionsDto) {
+    return this.service.getPermissions(dto);
+  }
 
 }

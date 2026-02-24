@@ -102,10 +102,9 @@ async getPaginatedRoles(page: number, limit: number): Promise<any> {
     limit = Number(limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Filter out deleted roles and superAdmin
     const filter = {
       isDeleted: { $ne: true },
-      name: { $ne: "SUPERADMIN" }  // <-- Exclude superAdmin
+      name: { $ne: "SUPERADMIN" } 
     };
 
     const [data, total] = await Promise.all([

@@ -13,7 +13,6 @@ export class RoleController {
   constructor(
     @Inject(Services.ROLE) private service: IRoleService,
   ) { }
-
   @Public()
   @Post('createRole')
   async create(@Body() dto: CreateRoleDto) {
@@ -28,30 +27,59 @@ export class RoleController {
     return BaseResponse.ok(role, dto.id ? 'Role updated successfully' : 'Role created successfully');
   }
 
+
   @Public()
   @Get()
   async findAll() {
     const roles = await this.service.getPaginatedRoles();
     return BaseResponse.ok(roles);
   }
-
+  @Public()
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const role = await this.service.findOne(id);
     return BaseResponse.ok(role);
   }
-
+  @Public()
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     const role = await this.service.update(id, dto);
     return BaseResponse.ok(role, 'Role updated successfully');
   }
-
+  @Public()
   @Delete(':id')
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
     return BaseResponse.ok(null, 'Role deleted successfully');
   }
 
+
+
+
+
+  // @Public()
+  // @Get('getAllRoles')
+  // async getAllRoles() {
+  //   const roles = await this.service.getPaginatedRoles();
+  //   return BaseResponse.ok(roles);
+  // }
+  // @Public()
+  // @Get('getRoleById/:id')
+  // async GetRoleById(@Param('id') id: string) {
+  //   const role = await this.service.findOne(id);
+  //   return BaseResponse.ok(role);
+  // }
+  // @Public()
+  // @Put('updateRole/:id')
+  // async UpdateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
+  //   const role = await this.service.update(id, dto);
+  //   return BaseResponse.ok(role, 'Role updated successfully');
+  // }
+  // @Public()
+  // @Delete('deleteRole/:id')
+  // async DeleteRole(@Param('id') id: string) {
+  //   await this.service.remove(id);
+  //   return BaseResponse.ok(null, 'Role deleted successfully');
+  // }
 
 }
