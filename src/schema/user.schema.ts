@@ -13,6 +13,9 @@ export class User extends commonDTO {
   @Prop({ required: true, unique: true })
   email: string;
 
+  @Prop()
+  mobileNumber?: number;
+
   @Prop({ required: true })
   passwordHash: string;
 
