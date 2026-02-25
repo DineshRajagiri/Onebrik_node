@@ -18,8 +18,8 @@ export class User extends commonDTO {
 
   @Prop({ required: true })
   passwordHash: string;
-
-  @Prop({ required: true })
+  
+  @Prop({ type: String, ref: 'roles' })
   roleId: string;
 
   @Prop({ default: true })
