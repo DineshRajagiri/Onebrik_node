@@ -38,11 +38,7 @@ export interface IInventoryService {
 
     upsertAttribute(dto: attributesDTO & { id?: string }): Promise<any>;
     upsertAttributeValue(dto: attributesValuesDTO & { id?: string }): Promise<any>;
-    upsertInventoryCategory(
-        dto: inventoryCategoryDTO & { id?: string },
-        imageUrl?: string
-    )
-
+    upsertInventoryCategory(dto: inventoryCategoryDTO & { id?: string },imageUrl?: string): Promise<any>;
     upsertProduct(dto: productDTO & { id?: string }): Promise<any>;
     upsertProductVariant(dto: productVariantsDTO & { id?: string }): Promise<any>;
     upsertVariantAttributeValues(dto: VariantAttributeValuesDTO & { id?: string }): Promise<any>;
@@ -51,7 +47,7 @@ export interface IInventoryService {
 
     getAllInventoryCategories(query: PaginationQuery): Promise<any>;
     getAllAttributes(query: PaginationQuery): Promise<any>;
-    getAllAtrributeValues(query: PaginationQuery): Promise<any>;
+    getAllAttributeValues(query: any): Promise<any>;
     getAllProducts(query: PaginationQuery): Promise<any>;
     getAllProductVariants(query: PaginationQuery): Promise<any>;
     getAllVariantAttributeValues(query: PaginationQuery): Promise<any>;
