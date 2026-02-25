@@ -9,4 +9,5 @@ export interface IRoleService {
   update(id: string, dto: UpdateRoleDto): Promise<any>;
   remove(id: string): Promise<any>;
   upsertRole(dto: CreateRoleDto): Promise<any>;
+  RolesDropdown(search?: string): Promise<any>;
 }

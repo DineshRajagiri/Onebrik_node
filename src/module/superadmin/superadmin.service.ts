@@ -184,6 +184,32 @@ export class SuperAdminService {
     }
   }
 
+  async UserDropdown(search?: string) {
+    try {
+
+      const filter: any = { isDeleted: false };
+
+      if (search) {
+        filter.name = { $regex: search, $options: 'i' };
+      }
+
+      const users = await this.userModel
+        .find(filter)
+        .select('_id name')   
+        .sort({ name: 1 })
+        .lean();
+
+      return {
+        success: true,
+        message: 'User list fetched successfully',
+        data: users
+      };
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getUserById(id: string) {
     try {
 

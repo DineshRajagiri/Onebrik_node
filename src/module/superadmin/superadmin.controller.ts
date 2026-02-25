@@ -40,6 +40,12 @@ export class SuperAdminController {
     }
 
     @Public()
+    @Get('UserDropdown')
+    async UserDropdown(@Query('search') search?: string) {
+        return await this.superAdminService.UserDropdown(search);
+    }
+    
+    @Public()
     @Get('getUserById/:id')
     async getUserById(@Param('id') id: string) {
         return await this.superAdminService.getUserById(id);

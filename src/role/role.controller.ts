@@ -21,7 +21,7 @@ export class RoleController {
   }
 
   @Public()
-  @Post('role')
+  @Post('upsertRole')
   async upsertRole(@Body() dto: UpsertRoleDto) {
     const role = await this.service.upsertRole(dto);
     return BaseResponse.ok(role, dto.id ? 'Role updated successfully' : 'Role created successfully');
@@ -29,57 +29,37 @@ export class RoleController {
 
 
   @Public()
-  @Get()
+  @Get('getAllRoles')
   async findAll() {
     const roles = await this.service.getPaginatedRoles();
     return BaseResponse.ok(roles);
   }
   @Public()
-  @Get(':id')
+  @Get('getRoleById/:id')
   async findOne(@Param('id') id: string) {
     const role = await this.service.findOne(id);
     return BaseResponse.ok(role);
   }
   @Public()
-  @Patch(':id')
+  @Patch('updateRole/:id')
   async update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     const role = await this.service.update(id, dto);
     return BaseResponse.ok(role, 'Role updated successfully');
   }
   @Public()
-  @Delete(':id')
+  @Delete('deleteRole/:id')
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
     return BaseResponse.ok(null, 'Role deleted successfully');
   }
 
+  @Public()
+  @Get('rolesDropdown')
+  async RolesDropdown(@Query('search') search?: string) {
+    return await this.service.RolesDropdown(search);
+  }
 
 
 
-
-  // @Public()
-  // @Get('getAllRoles')
-  // async getAllRoles() {
-  //   const roles = await this.service.getPaginatedRoles();
-  //   return BaseResponse.ok(roles);
-  // }
-  // @Public()
-  // @Get('getRoleById/:id')
-  // async GetRoleById(@Param('id') id: string) {
-  //   const role = await this.service.findOne(id);
-  //   return BaseResponse.ok(role);
-  // }
-  // @Public()
-  // @Put('updateRole/:id')
-  // async UpdateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-  //   const role = await this.service.update(id, dto);
-  //   return BaseResponse.ok(role, 'Role updated successfully');
-  // }
-  // @Public()
-  // @Delete('deleteRole/:id')
-  // async DeleteRole(@Param('id') id: string) {
-  //   await this.service.remove(id);
-  //   return BaseResponse.ok(null, 'Role deleted successfully');
-  // }
 
 }
