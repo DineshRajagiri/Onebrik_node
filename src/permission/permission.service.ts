@@ -962,29 +962,29 @@ export class PermissionService {
       throw new BadRequestException('Invalid roleId format');
     }
 
-    const role = await this.roleModel
-      .findOne({
-        _id: dto.roleId,
-        isDeleted: { $ne: true }
-      })
-      .lean();
+    const role = await this.roleModel.findOne({
+      _id: dto.roleId,
+      isDeleted: { $ne: true }
+    }).lean();
 
     if (!role) {
       throw new NotFoundException('Role not found');
     }
 
-    if (dto.userId) {
+    let filter: any = {
+      roleId: dto.roleId,
+      userId: dto.userId ?? null
+    };
 
+    if (dto.userId) {
       if (!isUUID(dto.userId)) {
         throw new BadRequestException('Invalid userId format');
       }
-
 
       const user = await this.userModel.findOne({
         _id: dto.userId,
         isDeleted: { $ne: true }
       }).lean();
-
 
       if (!user) {
         throw new NotFoundException('User not found');
@@ -995,32 +995,19 @@ export class PermissionService {
       }
 
       const userPermissions = await this.permissionModel
-        .find({
-          roleId: dto.roleId,
-          userId: dto.userId
-        })
+        .find(filter)
+        .populate('moduleId', 'title')
+        .populate('subModuleId', 'title')
+        .populate('subModuleChildId', 'title')
         .lean();
 
       if (userPermissions.length > 0) {
         return {
           success: true,
           message: 'User permissions fetched successfully',
-          data: userPermissions
+          data: this.mapPermissions(userPermissions)
         };
       }
-
-      const rolePermissions = await this.permissionModel
-        .find({
-          roleId: dto.roleId,
-          userId: null
-        })
-        .lean();
-
-      return {
-        success: true,
-        message: 'Role permissions fetched successfully',
-        data: rolePermissions
-      };
     }
 
     const rolePermissions = await this.permissionModel
@@ -1028,12 +1015,39 @@ export class PermissionService {
         roleId: dto.roleId,
         userId: null
       })
+      .populate('moduleId', 'title')
+      .populate('subModuleId', 'title')
+      .populate('subModuleChildId', 'title')
       .lean();
 
     return {
       success: true,
       message: 'Role permissions fetched successfully',
-      data: rolePermissions
+      data: this.mapPermissions(rolePermissions)
     };
+  }
+  private mapPermissions(list: any[]) {
+    return list.map(p => ({
+      _id: p._id,
+      roleId: p.roleId,
+      userId: p.userId,
+
+      moduleId: p.moduleId?._id || p.moduleId,
+      moduleTitle: p.moduleId?.title || null,
+
+      subModuleId: p.subModuleId?._id || p.subModuleId,
+      subModuleTitle: p.subModuleId?.title || null,
+
+      subModuleChildId: p.subModuleChildId?._id || p.subModuleChildId,
+      subModuleChildTitle: p.subModuleChildId?.title || null,
+
+      canView: p.canView,
+      canCreate: p.canCreate,
+      canUpdate: p.canUpdate,
+      canDelete: p.canDelete,
+
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }));
   }
 }

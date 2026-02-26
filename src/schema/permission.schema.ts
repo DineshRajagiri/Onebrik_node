@@ -11,14 +11,14 @@ export class Permission {
 
   @Prop({ type: String, default: null })
   userId?: string | null;
-
-  @Prop({ type: String })
+  
+  @Prop({ type: String, ref: 'modules', required: true })
   moduleId: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, ref: 'subModules' })
   subModuleId?: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, ref: 'subModuleChild' })
   subModuleChildId?: string;
 
   @Prop({ default: false })
