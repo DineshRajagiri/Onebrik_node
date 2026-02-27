@@ -184,10 +184,18 @@ export class SuperAdminService {
     }
   }
 
-  async UserDropdown(search?: string) {
+  async UserDropdown(roleId: string, search?: string) {
     try {
 
-      const filter: any = { isDeleted: false };
+      if (!isUUID(roleId)) {
+        throw new BadRequestException('Invalid roleId format');
+      }
+
+      const filter: any = {
+        roleId,
+        isDeleted: false,
+        isActive: true
+      };
 
       if (search) {
         filter.name = { $regex: search, $options: 'i' };
@@ -195,7 +203,7 @@ export class SuperAdminService {
 
       const users = await this.userModel
         .find(filter)
-        .select('_id name')   
+        .select('_id name')
         .sort({ name: 1 })
         .lean();
 
