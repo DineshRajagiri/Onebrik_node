@@ -1,6 +1,11 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength, } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, MinLength, } from 'class-validator';
 
 export class UserDTO {
+
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -16,9 +21,9 @@ export class UserDTO {
 
   @IsNumber()
   @IsOptional()
-  mobilenumber?: number;
+  mobileNumber?: number;
 
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   roleId: string;
 

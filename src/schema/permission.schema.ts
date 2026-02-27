@@ -3,22 +3,22 @@ import { Document } from 'mongoose';
 
 export type permissionDetails = Permission & Document;
 
-@Schema({ timestamps: true })   // 🔥 THIS WAS MISSING
+@Schema({ timestamps: true })
 export class Permission {
 
   @Prop({ type: String, required: true })
   roleId: string;
 
-  @Prop({ default: false })
-  userid: boolean;
-
-  @Prop({ type: String })
+  @Prop({ type: String, default: null })
+  userId?: string | null;
+  
+  @Prop({ type: String, ref: 'modules', required: true })
   moduleId: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, ref: 'subModules' })
   subModuleId?: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, ref: 'subModuleChild' })
   subModuleChildId?: string;
 
   @Prop({ default: false })
@@ -32,8 +32,6 @@ export class Permission {
 
   @Prop({ default: false })
   canDelete: boolean;
-
-
 }
 
 export const PermissionSchema = SchemaFactory.createForClass(Permission);

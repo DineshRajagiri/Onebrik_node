@@ -1,0 +1,424 @@
+{
+  "info": {
+    "name": "Permission APIs - Onebrik",
+    "description": "APIs for managing permissions, modules, submodules, and roles.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "moduleId", "value": "sample-module-uuid" },
+    { "key": "subModuleId", "value": "sample-submodule-uuid" },
+    { "key": "roleId", "value": "sample-role-uuid" }
+  ],
+  "item": [
+    {
+      "name": "Modules",
+      "item": [
+        {
+          "name": "Get All Modules (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getAllModules?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getAllModules"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch paginated list of modules."
+          }
+        },
+        {
+          "name": "Upsert Module",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"User Management\",\n  \"icon\": \"users\",\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/upsertModule",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "upsertModule"]
+            },
+            "description": "Create or update a module. Use id for update."
+          }
+        },
+        {
+          "name": "Get Module by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getmodulesById/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getmodulesById", "{{moduleId}}"]
+            },
+            "description": "Fetch a specific module by ID."
+          }
+        },
+        {
+          "name": "Delete Module",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/deleteModule/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "deleteModule", "{{moduleId}}"]
+            },
+            "description": "Delete a module by ID."
+          }
+        },
+        {
+          "name": "Module Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/moduleDropdown",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "moduleDropdown"]
+            },
+            "description": "Get list of modules for dropdown."
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubModules",
+      "item": [
+        {
+          "name": "Get All SubModules (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getAllSubModules?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getAllSubModules"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch paginated list of submodules."
+          }
+        },
+        {
+          "name": "Upsert SubModule",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleId\": \"{{moduleId}}\",\n  \"title\": \"Users\",\n  \"icon\": \"user\",\n  \"url\": \"/users\",\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/upsertSubModule",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "upsertSubModule"]
+            },
+            "description": "Create or update a submodule."
+          }
+        },
+        {
+          "name": "Get SubModule by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getSubModuleById/{{subModuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getSubModuleById", "{{subModuleId}}"]
+            },
+            "description": "Fetch a specific submodule by ID."
+          }
+        },
+        {
+          "name": "Delete SubModule",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/deleteSubModule/{{subModuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "deleteSubModule", "{{subModuleId}}"]
+            },
+            "description": "Delete a submodule by ID."
+          }
+        },
+        {
+          "name": "Get SubModules by Module ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getSubModulesByModuleId/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getSubModulesByModuleId", "{{moduleId}}"]
+            },
+            "description": "Fetch submodules for a specific module."
+          }
+        },
+        {
+          "name": "SubModule Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/subModuleDropdown?moduleId={{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "subModuleDropdown"],
+              "query": [
+                { "key": "moduleId", "value": "{{moduleId}}" }
+              ]
+            },
+            "description": "Get submodules for dropdown, optionally filtered by moduleId."
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubModule Children",
+      "item": [
+        {
+          "name": "Get All SubModule Children (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getAllSubModuleChild?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getAllSubModuleChild"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch paginated list of submodule children."
+          }
+        },
+        {
+          "name": "Upsert SubModule Child",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subModuleId\": \"{{subModuleId}}\",\n  \"title\": \"Create User\",\n  \"url\": \"/users/create\",\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/upsertSubModuleChild",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "upsertSubModuleChild"]
+            },
+            "description": "Create or update a submodule child."
+          }
+        },
+        {
+          "name": "Get SubModule Child by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getSubModuleChildById/sample-child-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getSubModuleChildById", "sample-child-uuid"]
+            },
+            "description": "Fetch a specific submodule child by ID."
+          }
+        },
+        {
+          "name": "Delete SubModule Child",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/deleteSubModuleChild/sample-child-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "deleteSubModuleChild", "sample-child-uuid"]
+            },
+            "description": "Delete a submodule child by ID."
+          }
+        },
+        {
+          "name": "Get SubModule Children by SubModule ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/getSubModuleChildBySubModuleId/{{subModuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getSubModuleChildBySubModuleId", "{{subModuleId}}"]
+            },
+            "description": "Fetch children for a specific submodule."
+          }
+        },
+        {
+          "name": "Sub Child Module Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/subChildModuleDropdown?subModuleId={{subModuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "subChildModuleDropdown"],
+              "query": [
+                { "key": "subModuleId", "value": "{{subModuleId}}" }
+              ]
+            },
+            "description": "Get submodule children for dropdown."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "item": [
+        {
+          "name": "Get Permissions by Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/role-permissions/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "role-permissions", "{{roleId}}"]
+            },
+            "description": "Fetch permissions for a specific role."
+          }
+        },
+        {
+          "name": "Upsert Permissions",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": \"{{roleId}}\",\n  \"items\": [\n    {\n      \"moduleId\": \"{{moduleId}}\",\n      \"canView\": true,\n      \"canCreate\": true,\n      \"canUpdate\": false,\n      \"canDelete\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/upsertPermissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "upsertPermissions"]
+            },
+            "description": "Upsert permissions for a role."
+          }
+        },
+        {
+          "name": "Get Permissions",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": \"{{roleId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/getPermissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "getPermissions"]
+            },
+            "description": "Get permissions for a role."
+          }
+        },
+        {
+          "name": "Give Permissions Sidebar",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": \"{{roleId}}\",\n  \"permissions\": [\"view\", \"create\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/give-permissions-sidebar",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "give-permissions-sidebar"]
+            },
+            "description": "Assign permissions for sidebar."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Other",
+      "item": [
+        {
+          "name": "Get List by Entity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/list/modules",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "list", "modules"]
+            },
+            "description": "Get list of entities (e.g., modules)."
+          }
+        },
+        {
+          "name": "Get Sidebar Menu (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/sidebaronly",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "sidebaronly"]
+            },
+            "description": "Get sidebar menu without auth."
+          }
+        },
+        {
+          "name": "Get Sidebar (Authenticated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/permission/sidebar",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "sidebar"]
+            },
+            "description": "Get personalized sidebar for user. Requires JWT token."
+          }
+        },
+        {
+          "name": "Get Module Tree",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permission/module-tree",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "module-tree"]
+            },
+            "description": "Get hierarchical module tree."
+          }
+        },
+        {
+          "name": "Paginated Modules (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"page\": 1,\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permission/paginated-modules",
+              "host": ["{{baseUrl}}"],
+              "path": ["permission", "paginated-modules"]
+            },
+            "description": "Get paginated modules via POST."
+          }
+        }
+      ]
+    }
+  ]
+}

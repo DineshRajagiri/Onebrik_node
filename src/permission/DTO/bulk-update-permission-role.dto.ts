@@ -14,3 +14,30 @@ export class UpsertPermissionsForRoleDto {
   @Type(() => PermissionItemDto)
   items: PermissionItemDto[];
 }
+
+
+
+export class UpsertPermissionsDto {
+
+  @IsUUID()
+  roleId: string;
+
+  @IsUUID()
+  @IsOptional()
+  userId?: string;
+
+  @ValidateNested({ each: true })
+  @Type(() => PermissionItemDto)
+  items: PermissionItemDto[];
+}
+
+
+export class GetPermissionsDto {
+
+  @IsUUID()
+  roleId: string;
+
+  @IsUUID()
+  @IsOptional()
+  userId?: string;
+}

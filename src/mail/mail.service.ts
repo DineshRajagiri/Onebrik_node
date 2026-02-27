@@ -36,12 +36,12 @@ export class MailService {
     });
   }
 
-  async sendMail(email: string, name: string ,password:string) {
+  async sendMail(email: string, name: string, password: string) {
     return this.transporter.sendMail({
       from: `"Bhushan" <Bhushanpawar2112001@gmail.com>`,
       to: `${email}`,
       subject: 'Account Activated',
-    html: `
+      html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -126,7 +126,7 @@ export class MailService {
 </body>
 </html>
 `
-,
+      ,
     });
   }
 }

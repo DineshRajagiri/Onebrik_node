@@ -4,10 +4,13 @@ import { BaseResponse } from 'src/common/DTO/base-response.dto';
 import { User } from 'src/decorators/getid.decorator';
 import { Public } from 'src/decorators/public.decorator';
 import { Services } from 'src/utils/constants';
-import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { GetPermissionsDto, UpsertPermissionsDto, UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { CreateAppModuleDto } from './DTO/create-module.dto';
 import { IPermissionService } from './permission';
 import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
+import { UpsertModuleDto } from './DTO/upsert-module.dto';
+import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
+import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
 
 // Safe wrapper for documentation - errors won't affect the API
 const SafePermissionTags = SafeSwaggerClassDecorator(() => {
@@ -32,13 +35,145 @@ export class PermissionController {
 
   constructor(@Inject(Services.PERMISSION) private service: IPermissionService) { }
 
+
   @Public()
-  @Post('module')
-  @SafePermissionDecorators.createModule
-  async upsertModule(@Body() dto: CreateAppModuleDto) {
-    const module = await this.service.upsertModule(dto);
-    return BaseResponse.ok(module, 'Module created');
+  @Get('getAllModules')
+  async getAllModules(@Query('page') page = 1, @Query('limit') limit = 10) {
+    const result = await this.service.getPaginatedModules(Number(page), Number(limit));
+    return {
+      success: true, message: "Modules fetched successfully", data: result.data,
+      pagination: {
+        page: result.page, limit: result.limit, total: result.total, totalPages: Math.ceil(result.total / result.limit)
+      }
+    };
   }
+
+  @Public()
+  @Public()
+  @Post('upsertModule')
+  @SafePermissionDecorators.createModule
+  async upsertModule(@Body() dto: UpsertModuleDto) {
+    const result = await this.service.upsertModule(dto);
+    return result;
+  }
+
+  @Public()
+  @Get('getmodulesById/:id')
+  async getmodulesById(@Param('id') id: string) {
+    return this.service.getmodulesById(id);
+  }
+
+  @Public()
+  @Delete('deleteModule/:id')
+  async deleteModule(@Param('id') id: string) {
+    await this.service.deleteModule(id);
+    return BaseResponse.ok(null, 'Module deleted');
+  }
+
+  @Public()
+  @Get('moduleDropdown')
+  async moduleDropdown() {
+    return this.service.getModuleDropdown();
+  }
+
+
+
+
+
+  @Public()
+  @Get('getAllSubModules')
+  async getAllSubModules(@Query('page') page = 1, @Query('limit') limit = 10) {
+    const result = await this.service.getPaginatedSubModules(Number(page), Number(limit));
+    return {
+      success: true, message: "SubModules fetched successfully", data: result.data, pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: Math.ceil(result.total / result.limit) }
+    };
+  }
+
+  @Public()
+  @Post('upsertSubModule')
+  async upsertSubModule(@Body() dto: UpsertSubModuleDto) {
+    return this.service.upsertSubModule(dto);
+  }
+
+  @Public()
+  @Get('getSubModuleById/:id')
+  async getSubModuleById(@Param('id') id: string) {
+    return this.service.getSubModuleById(id);
+  }
+
+  @Public()
+  @Delete('deleteSubModule/:id')
+  async deleteSubModule(@Param('id') id: string) {
+    await this.service.deleteSubModule(id);
+    return BaseResponse.ok(null, 'SubModule deleted');
+  }
+
+  @Public()
+  @Get('getSubModulesByModuleId/:moduleId')
+  async getSubModulesByModuleId(
+    @Param('moduleId') moduleId: string
+  ) {
+    return this.service.getSubModulesByModuleId(moduleId);
+  }
+
+  @Public()
+  @Get('subModuleDropdown')
+  async subModuleDropdown(
+    @Query('moduleId') moduleId?: string
+  ) {
+    return this.service.getSubModuleDropdown(moduleId);
+  }
+
+
+  @Public()
+  @Get('getAllSubModuleChild')
+  async getAllSubModuleChild(@Query('page') page = 1, @Query('limit') limit = 10) {
+    const result = await this.service.getPaginatedSubModuleChild(Number(page), Number(limit));
+    return {
+      success: true, message: "SubModuleChild fetched successfully", data: result.data,
+      pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: Math.ceil(result.total / result.limit) }
+    };
+  }
+
+  @Public()
+  @Post('upsertSubModuleChild')
+  async upsertSubModuleChild(
+    @Body() dto: UpsertSubModuleChildDto) {
+    return this.service.upsertSubModuleChild(dto);
+  }
+
+  @Public()
+  @Get('getSubModuleChildById/:id')
+  async getSubModuleChildById(@Param('id') id: string) {
+    return this.service.getSubModuleChildById(id);
+  }
+
+  @Public()
+  @Delete('deleteSubModuleChild/:id')
+  async deleteSubModuleChild(@Param('id') id: string) {
+    return this.service.deleteSubModuleChild(id);
+  }
+
+
+  @Public()
+  @Get('getSubModuleChildBySubModuleId/:subModuleId')
+  async getSubModuleChildBySubModuleId(
+    @Param('subModuleId') subModuleId: string
+  ) {
+    return this.service.getSubModuleChildrenBySubModuleId(subModuleId);
+  }
+
+  @Public()
+  @Get('subChildModuleDropdown')
+  async subChildModuleDropdown(
+    @Query('subModuleId') subModuleId?: string
+  ) {
+    return this.service.getSubModuleChildDropdown(subModuleId);
+  }
+
+
+
+
 
   @Public()
   @Get('list/:entity')
@@ -69,58 +204,13 @@ export class PermissionController {
     };
   }
 
-  @Public()
-  @Get('module')
-  async getModules() {
-    const modules = await this.service.getModules();
-    return BaseResponse.ok(modules);
-  }
-
-  @Public()
-  @Delete('module/:id')
-  async deleteModule(@Param('id') id: string) {
-    await this.service.deleteModule(id);
-    return BaseResponse.ok(null, 'Module deleted');
-  }
-
-  @Public()
-  @Post('submodule')
-  async upsertSubModule(@Body() body: any) {
-    const sub = await this.service.upsertSubModule(body);
-    return BaseResponse.ok(sub, 'SubModule created');
-  }
-
-  @Public()
-  @Get('submodule')
-  async getSubModules(@Query('moduleId') moduleId?: string) {
-    const list = await this.service.getSubModules(moduleId);
-    return BaseResponse.ok(list);
-  }
-
-  @Delete('submodule/:id')
-  async deleteSubModule(@Param('id') id: string) {
-    return this.service.deleteSubModule(id);
-  }
-
-  @Public()
-  @Post('submodule-child')
-  async upsertSubModuleChild(@Body() body: any) {
-    const child = await this.service.upsertSubModuleChild(body);
-    return BaseResponse.ok(child, 'SubModuleChild created');
-  }
-
-  @Public()
-  @Get('submodule-child')
-  async getSubModuleChildren(@Query('subModuleId') subModuleId?: string) {
-    const list = await this.service.getSubModuleChildren(subModuleId);
-    return BaseResponse.ok(list);
-  }
 
 
-  @Delete('submodule/child/:id')
-  deleteSubModuleChild(@Param('id') id: string) {
-    return this.service.deleteSubModuleChild(id);
-  }
+
+
+
+
+
 
   @Public()
   @Get('module-tree')
@@ -129,13 +219,13 @@ export class PermissionController {
     return BaseResponse.ok(data);
   }
 
-  @Public()
-  @Post('role-permissions')
-  @SafePermissionDecorators.bulkUpdatePermissionRole
-  async upsertPermissions(@Body() dto: UpsertPermissionsForRoleDto) {
-    const data = await this.service.upsertPermissionsForRole(dto);
-    return BaseResponse.ok(data, 'Permissions updated for role');
-  }
+  // @Public()
+  // @Post('role-permissions')
+  // @SafePermissionDecorators.bulkUpdatePermissionRole
+  // async upsertPermissions(@Body() dto: UpsertPermissionsForRoleDto) {
+  //   const data = await this.service.upsertPermissionsForRole(dto);
+  //   return BaseResponse.ok(data, 'Permissions updated for role');
+  // }
 
   @Public()
   @Get('role-permissions/:roleId')
@@ -146,7 +236,7 @@ export class PermissionController {
 
   @Post('give-permissions-sidebar')
   async givepermissions(@Body() body: any) {
-   await this.service.givePermissions(body);
+    await this.service.givePermissions(body);
   }
 
   @Post('paginated-modules')
@@ -155,6 +245,16 @@ export class PermissionController {
     return BaseResponse.ok(data);
   }
 
+  @Public()
+  @Post('upsertPermissions')
+  async upsertPermissions(@Body() dto: UpsertPermissionsDto) {
+    return this.service.upsertPermissions(dto);
+  }
 
-  
+  @Public()
+  @Post('getPermissions')
+  async getPermissions(@Body() dto: GetPermissionsDto) {
+    return this.service.getPermissions(dto);
+  }
+
 }

@@ -1,12 +1,12 @@
 import { Injectable, HttpException, HttpStatus, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Permission, permissionDetails } from 'src/schema/permission.schema';
-import { Model } from 'mongoose';
+import { Model, modelNames } from 'mongoose';
 import { roles, rolesDetails } from 'src/schema/role.schema';
 import { modules, modulesDetails } from 'src/schema/module.schema';
 import { subModules, subModulesDetails } from 'src/schema/subModule.schema';
 import { subModuleChild, subModuleChildDetails } from 'src/schema/subModuleChild.schema';
-import { UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
+import { GetPermissionsDto, UpsertPermissionsDto, UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { isUUID } from 'class-validator';
 import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
@@ -24,26 +24,36 @@ export class PermissionService {
     @InjectModel(subModules.name) private readonly subModules: Model<subModulesDetails>,
     @InjectModel(subModuleChild.name) private readonly subModuleChild: Model<subModuleChildDetails>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Sidebar.name)private readonly sidebarModel: Model<SidebarDocument>,
+    @InjectModel(Sidebar.name) private readonly sidebarModel: Model<SidebarDocument>,
   ) { }
 
   private slugify(value: string): string {
     return value.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
   }
 
-  async upsertModule(dto: UpsertModuleDto) {
+  async upsertModule(dto: UpsertModuleDto): Promise<any> {
     try {
+
       if (!dto.title || !dto.title.trim()) {
         throw new BadRequestException('Module title is required');
       }
+
       const generatedKey = this.slugify(dto.title);
+
+      /* ================= UPDATE ================= */
       if (dto.id) {
+
         const module = await this.modules.findById(dto.id);
-        if (!module) throw new NotFoundException('Module not found');
+        if (!module) {
+          throw new NotFoundException('Module not found');
+        }
+
         if (module.key !== generatedKey) {
           const exists = await this.modules.findOne({ key: generatedKey }).lean();
           if (exists) {
-            throw new ConflictException(`A module with key '${generatedKey}' already exists`);
+            throw new ConflictException(
+              `A module with key '${generatedKey}' already exists`
+            );
           }
         }
 
@@ -62,9 +72,14 @@ export class PermissionService {
           data: module
         };
       }
+
+      /* ================= CREATE ================= */
+
       const exists = await this.modules.findOne({ key: generatedKey }).lean();
       if (exists) {
-        throw new ConflictException(`A module with key '${generatedKey}' already exists`);
+        throw new ConflictException(
+          `A module with key '${generatedKey}' already exists`
+        );
       }
 
       const created = await this.modules.create({
@@ -84,7 +99,6 @@ export class PermissionService {
       };
 
     } catch (err) {
-      console.error('Error in upsertModule:', err);
 
       if (
         err instanceof BadRequestException ||
@@ -101,68 +115,22 @@ export class PermissionService {
     }
   }
 
-
-  async getPaginatedModules(page: number, limit: number): Promise<any> {
+  async getmodulesById(id: string) {
     try {
-      page = Number(page);
-      limit = Number(limit);
+      const attr = await this.modules.findById(id).lean();
 
-      if (!page || page < 1) page = 1;
-      if (!limit || limit < 1) limit = 10;
-
-      const skip = (page - 1) * limit;
-      const filter = { isDeleted: { $ne: true } };
-      const [data, total] = await Promise.all([
-        this.modules
-          .find(filter)
-          .sort({ sortOrder: 1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-        this.modules.countDocuments(filter),
-      ]);
+      if (!attr) throw new NotFoundException("modules not found");
 
       return {
         success: true,
-        message: "Modules fetched successfully",
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-        data,
+        message: "modules fetched successfully",
+        data: attr,
       };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: "Failed to fetch modules",
-        error: error?.message || "Something went wrong",
-      };
+
+    } catch (err) {
+      console.error("Error in getmodulesById:", err);
+      throw new HttpException("Failed to fetch modules", HttpStatus.INTERNAL_SERVER_ERROR);
     }
-  }
-
-  async getList(entity: string) {
-    const collections = {
-      modules: this.modules,
-      submodules: this.subModules,
-      roles: this.roleModel,
-      subModuleChild: this.subModuleChild
-    };
-
-    const model = collections[entity];
-
-    if (!model) {
-      throw new BadRequestException(`Unknown list entity: ${entity}`);
-    }
-
-    const data = await model
-      .find({ isDeleted: { $ne: true } })
-      .select({ title: 1, name: 1, _id: 1 })
-      .sort({ sortOrder: 1 })
-      .lean();
-
-    return data;
   }
 
   async deleteModule(id: string) {
@@ -205,58 +173,93 @@ export class PermissionService {
     }
   }
 
+  async getPaginatedModules(page: number, limit: number) {
+    page = Number(page);
+    limit = Number(limit);
 
-  async upsertSubModule(dto: UpsertSubModuleDto) {
-    try { 
-      if (!isUUID(dto.moduleId)) {
-        throw new NotFoundException('Invalid moduleId: Must be a valid UUID');
-      }
+    if (!page || page < 1) page = 1;
+    if (!limit || limit < 1) limit = 10;
 
-      const parentModule = await this.modules.findById(dto.moduleId);
+    const skip = (page - 1) * limit;
+    const filter = { isDeleted: { $ne: true } };
+
+    const [data, total] = await Promise.all([
+      this.modules
+        .find(filter)
+        .sort({ sortOrder: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.modules.countDocuments(filter),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
+  async getModuleDropdown() {
+    const data = await this.modules
+      .find({ isDeleted: { $ne: true }, isActive: true })
+      .select('_id title')
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'Module dropdown fetched successfully',
+      data
+    };
+  }
+
+
+
+
+  async upsertSubModule(dto: UpsertSubModuleDto): Promise<any> {
+    try {
+
+      const parentModule = await this.modules.findById(dto.moduleId).lean();
       if (!parentModule) {
-        throw new NotFoundException('Parent module not found');
+        throw new NotFoundException('Parent module does not exist');
       }
 
       const generatedKey = this.slugify(dto.title);
       if (dto.id) {
-        const existing = await this.subModules.findById(dto.id);
-        if (!existing) throw new NotFoundException('SubModule not found');
 
-        if (existing.key !== generatedKey) {
-          const duplicate = await this.subModules.findOne({ key: generatedKey }).lean();
-          if (duplicate) {
-            throw new ConflictException(`A submodule with key '${generatedKey}' already exists`);
+        const subModule = await this.subModules.findById(dto.id);
+        if (!subModule) throw new NotFoundException('SubModule not found');
+
+        if (subModule.key !== generatedKey) {
+          const exists = await this.subModules.findOne({ key: generatedKey }).lean();
+          if (exists) {
+            throw new ConflictException(`SubModule with key '${generatedKey}' already exists`);
           }
         }
 
-        existing.title = dto.title.trim();
-        existing.key = generatedKey;
-        existing.icon = dto.icon ?? existing.icon;
-        existing.url = dto.url ?? existing.url;
-        existing.sortOrder = dto.sortOrder ?? existing.sortOrder;
-        existing.isActive = dto.isActive ?? existing.isActive;
-        existing.updatedAt = new Date();
-
-        await existing.save();
-
+        subModule.title = dto.title.trim();
+        subModule.key = generatedKey;
+        subModule.icon = dto.icon ?? subModule.icon;
+        subModule.url = dto.url ?? subModule.url;
+        subModule.sortOrder = dto.sortOrder ?? subModule.sortOrder;
+        subModule.isActive = dto.isActive ?? subModule.isActive;
+        subModule.updatedAt = new Date();
+        await subModule.save();
         return {
           success: true,
-          message: 'Submodule updated successfully',
-          data: existing
+          message: 'SubModule updated successfully',
+          data: subModule
         };
       }
 
       const exists = await this.subModules.findOne({ key: generatedKey }).lean();
       if (exists) {
-        throw new ConflictException(`A submodule with key '${generatedKey}' already exists`);
+        throw new ConflictException(`SubModule with key '${generatedKey}' already exists`);
       }
 
       const created = await this.subModules.create({
         moduleId: dto.moduleId,
         title: dto.title.trim(),
         key: generatedKey,
-        icon: dto.icon ?? null,
-        url: dto.url ?? null,
+        icon: dto.icon || null,
+        url: dto.url || null,
         sortOrder: dto.sortOrder ?? 1,
         isActive: dto.isActive ?? true,
         createdAt: new Date(),
@@ -265,327 +268,308 @@ export class PermissionService {
 
       return {
         success: true,
-        message: 'Submodule created successfully',
+        message: 'SubModule created successfully',
         data: created
       };
 
     } catch (err) {
-      console.error('Error in upsertSubModule:', err);
-
       if (
         err instanceof BadRequestException ||
         err instanceof ConflictException ||
         err instanceof NotFoundException
-      ) {
-        throw err;
-      }
+      ) throw err;
 
       throw new HttpException(
-        'Unexpected error occurred while creating/updating submodule',
+        'Unexpected error occurred while creating/updating the submodule',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  async getSubModuleById(id: string) {
+    const subModule = await this.subModules.findById(id).lean();
+    if (!subModule) throw new NotFoundException('SubModule not found');
+
+    return {
+      success: true,
+      message: 'SubModule fetched successfully',
+      data: subModule
+    };
+  }
+
+  async deleteSubModule(id: string) {
+
+    if (!isUUID(id)) throw new BadRequestException('Invalid submodule id');
+
+    const subModule = await this.subModules.findById(id);
+    if (!subModule) throw new NotFoundException('SubModule not found');
+
+    await this.subModules.findByIdAndDelete(id);
+
+    return {
+      success: true,
+      message: 'SubModule deleted successfully',
+      data: null
+    };
   }
 
   async getPaginatedSubModules(page: number, limit: number) {
-    try {
-      const skip = (page - 1) * limit;
 
-      const filter = { isDeleted: false };
+    page = Number(page);
+    limit = Number(limit);
 
-      const data = await this.subModules
-        .find(filter)
+    if (!page || page < 1) page = 1;
+    if (!limit || limit < 1) limit = 10;
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.subModules
+        .find({ isDeleted: { $ne: true } })
+        .populate('moduleId', 'title')
         .sort({ sortOrder: 1 })
         .skip(skip)
         .limit(limit)
-        .lean();
+        .lean(),
+      this.subModules.countDocuments({ isDeleted: { $ne: true } })
+    ]);
 
-      const total = await this.subModules.countDocuments(filter);
-
-      return { data, total };
-
-    } catch (error) {
-      console.error("Submodule Fetch Error →", error);
-      return { data: [], total: 0 };
-    }
+    return { data, total, page, limit };
   }
 
-  async getPaginatedSubModuleChild(page: number, limit: number): Promise<any> {
+  async getSubModulesByModuleId(moduleId: string) {
     try {
-      page = Number(page) || 1;
-      limit = Number(limit) || 10;
 
-      const skip = (page - 1) * limit;
-
-      const filter = { isDeleted: { $ne: true } };
-
-      const [data, total] = await Promise.all([
-        this.subModuleChild
-          .find(filter)
-          .sort({ sortOrder: 1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-
-        this.subModuleChild.countDocuments(filter)
-      ]);
-
-      return {
-        success: true,
-        message: "SubModule Child fetched successfully",
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-        data
-      };
-
-    } catch (error) {
-      console.error("Submodule Child Fetch Error →", error);
-
-      return {
-        success: false,
-        message: "Failed to fetch submodule child data",
-        pagination: {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0
-        },
-        data: []
-      };
-    }
-  }
-
-  // async getSubModules(moduleId?: string): Promise<{
-  //   success: boolean;
-  //   message: string;
-  //   data: any[];
-  // }> {
-  //   try {
-  //     const filter: any = {};
-  //     if (moduleId) {
-  //       if (!isUUID(moduleId)) {
-  //         throw new BadRequestException('Invalid moduleId');
-  //       }
-  //       filter.moduleId = moduleId;
-  //     }
-
-  //     const submodules = await this.subModules
-  //       .find(filter)
-  //       .sort({ sortOrder: 1 })
-  //       .lean();
-
-  //     return {
-  //       success: true,
-  //       message: 'Submodules fetched successfully',
-  //       data: submodules
-  //     };
-
-  //   } catch (err) {
-  //     console.error('Error in getSubModules:', err);
-
-  //     throw new HttpException(
-  //       'Failed to fetch submodules',
-  //       HttpStatus.INTERNAL_SERVER_ERROR
-  //     );
-  //   }
-  // }
-
-  async deleteSubModule(id: string): Promise<{
-    success: boolean;
-    message: string;
-    data: null;
-  }> {
-    try {
-      if (!isUUID(id)) {
-        throw new BadRequestException('Invalid submodule id');
-      }
-      const submodule = await this.subModules.findById(id);
-      if (!submodule) {
-        throw new NotFoundException('Submodule not found');
-      }
-      const used = await this.subModuleChild.findOne({ subModuleId: id }).lean();
-      if (used) {
-        throw new ConflictException('Cannot delete submodule because child routes exist');
-      }
-      await this.subModules.findByIdAndDelete(id);
-
-      return {
-        success: true,
-        message: 'Submodule deleted successfully',
-        data: null
-      };
-
-    } catch (err) {
-      console.error('Error in deleteSubModule:', err);
-
-      if (
-        err instanceof BadRequestException ||
-        err instanceof ConflictException ||
-        err instanceof NotFoundException
-      ) {
-        throw err;
+      if (!isUUID(moduleId)) {
+        throw new BadRequestException('Invalid module id');
       }
 
-      throw new HttpException(
-        'Failed to delete submodule',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-
-  async upsertSubModuleChild(dto: UpsertSubModuleChildDto) {
-    try {
-      if (!isUUID(dto.subModuleId)) {
-        throw new BadRequestException('Invalid subModuleId');
-      }
-
-      const parent = await this.subModules.findById(dto.subModuleId);
-      if (!parent) {
-        throw new NotFoundException('Parent submodule not found');
-      }
-      const generatedKey = this.slugify(dto.title);
-      if (dto.id) {
-        const existing = await this.subModuleChild.findById(dto.id);
-        if (!existing) {
-          throw new NotFoundException('Submodule child not found');
-        }
-        if (existing.key !== generatedKey) {
-          const duplicate = await this.subModuleChild.findOne({ key: generatedKey }).lean();
-          if (duplicate) {
-            throw new ConflictException(`A child module with key '${generatedKey}' already exists`);
-          }
-        }
-        existing.title = dto.title.trim();
-        existing.key = generatedKey;
-        existing.url = dto.url ?? existing.url;
-        existing.sortOrder = dto.sortOrder ?? existing.sortOrder;
-        existing.isActive = dto.isActive ?? existing.isActive;
-        existing.updatedAt = new Date();
-
-        await existing.save();
-
-        return {
-          success: true,
-          message: 'Submodule child updated successfully',
-          data: existing
-        };
-      }
-      const exists = await this.subModuleChild.findOne({ key: generatedKey }).lean();
-      if (exists) {
-        throw new ConflictException(`A child module with key '${generatedKey}' already exists`);
-      }
-
-      const created = await this.subModuleChild.create({
-        subModuleId: dto.subModuleId,
-        title: dto.title.trim(),
-        key: generatedKey,
-        url: dto.url ?? null,
-        sortOrder: dto.sortOrder ?? 1,
-        isActive: dto.isActive ?? true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        moduleId: parent.moduleId
-      });
-
-      return {
-        success: true,
-        message: 'Submodule child created successfully',
-        data: created
-      };
-
-    } catch (err) {
-      console.error('Error in upsertSubModuleChild:', err);
-
-      if (
-        err instanceof BadRequestException ||
-        err instanceof ConflictException ||
-        err instanceof NotFoundException
-      ) {
-        throw err;
-      }
-
-      throw new HttpException(
-        'Unexpected error occurred while creating/updating child module',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-
-  async getSubModuleChildren(subModuleId?: string): Promise<{
-    success: boolean;
-    message: string;
-    data: any[];
-  }> {
-    try {
-      const filter: any = {};
-
-      if (subModuleId) {
-        if (!isUUID(subModuleId)) {
-          throw new BadRequestException('Invalid subModuleId');
-        }
-        filter.subModuleId = subModuleId;
-      }
-
-      const children = await this.subModuleChild
-        .find(filter)
+      const subModules = await this.subModules
+        .find({ moduleId, isDeleted: { $ne: true } })
         .sort({ sortOrder: 1 })
         .lean();
 
       return {
         success: true,
-        message: 'Submodule children fetched successfully',
-        data: children
+        message: 'SubModules fetched successfully',
+        data: subModules
       };
 
     } catch (err) {
-      console.error('Error in getSubModuleChildren:', err);
+
+      if (
+        err instanceof BadRequestException
+      ) {
+        throw err;
+      }
 
       throw new HttpException(
-        'Failed to fetch submodule children',
+        'Failed to fetch submodules',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
-  async deleteSubModuleChild(id: string): Promise<{
-    success: boolean;
-    message: string;
-    data: null;
-  }> {
-    try {
-      if (!isUUID(id)) {
-        throw new BadRequestException('Invalid submodule child id');
+  async getSubModuleDropdown(moduleId?: string) {
+
+    const filter: any = {
+      isDeleted: { $ne: true },
+      isActive: true
+    };
+
+    if (moduleId) {
+      filter.moduleId = moduleId;
+    }
+
+    const data = await this.subModules
+      .find(filter)
+      .select('_id title moduleId')
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'SubModule dropdown fetched successfully',
+      data
+    };
+  }
+
+
+
+  async upsertSubModuleChild(dto: UpsertSubModuleChildDto) {
+
+    const parent = await this.subModules.findById(dto.subModuleId);
+    if (!parent) {
+      throw new NotFoundException('Parent submodule not found');
+    }
+
+    const generatedKey = this.slugify(dto.title);
+
+    if (dto.id) {
+      const existing = await this.subModuleChild.findById(dto.id);
+      if (!existing) {
+        throw new NotFoundException('SubModuleChild not found');
       }
 
-      const child = await this.subModuleChild.findById(id);
-      if (!child) {
-        throw new NotFoundException('Submodule child not found');
-      }
+      existing.title = dto.title.trim();
+      existing.key = generatedKey;
+      existing.url = dto.url ?? existing.url;
+      existing.sortOrder = dto.sortOrder ?? existing.sortOrder;
+      existing.isActive = dto.isActive ?? existing.isActive;
+      existing.updatedAt = new Date();
 
-      await this.subModuleChild.findByIdAndDelete(id);
+      await existing.save();
 
       return {
         success: true,
-        message: 'Submodule child deleted successfully',
-        data: null
+        message: 'SubModuleChild updated successfully',
+        data: existing
       };
-
-    } catch (err) {
-      console.error('Error in deleteSubModuleChild:', err);
-
-      throw err instanceof HttpException
-        ? err
-        : new HttpException(
-          'Unexpected error occurred while deleting submodule child',
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
     }
+
+    const created = await this.subModuleChild.create({
+      subModuleId: dto.subModuleId,
+      moduleId: parent.moduleId,
+      title: dto.title.trim(),
+      key: generatedKey,
+      url: dto.url ?? null,
+      sortOrder: dto.sortOrder ?? 1,
+      isActive: dto.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    return {
+      success: true,
+      message: 'SubModuleChild created successfully',
+      data: created
+    };
+  }
+
+  async getPaginatedSubModuleChild(page: number, limit: number) {
+
+    page = Number(page);
+    limit = Number(limit);
+
+    if (!page || page < 1) page = 1;
+    if (!limit || limit < 1) limit = 10;
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.subModuleChild
+        .find({ isDeleted: { $ne: true } })
+        .sort({ sortOrder: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.subModuleChild.countDocuments({ isDeleted: { $ne: true } })
+    ]);
+
+    return { data, total, page, limit };
+  }
+
+
+  async getSubModuleChildById(id: string) {
+
+    const child = await this.subModuleChild.findById(id).lean();
+    if (!child) throw new NotFoundException('SubModuleChild not found');
+
+    return {
+      success: true,
+      message: 'SubModuleChild fetched successfully',
+      data: child
+    };
+  }
+
+
+  async deleteSubModuleChild(id: string) {
+
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid id');
+    }
+
+    const child = await this.subModuleChild.findById(id);
+    if (!child) {
+      throw new NotFoundException('SubModuleChild not found');
+    }
+
+    await this.subModuleChild.findByIdAndDelete(id);
+
+    return {
+      success: true,
+      message: 'SubModuleChild deleted successfully',
+      data: null
+    };
+  }
+
+  async getSubModuleChildrenBySubModuleId(subModuleId: string) {
+
+    if (!isUUID(subModuleId)) {
+      throw new BadRequestException('Invalid subModuleId');
+    }
+
+    const list = await this.subModuleChild
+      .find({ subModuleId, isDeleted: { $ne: true } })
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'SubModuleChildren fetched successfully',
+      data: list
+    };
+  }
+
+  async getSubModuleChildDropdown(subModuleId?: string) {
+
+    const filter: any = {
+      isDeleted: { $ne: true },
+      isActive: true
+    };
+
+    if (subModuleId) {
+      filter.subModuleId = subModuleId;
+    }
+
+    const data = await this.subModuleChild
+      .find(filter)
+      .select('_id title subModuleId')
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return {
+      success: true,
+      message: 'SubModuleChild dropdown fetched successfully',
+      data
+    };
+  }
+
+
+
+
+
+  async getList(entity: string) {
+    const collections = {
+      modules: this.modules,
+      submodules: this.subModules,
+      roles: this.roleModel,
+      subModuleChild: this.subModuleChild
+    };
+
+    const model = collections[entity];
+
+    if (!model) {
+      throw new BadRequestException(`Unknown list entity: ${entity}`);
+    }
+
+    const data = await model
+      .find({ isDeleted: { $ne: true } })
+      .select({ title: 1, name: 1, _id: 1 })
+      .sort({ sortOrder: 1 })
+      .lean();
+
+    return data;
   }
 
 
@@ -826,20 +810,20 @@ export class PermissionService {
 
           return { ...node, children };
         })
-.filter(Boolean);
+        .filter(Boolean);
 
     return filterTree(moduleTree);
   }
 
   async getsidebarForadmin(): Promise<any> {
-    try{
+    try {
       const moduleTreeResponse = await this.sidebarModel.find()
       return {
         success: true,
-        data: moduleTreeResponse ,
+        data: moduleTreeResponse,
         message: 'Sidebar loaded successfully'
       };
-    }catch(err){
+    } catch (err) {
       console.error(err);
     }
   }
@@ -863,12 +847,207 @@ export class PermissionService {
     await this.permissionModel.insertMany(docs);
   }
 
-async getu(userId: string): Promise<any[]> {
+  async getu(userId: string): Promise<any[]> {
     const user = await this.userModel.findById(userId).lean();
     if (!user) {
       throw new NotFoundException('User not found');
     }
     const permissions = await this.permissionModel.find({ userId: user._id }).lean();
     return permissions;
+  }
+
+
+  async upsertPermissions(dto: UpsertPermissionsDto) {
+
+    if (!isUUID(dto.roleId)) {
+      throw new BadRequestException('Invalid roleId');
+    }
+
+    const role = await this.roleModel.findById(dto.roleId);
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    let user = null;
+    if (dto.userId) {
+
+      if (!isUUID(dto.userId)) {
+        throw new BadRequestException('Invalid userId');
+      }
+
+      user = await this.userModel.findById(dto.userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (String(user.roleId) !== String(dto.roleId)) {
+        throw new BadRequestException('User does not belong to given role');
+      }
+
+      await this.permissionModel.deleteMany({ userId: dto.userId });
+    }
+    else {
+      await this.permissionModel.deleteMany({
+        roleId: dto.roleId,
+        userId: null
+      });
+    }
+
+    const docs = [];
+
+    for (const item of dto.items) {
+
+      let moduleId: string | null = null;
+      let subModuleId: string | null = null;
+      let subModuleChildId: string | null = null;
+
+      if (item.subModuleChildId) {
+        const child = await this.subModuleChild.findById(item.subModuleChildId);
+        if (!child) continue;
+
+        subModuleChildId = child._id;
+        subModuleId = child.subModuleId;
+        moduleId = child.moduleId;
+      }
+
+      else if (item.subModuleId) {
+        const subModule = await this.subModules.findById(item.subModuleId);
+        if (!subModule) continue;
+
+        subModuleId = subModule._id;
+        moduleId = subModule.moduleId;
+      }
+
+
+      else if (item.moduleId) {
+        const module = await this.modules.findById(item.moduleId);
+        if (!module) continue;
+
+        moduleId = module._id;
+      }
+
+      if (!moduleId) continue;
+
+      docs.push({
+        roleId: dto.roleId,
+        userId: dto.userId ?? null,
+        moduleId,
+        subModuleId,
+        subModuleChildId,
+        canView: Boolean(item.canView),
+        canCreate: Boolean(item.canCreate),
+        canUpdate: Boolean(item.canUpdate),
+        canDelete: Boolean(item.canDelete)
+      });
+    }
+
+    if (!docs.length) {
+      throw new BadRequestException('No valid permissions to insert');
+    }
+
+    const created = await this.permissionModel.insertMany(docs);
+
+    return {
+      success: true,
+      message: dto.userId
+        ? 'User permissions updated successfully'
+        : 'Role permissions updated successfully',
+      data: created
+    };
+  }
+
+  async getPermissions(dto: GetPermissionsDto) {
+
+    if (!isUUID(dto.roleId)) {
+      throw new BadRequestException('Invalid roleId format');
+    }
+
+    const role = await this.roleModel.findOne({
+      _id: dto.roleId,
+      isDeleted: { $ne: true }
+    }).lean();
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    let filter: any = {
+      roleId: dto.roleId,
+      userId: dto.userId ?? null
+    };
+
+    if (dto.userId) {
+      if (!isUUID(dto.userId)) {
+        throw new BadRequestException('Invalid userId format');
+      }
+
+      const user = await this.userModel.findOne({
+        _id: dto.userId,
+        isDeleted: { $ne: true }
+      }).lean();
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (user.roleId !== dto.roleId) {
+        throw new BadRequestException('User does not belong to this role');
+      }
+
+      const userPermissions = await this.permissionModel
+        .find(filter)
+        .populate('moduleId', 'title')
+        .populate('subModuleId', 'title')
+        .populate('subModuleChildId', 'title')
+        .lean();
+
+      if (userPermissions.length > 0) {
+        return {
+          success: true,
+          message: 'User permissions fetched successfully',
+          data: this.mapPermissions(userPermissions)
+        };
+      }
+    }
+
+    const rolePermissions = await this.permissionModel
+      .find({
+        roleId: dto.roleId,
+        userId: null
+      })
+      .populate('moduleId', 'title')
+      .populate('subModuleId', 'title')
+      .populate('subModuleChildId', 'title')
+      .lean();
+
+    return {
+      success: true,
+      message: 'Role permissions fetched successfully',
+      data: this.mapPermissions(rolePermissions)
+    };
+  }
+  private mapPermissions(list: any[]) {
+    return list.map(p => ({
+      _id: p._id,
+      roleId: p.roleId,
+      userId: p.userId,
+
+      moduleId: p.moduleId?._id || p.moduleId,
+      moduleTitle: p.moduleId?.title || null,
+
+      subModuleId: p.subModuleId?._id || p.subModuleId,
+      subModuleTitle: p.subModuleId?.title || null,
+
+      subModuleChildId: p.subModuleChildId?._id || p.subModuleChildId,
+      subModuleChildTitle: p.subModuleChildId?.title || null,
+
+      canView: p.canView,
+      canCreate: p.canCreate,
+      canUpdate: p.canUpdate,
+      canDelete: p.canDelete,
+
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }));
   }
 }

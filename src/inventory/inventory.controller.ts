@@ -356,6 +356,30 @@ export class InventoryController {
     }
 
     @Public()
+    @Get("getAllAttributes")
+    async getAllAttributes(@Query() query: PaginationQuery) {
+        return this.service.getAllAttributes(query);
+    }
+
+    @Public()
+    @Get("getAllAttributeValues")
+    async getAllAttributeValues(@Query() query: PaginationQuery) {
+        return this.service.getAllAttributeValues(query);
+    }
+
+    @Public()
+    @Get("getAllInventoryCategories")
+    async getAllInventoryCategories(@Query() query: PaginationQuery) {
+        return this.service.getAllInventoryCategories(query);
+    }
+
+    @Public()
+    @Get("getAllVariantAttributeValues")
+    async getAllVariantAttributeValues(@Query() query: PaginationQuery) {
+        return this.service.getAllVariantAttributeValues(query);
+    }
+
+    @Public()
     @Delete('deleteProduct/:id')
     @SafeInventoryDecorators.deleteProduct
     async deleteProduct(@Param('id') id: string) {

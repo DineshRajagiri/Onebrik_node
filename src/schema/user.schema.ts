@@ -13,10 +13,13 @@ export class User extends commonDTO {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true })
-  passwordHash: string;
+  @Prop()
+  mobileNumber?: number;
 
   @Prop({ required: true })
+  passwordHash: string;
+  
+  @Prop({ type: String, ref: 'roles' })
   roleId: string;
 
   @Prop({ default: true })
@@ -25,7 +28,6 @@ export class User extends commonDTO {
   @Prop({ unique: true, sparse: true })
   userid: string;
 
-  /** Profile avatar / personality image URL (e.g. Ghibli-style photo). */
   @Prop()
   avatarUrl?: string;
 

@@ -102,10 +102,9 @@ async getPaginatedRoles(page: number, limit: number): Promise<any> {
     limit = Number(limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Filter out deleted roles and superAdmin
     const filter = {
       isDeleted: { $ne: true },
-      name: { $ne: "SUPERADMIN" }  // <-- Exclude superAdmin
+      name: { $ne: "SUPERADMIN" } 
     };
 
     const [data, total] = await Promise.all([
@@ -166,5 +165,31 @@ async getPaginatedRoles(page: number, limit: number): Promise<any> {
   async remove(id: string): Promise<void> {
     const res = await this.roleModel.findByIdAndDelete(id);
     if (!res) throw new NotFoundException('Role not found');
+  }
+
+  async RolesDropdown(search?: string) {
+    try {
+
+      const filter: any = { isDeleted: false };
+
+      if (search) {
+        filter.name = { $regex: search, $options: 'i' };
+      }
+
+      const roles = await this.roleModel
+        .find(filter)
+        .select('_id name')   
+        .sort({ name: 1 })
+        .lean();
+
+      return {
+        success: true,
+        message: 'roles list fetched successfully',
+        data: roles
+      };
+
+    } catch (error) {
+      throw error;
+    }
   }
 }
