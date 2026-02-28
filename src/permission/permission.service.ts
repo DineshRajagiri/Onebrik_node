@@ -689,25 +689,39 @@ export class PermissionService {
     data: any[];
   }> {
     try {
-      const modules = await this.modules.find({ isActive: true }).lean();
-      const subModules = await this.subModules.find({ isActive: true }).lean();
-      const children = await this.subModuleChild.find({ isActive: true }).lean();
+      const modules = await this.modules
+        .find({ isActive: true })
+        .sort({ sortOrder: 1 })
+        .lean();
+
+      const subModules = await this.subModules
+        .find({ isActive: true })
+        .sort({ sortOrder: 1 })
+        .lean();
+
+      const children = await this.subModuleChild
+        .find({ isActive: true })
+        .sort({ sortOrder: 1 })
+        .lean();
 
       const tree = modules.map((module) => {
-        const moduleSubs = subModules.filter(
-          (s) => String(s.moduleId) === String(module._id)
-        );
+
+        const moduleSubs = subModules
+          .filter((s) => String(s.moduleId) === String(module._id))
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
         return {
           id: module._id,
           title: module.title,
           key: module.key,
-          // icon: module.icon,
+          sortOrder: module.sortOrder,
           type: moduleSubs.length ? 'group' : 'item',
+
           children: moduleSubs.map((sub) => {
-            const subChildren = children.filter(
-              (c) => String(c.subModuleId) === String(sub._id)
-            );
+
+            const subChildren = children
+              .filter((c) => String(c.subModuleId) === String(sub._id))
+              .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
             return {
               id: sub._id,
@@ -715,12 +729,15 @@ export class PermissionService {
               key: sub.key,
               icon: sub.icon,
               url: sub.url,
+              sortOrder: sub.sortOrder,
               type: subChildren.length ? 'collapse' : 'item',
+
               children: subChildren.map((child) => ({
                 id: child._id,
                 title: child.title,
                 key: child.key,
                 url: child.url,
+                sortOrder: child.sortOrder,
                 type: 'item'
               }))
             };
@@ -735,6 +752,7 @@ export class PermissionService {
       };
 
     } catch (err) {
+
       console.error('Error in getModuleTree:', err);
 
       throw new HttpException(
@@ -772,18 +790,15 @@ export class PermissionService {
       throw new NotFoundException('User not found');
     }
 
-    // 1️⃣ Load full module tree
     const moduleTreeResponse = await this.getModuleTree();
     const moduleTree = moduleTreeResponse.data;
 
-    // 2️⃣ First check USER level permissions
     let permissions = await this.permissionModel.find({
       roleId: user.roleId,
       userId: user._id,
       canView: true
     }).lean();
 
-    // 3️⃣ If no user permissions → fallback to ROLE permissions
     if (!permissions.length) {
       permissions = await this.permissionModel.find({
         roleId: user.roleId,
@@ -796,7 +811,6 @@ export class PermissionService {
       return [];
     }
 
-    // 4️⃣ Collect allowed IDs
     const allowedIds = new Set<string>();
 
     permissions.forEach(p => {
@@ -805,7 +819,6 @@ export class PermissionService {
       if (p.subModuleChildId) allowedIds.add(p.subModuleChildId.toString());
     });
 
-    // 5️⃣ Filter Tree
     const filterTree = (nodes: any[]): any[] =>
       nodes
         .map(node => {
