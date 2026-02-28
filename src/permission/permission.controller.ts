@@ -257,4 +257,10 @@ export class PermissionController {
     return this.service.getPermissions(dto);
   }
 
+  @Public()
+  @Post('getPermissionTemplate')
+  async getPermissionTemplate() {
+    return this.service.getPermissionTemplate();
+  }
+
 }

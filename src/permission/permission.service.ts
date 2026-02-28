@@ -1026,6 +1026,81 @@ export class PermissionService {
       data: this.mapPermissions(rolePermissions)
     };
   }
+
+  async getPermissionTemplate() {
+
+    const modules = await this.modules
+      .find({ isActive: true, isDeleted: { $ne: true } })
+      .lean();
+
+    const subModules = await this.subModules
+      .find({ isActive: true, isDeleted: { $ne: true } })
+      .lean();
+
+    const subModuleChildren = await this.subModuleChild
+      .find({ isActive: true, isDeleted: { $ne: true } })
+      .lean();
+
+    const result: any[] = [];
+
+    modules.forEach(module => {
+
+      const moduleSubs = subModules.filter(
+        sub => sub.moduleId === module._id
+      );
+
+      moduleSubs.forEach(sub => {
+
+        const children = subModuleChildren.filter(
+          child => child.subModuleId === sub._id
+        );
+
+        if (children.length > 0) {
+
+          children.forEach(child => {
+            result.push({
+              moduleId: module._id,
+              moduleTitle: module.title,
+              subModuleId: sub._id,
+              subModuleTitle: sub.title,
+              subModuleChildId: child._id,
+              subModuleChildTitle: child.title,
+              canView: false,
+              canCreate: false,
+              canUpdate: false,
+              canDelete: false
+            });
+          });
+
+        } else {
+
+          result.push({
+            moduleId: module._id,
+            moduleTitle: module.title,
+            subModuleId: sub._id,
+            subModuleTitle: sub.title,
+            subModuleChildId: null,
+            subModuleChildTitle: null,
+            canView: false,
+            canCreate: false,
+            canUpdate: false,
+            canDelete: false
+          });
+
+        }
+
+      });
+
+    });
+
+    return {
+      success: true,
+      message: 'Permission template fetched successfully',
+      data: result
+    };
+  }
+
+
   private mapPermissions(list: any[]) {
     return list.map(p => ({
       _id: p._id,
