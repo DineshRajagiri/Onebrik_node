@@ -297,7 +297,7 @@ export class InventoryController {
 
 
     @Public()
-    @Get('GetValuesByattributeId/:attributeId')
+    @Get('getValuesByattributeId/:attributeId')
     async getAttributeValuesById(
         @Param('attributeId') attributeId: string,
         @Query() query: any

@@ -36,8 +36,10 @@ export interface IPermissionService {
 
   upsertPermissions(dto: UpsertPermissionsDto): Promise<{ success: boolean; message: string; data: any[]; }>;
   getPermissions(dto: GetPermissionsDto): Promise<{ success: boolean; message: string; data: any[]; }>;
+  getPermissionTemplate(): Promise<{ success: boolean; message: string; data: any[]; }>;
 
 
+  
   getList(data: any): Promise<any>;
   upsertPermissionsForRole(dto: any): Promise<any>;
   getPermissionsByRole(dto: any): Promise<any>;
