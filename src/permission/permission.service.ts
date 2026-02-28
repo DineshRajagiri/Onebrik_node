@@ -776,17 +776,27 @@ export class PermissionService {
     const moduleTreeResponse = await this.getModuleTree();
     const moduleTree = moduleTreeResponse.data;
 
-    // 2️⃣ Load permissions
-    const permissions = await this.permissionModel.find({
+    // 2️⃣ First check USER level permissions
+    let permissions = await this.permissionModel.find({
       roleId: user.roleId,
-      canView: true,
+      userId: user._id,
+      canView: true
     }).lean();
+
+    // 3️⃣ If no user permissions → fallback to ROLE permissions
+    if (!permissions.length) {
+      permissions = await this.permissionModel.find({
+        roleId: user.roleId,
+        userId: null,
+        canView: true
+      }).lean();
+    }
 
     if (!permissions.length) {
       return [];
     }
 
-    // 3️⃣ Collect allowed IDs
+    // 4️⃣ Collect allowed IDs
     const allowedIds = new Set<string>();
 
     permissions.forEach(p => {
@@ -795,6 +805,7 @@ export class PermissionService {
       if (p.subModuleChildId) allowedIds.add(p.subModuleChildId.toString());
     });
 
+    // 5️⃣ Filter Tree
     const filterTree = (nodes: any[]): any[] =>
       nodes
         .map(node => {
