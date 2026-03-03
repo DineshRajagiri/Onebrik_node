@@ -24,6 +24,7 @@ import { CreateOrderDto } from './dto/order.dto';
 import { GetItemsDto } from './dto/get-items.dto';
 import { Request } from 'express';
 import { Public } from 'src/decorators/public.decorator';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 // Simple guard to extract customer ID from token (you can enhance this)
 @Controller('customer')
@@ -53,20 +54,22 @@ export class CustomerController {
   // ==============================
   // CART ENDPOINTS
   // ==============================
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Post('cart/activate')
   async activateCart(
-    @Body() body: { deviceId?: string; customerId?: string },
+    @Body() body: { deviceId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    return this.customerService.activateCart(body.deviceId, body.customerId);
+    const customerId = req.user?.id;
+    return this.customerService.activateCart(body.deviceId, customerId);
   }
 
   @Get('cart')
-  @Public()
   async getCart(
-    @Query('deviceId') deviceId?: string,
-    @Query('customerId') customerId?: string,
+    @Query('deviceId') deviceId: string | undefined,
+    @Req() req: Request & { user?: { id: string } },
   ) {
+    const customerId = req.user?.id;
     return this.customerService.getCart(deviceId, customerId);
   }
 
@@ -74,7 +77,6 @@ export class CustomerController {
   // CART ITEM ENDPOINTS
   // ==============================
   @Post('cart/:cartId/items')
-  @Public()
   async addCartItem(
     @Param('cartId') cartId: string,
     @Body() body: CreateCartItemDto,
@@ -83,7 +85,6 @@ export class CustomerController {
   }
 
   @Put('cart/items/:itemId')
-  @Public()
   async updateCartItem(
     @Param('itemId') itemId: string,
     @Body() body: UpdateCartItemDto,
@@ -92,106 +93,86 @@ export class CustomerController {
   }
 
   @Delete('cart/items/:itemId')
-  @Public()
   async deleteCartItem(@Param('itemId') itemId: string) {
     return this.customerService.deleteCartItem(itemId);
-  }
-
-  // ==============================
-  // CUSTOMER AUTH ENDPOINTS
-  // ==============================
-  @Post('register')
-  @Public()
-  async registerCustomer(@Body() body: CustomerRegisterDto) {
-    return this.customerService.registerCustomer(body);
-  }
-
-  @Post('login')
-  @Public()
-  async loginCustomer(@Body() body: CustomerLoginDto) {
-    return this.customerService.loginCustomer(body);
   }
 
   // ==============================
   // ADDRESS ENDPOINTS
   // ==============================
   @Post('address')
-  @Public()
   async createAddress(
     @Body() body: CreateAddressDto,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (body as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
-    return this.customerService.createAddress(customerId, body);
+    return this.customerService.createAddress(customerId as string, body);
   }
 
   @Get('address')
-  @Public()
-  async getAddresses(@Req() req: Request & { customerId?: string }) {
-    const customerId = req.customerId || (req.query as any).customerId;
+  async getAddresses(@Req() req: Request & { user?: { id: string } }) {
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.getAddresses(customerId as string);
   }
 
   @Put('address/:addressId')
-  @Public()
   async updateAddress(
     @Param('addressId') addressId: string,
     @Body() body: UpdateAddressDto,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (body as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.updateAddress(addressId, customerId as string, body);
   }
 
   @Delete('address/:addressId')
-  @Public()
   async deleteAddress(
     @Param('addressId') addressId: string,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (req.query as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.deleteAddress(addressId, customerId as string);
@@ -201,43 +182,41 @@ export class CustomerController {
   // ORDER ENDPOINTS
   // ==============================
   @Post('order')
-  @Public()
   async createOrder(
     @Body() body: CreateOrderDto,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (body as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.createOrder(customerId as string, body);
   }
 
   @Get('order/history')
-  @Public()
   async getOrderHistory(
     @Query('page') page: number,
     @Query('limit') limit: number,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (req.query as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.getOrderHistory(
@@ -248,21 +227,20 @@ export class CustomerController {
   }
 
   @Get('order/:orderId')
-  @Public()
   async getOrderById(
     @Param('orderId') orderId: string,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (req.query as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.getOrderById(orderId, customerId as string);
@@ -272,21 +250,20 @@ export class CustomerController {
   // PAYMENT ENDPOINTS
   // ==============================
   @Post('payment')
-  @Public()
   async createPayment(
     @Body() body: CreatePaymentDto,
-    @Req() req: Request & { customerId?: string },
+    @Req() req: Request & { user?: { id: string } },
   ) {
-    const customerId = req.customerId || (body as any).customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
         {
           success: false,
-          message: 'Customer ID is required',
-          statusCode: 400,
+          message: 'Unauthorized',
+          statusCode: 401,
           data: null,
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.createPayment(customerId as string, body);
