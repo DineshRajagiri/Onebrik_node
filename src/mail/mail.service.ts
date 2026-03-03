@@ -1,22 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import sgMail = require('@sendgrid/mail');
+
 @Injectable()
 export class MailService {
-  private transporter;
+  private readonly fromEmail: string;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'Bhushanpawar2112001@gmail.com',
-        pass: 'dotfssveobnnqexx',
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      throw new Error('SENDGRID_API_KEY is not set');
+    }
+    sgMail.setApiKey(apiKey);
+    this.fromEmail =
+      process.env.MAIL_FROM || 'Bhushan <Bhushanpawar2112001@gmail.com>';
   }
 
   async sendOtpEmail(to: string, otp: string, purpose: string = 'verification') {
@@ -25,8 +21,8 @@ export class MailService {
         ? 'Verify your email - OneBrik Signup'
         : 'Your login OTP - OneBrik';
 
-    await this.transporter.sendMail({
-      from: `"OneBrik" <Bhushanpawar2112001@gmail.com>`,
+    await sgMail.send({
+      from: this.fromEmail,
       to,
       subject,
       html: `
@@ -42,9 +38,9 @@ export class MailService {
   }
 
   async sendMail(email: string, name: string, password: string) {
-    return this.transporter.sendMail({
-      from: `"Bhushan" <Bhushanpawar2112001@gmail.com>`,
-      to: `${email}`,
+    return sgMail.send({
+      from: this.fromEmail,
+      to: email,
       subject: 'Account Activated',
       html: `
 <!DOCTYPE html>
