@@ -6,10 +6,15 @@ export class MailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: 'Bhushanpawar2112001@gmail.com',
         pass: 'dotfssveobnnqexx',
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }

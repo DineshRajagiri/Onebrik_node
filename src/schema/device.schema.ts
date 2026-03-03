@@ -6,7 +6,7 @@ export type DeviceDetails = Device & Document;
 
 @Schema()
 export class Device extends commonDTO {
-  @Prop({ required: true, unique: true })
+  @Prop({ unique: true })
   deviceId: string;
 
   @Prop()
