@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -32,6 +33,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
   ) {}
+
+  private readonly logger = new Logger(AuthService.name);
 
   // ==============================
   // LOGIN (EMAIL + PASSWORD)
@@ -228,6 +231,9 @@ export class AuthService {
   // ==============================
   async sendOtpForCustomer(email: string, purpose: OtpPurpose) {
     const normalizedEmail = email.toLowerCase().trim();
+    this.logger.log(
+      `Received sendOtpForCustomer request. email=${normalizedEmail}, purpose=${purpose}`,
+    );
 
     if (purpose === OtpPurpose.SIGNUP) {
       const existing = await this.userModel.findOne({ email: normalizedEmail });
@@ -242,6 +248,9 @@ export class AuthService {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    this.logger.log(
+      `Generated OTP for customer. email=${normalizedEmail}, purpose=${purpose}, otp=${otp}`,
+    );
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
     await this.otpModel.deleteMany({ email: normalizedEmail, purpose });
@@ -252,7 +261,14 @@ export class AuthService {
       expiresAt,
     });
 
+    this.logger.log(
+      `Persisted OTP in database. email=${normalizedEmail}, purpose=${purpose}, expiresAt=${expiresAt.toISOString()}`,
+    );
+
     await this.mailService.sendOtpEmail(normalizedEmail, otp, purpose);
+    this.logger.log(
+      `Completed sendOtpForCustomer successfully. email=${normalizedEmail}, purpose=${purpose}`,
+    );
 
     return {
       success: true,
