@@ -1,18 +1,44 @@
-import { Injectable } from '@nestjs/common';
-import sgMail = require('@sendgrid/mail');
+import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
+  private readonly transporter: nodemailer.Transporter;
   private readonly fromEmail: string;
 
   constructor() {
-    const apiKey = process.env.SENDGRID_API_KEY;
-    if (!apiKey) {
-      throw new Error('SENDGRID_API_KEY is not set');
-    }
-    sgMail.setApiKey(apiKey);
+    const host = process.env.SMTP_HOST;
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const secure = (process.env.SMTP_SECURE || 'false').toString() === 'true';
+    const user = (process.env.SMTP_USER || '').trim();
+    const pass = (process.env.SMTP_PASS || '').trim();
+
     this.fromEmail =
-      process.env.MAIL_FROM || 'Bhushan <Bhushanpawar2112001@gmail.com>';
+      process.env.SMTP_FROM ||
+      process.env.MAIL_FROM ||
+      'OneBrik <no-reply@onebrik.com>';
+
+    if (!host || !user || !pass) {
+      this.logger.error(
+        'SMTP configuration is missing. Please set SMTP_HOST, SMTP_USER and SMTP_PASS.',
+      );
+      throw new Error('SMTP configuration is not set correctly');
+    }
+
+    this.logger.log(
+      `Initializing Nodemailer transporter with host=${host}, port=${port}, secure=${secure}`,
+    );
+
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: {
+        user,
+        pass,
+      },
+    });
   }
 
   async sendOtpEmail(to: string, otp: string, purpose: string = 'verification') {
@@ -21,11 +47,7 @@ export class MailService {
         ? 'Verify your email - OneBrik Signup'
         : 'Your login OTP - OneBrik';
 
-    await sgMail.send({
-      from: this.fromEmail,
-      to,
-      subject,
-      html: `
+    const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px;">
           <h2 style="color: #333;">OneBrik Verification</h2>
           <p>Your OTP for ${purpose} is:</p>
@@ -33,16 +55,37 @@ export class MailService {
           <p style="color: #666;">This OTP expires in 10 minutes. Do not share it with anyone.</p>
           <p style="font-size: 12px; color: #999;">OneBrik Team</p>
         </div>
-      `,
-    });
+      `;
+
+    this.logger.log(
+      `Sending OTP email via SMTP. to=${to}, purpose=${purpose}, otp=${otp}`,
+    );
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromEmail,
+        to,
+        subject,
+        html,
+      });
+      this.logger.log(`OTP email sent successfully. messageId=${info.messageId}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send OTP email. to=${to}, purpose=${purpose}, error=${
+          error?.message || error
+        }`,
+        error?.stack,
+      );
+      throw error;
+    }
   }
 
   async sendMail(email: string, name: string, password: string) {
-    return sgMail.send({
-      from: this.fromEmail,
-      to: email,
-      subject: 'Account Activated',
-      html: `
+    this.logger.log(
+      `Sending account activation email via SMTP to=${email}`,
+    );
+
+    const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -126,8 +169,27 @@ export class MailService {
   </table>
 </body>
 </html>
-`
-      ,
-    });
+`;
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromEmail,
+        to: email,
+        subject: 'Account Activated',
+        html,
+      });
+      this.logger.log(
+        `Account activation email sent successfully. messageId=${info.messageId}`,
+      );
+      return info;
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send account activation email. to=${email}, error=${
+          error?.message || error
+        }`,
+        error?.stack,
+      );
+      throw error;
+    }
   }
 }
