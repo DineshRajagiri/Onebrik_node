@@ -11,6 +11,7 @@ import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/deco
 import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
 import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
+import { get } from 'mongoose';
 
 // Safe wrapper for documentation - errors won't affect the API
 const SafePermissionTags = SafeSwaggerClassDecorator(() => {
@@ -258,7 +259,7 @@ export class PermissionController {
   }
 
   @Public()
-  @Post('getPermissionTemplate')
+  @Get('getPermissionTemplate')
   async getPermissionTemplate() {
     return this.service.getPermissionTemplate();
   }
