@@ -189,22 +189,27 @@ export class PermissionController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('sidebar')
-  async getSidebar(@Req() req,
-    @User('id') id: string,
-    @User('role') role: string) {
-    console.log(id, "id");
-    // if (role ==='SUPERADMIN') {
-    //   return await this.service.getsidebarForadmin(id);
-    // }
-    const data = await this.service.getSidebarForUser(id);
-    return {
-      success: true,
-      message: 'Sidebar loaded successfully',
-      data,
-    };
-  }
+  // @Get('sidebar')
+  // async getSidebar(@Req() req,
+  //   @User('id') id: string,
+  //   @User('role') role: string) {
+  //   console.log(id, "id");
+  //   // if (role ==='SUPERADMIN') {
+  //   //   return await this.service.getsidebarForadmin(id);
+  //   // }
+  //   const data = await this.service.getSidebarForUser(id);
+  //   return {
+  //     success: true,
+  //     message: 'Sidebar loaded successfully',
+  //     data,
+  //   };
+  // }
 
+  @Get('sidebar')
+  async getSidebar(@Req() req) {
+    const userId = req.user.id;
+    return this.service.getSidebarForUser(userId);
+  }
 
 
 

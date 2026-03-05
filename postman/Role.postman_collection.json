@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "Role API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection of endpoints for the role controller."
+  },
+  "item": [
+    {
+      "name": "createRole",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"name\": \"Admin\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/role/createRole",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","createRole"]
+        }
+      }
+    },
+    {
+      "name": "upsertRole",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"name\": \"Editor\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/role/upsertRole",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","upsertRole"]
+        }
+      }
+    },
+    {
+      "name": "getAllRoles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/role/getAllRoles",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","getAllRoles"]
+        }
+      }
+    },
+    {
+      "name": "getRoleById",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/role/getRoleById/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","getRoleById",":id"]
+        }
+      }
+    },
+    {
+      "name": "updateRole",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"name\": \"Updated Name\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/role/updateRole/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","updateRole",":id"]
+        }
+      }
+    },
+    {
+      "name": "deleteRole",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/role/deleteRole/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","deleteRole",":id"]
+        }
+      }
+    },
+    {
+      "name": "rolesDropdown",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/role/rolesDropdown?search=",
+          "host": ["{{baseUrl}}"],
+          "path": ["role","rolesDropdown"],
+          "query": [
+            { "key": "search", "value": "" }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" }
+  ]
+}
