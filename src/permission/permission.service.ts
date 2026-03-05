@@ -783,61 +783,132 @@ export class PermissionService {
     };
   }
 
-  async getSidebarForUser(userId: string) {
+  // async getSidebarForUser(userId: string) {
 
-    const user = await this.userModel.findById(userId).lean();
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+  //   const user = await this.userModel.findById(userId).lean();
+  //   if (!user) {
+  //     throw new NotFoundException('User not found');
+  //   }
 
-    const moduleTreeResponse = await this.getModuleTree();
-    const moduleTree = moduleTreeResponse.data;
+  //   const moduleTreeResponse = await this.getModuleTree();
+  //   const moduleTree = moduleTreeResponse.data;
 
-    let permissions = await this.permissionModel.find({
-      roleId: user.roleId,
-      userId: user._id,
-      canView: true
-    }).lean();
+  //   let permissions = await this.permissionModel.find({
+  //     roleId: user.roleId,
+  //     userId: user._id,
+  //     canView: true
+  //   }).lean();
 
-    if (!permissions.length) {
-      permissions = await this.permissionModel.find({
-        roleId: user.roleId,
-        userId: null,
-        canView: true
-      }).lean();
-    }
+  //   if (!permissions.length) {
+  //     permissions = await this.permissionModel.find({
+  //       roleId: user.roleId,
+  //       userId: null,
+  //       canView: true
+  //     }).lean();
+  //   }
 
-    if (!permissions.length) {
-      return [];
-    }
+  //   if (!permissions.length) {
+  //     return [];
+  //   }
 
-    const allowedIds = new Set<string>();
+  //   const allowedIds = new Set<string>();
 
-    permissions.forEach(p => {
-      if (p.moduleId) allowedIds.add(p.moduleId.toString());
-      if (p.subModuleId) allowedIds.add(p.subModuleId.toString());
-      if (p.subModuleChildId) allowedIds.add(p.subModuleChildId.toString());
-    });
+  //   permissions.forEach(p => {
+  //     if (p.moduleId) allowedIds.add(p.moduleId.toString());
+  //     if (p.subModuleId) allowedIds.add(p.subModuleId.toString());
+  //     if (p.subModuleChildId) allowedIds.add(p.subModuleChildId.toString());
+  //   });
 
-    const filterTree = (nodes: any[]): any[] =>
-      nodes
-        .map(node => {
-          const nodeId = node.id || node._id;
+  //   const filterTree = (nodes: any[]): any[] =>
+  //     nodes
+  //       .map(node => {
+  //         const nodeId = node.id || node._id;
 
-          const children = node.children?.length
-            ? filterTree(node.children)
-            : [];
+  //         const children = node.children?.length
+  //           ? filterTree(node.children)
+  //           : [];
 
-          if (!allowedIds.has(nodeId) && children.length === 0) {
-            return null;
-          }
+  //         if (!allowedIds.has(nodeId) && children.length === 0) {
+  //           return null;
+  //         }
 
-          return { ...node, children };
-        })
-        .filter(Boolean);
+  //         return { ...node, children };
+  //       })
+  //       .filter(Boolean);
 
-    return filterTree(moduleTree);
+  //   return filterTree(moduleTree);
+  // }
+  
+async getSidebarForUser(userId: string) {
+  const user = await this.userModel.findById(userId).lean();
+
+  if (!user) {
+    throw new NotFoundException('User not found');
   }
+  const moduleTreeResponse = await this.getModuleTree();
+  const moduleTree = moduleTreeResponse.data;
+let permissions = await this.permissionModel.find({
+    roleId: user.roleId,
+    userId: user._id
+  }).lean();
+if (!permissions.length) {
+    permissions = await this.permissionModel.find({
+      roleId: user.roleId,
+      userId: null
+    }).lean();
+  }
+
+  if (!permissions.length) {
+    return [];
+  }
+  const permissionMap = new Map<string, any>();
+
+  permissions.forEach(p => {
+    if (p.moduleId) permissionMap.set(p.moduleId.toString(), p);
+    if (p.subModuleId) permissionMap.set(p.subModuleId.toString(), p);
+    if (p.subModuleChildId) permissionMap.set(p.subModuleChildId.toString(), p);
+  });
+  const filterTree = (nodes: any[]): any[] => {
+    return nodes
+      .map(node => {
+        const nodeId = node.id || node._id;
+
+        const permission = permissionMap.get(nodeId);
+
+        const children = node.children?.length
+          ? filterTree(node.children)
+          : [];
+
+        const canView = permission?.canView ?? false;
+
+        if (!canView && children.length === 0) {
+          return null;
+        }
+
+        return {
+          ...node,
+
+          permissions: {
+            canView: permission?.canView ?? false,
+            canCreate: permission?.canCreate ?? false,
+            canUpdate: permission?.canUpdate ?? false,
+            canDelete: permission?.canDelete ?? false
+          },
+
+          children
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const sidebar = filterTree(moduleTree);
+
+  return {
+    success: true,
+    message: 'Sidebar loaded successfully',
+    data: sidebar
+  };
+}
 
   async getsidebarForadmin(): Promise<any> {
     try {

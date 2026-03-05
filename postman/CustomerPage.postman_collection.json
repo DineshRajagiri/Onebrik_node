@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "Customer Page API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection of endpoints for the customer-page controller."
+  },
+  "item": [
+    {
+      "name": "getHeaderMaindata",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getHeaderMaindata",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getHeaderMaindata"]
+        }
+      }
+    },
+    {
+      "name": "getSubCatHearder",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getSubCatHearder",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getSubCatHearder"]
+        }
+      }
+    },
+    {
+      "name": "getSubheaderMaindata",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"id\": \"category-id\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getSubheaderMaindata",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getSubheaderMaindata"]
+        }
+      }
+    },
+    {
+      "name": "getSubCatHeaderMaindata",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getSubCatHeaderMaindata",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getSubCatHeaderMaindata"]
+        }
+      }
+    },
+    {
+      "name": "CreateSubCursor",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"someField\": \"value\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/CreateSubCursor",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","CreateSubCursor"]
+        }
+      }
+    },
+    {
+      "name": "GetSubCursor",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/GetSubCursor",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","GetSubCursor"]
+        }
+      }
+    },
+    {
+      "name": "getLatestProducts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getLatestProducts?limit=10&page=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getLatestProducts"],
+          "query": [
+            { "key": "limit", "value": "10" },
+            { "key": "page", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getProductsBySubCategory",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"id\": \"subcat-id\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getProductsBySubCategory?limit=10&page=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getProductsBySubCategory"],
+          "query": [
+            { "key": "limit", "value": "10" },
+            { "key": "page", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getAllProducts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/getAllProducts?limit=10&page=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","getAllProducts"],
+          "query": [
+            { "key": "limit", "value": "10" },
+            { "key": "page", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "productDetailsById",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"id\": \"product-id\" }" },
+        "url": {
+          "raw": "{{baseUrl}}/customerPage/productDetailsById",
+          "host": ["{{baseUrl}}"],
+          "path": ["customerPage","productDetailsById"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" }
+  ]
+}
