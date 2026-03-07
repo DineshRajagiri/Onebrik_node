@@ -18,6 +18,11 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** If sent, guest cart for this device is linked to the logged-in customer before creating order. */
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
 }
 
 

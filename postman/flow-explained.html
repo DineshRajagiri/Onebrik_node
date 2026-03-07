@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OneBrik – Customer flow: Cart, Order & Payment</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      color: #1a1a2e;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      background: #f8f9fc;
+    }
+    h1 {
+      font-size: 1.75rem;
+      color: #16213e;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle { color: #666; margin-bottom: 2rem; }
+    h2 {
+      font-size: 1.15rem;
+      color: #0f3460;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 2px solid #e94560;
+    }
+    .flow-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border-left: 4px solid #e94560;
+    }
+    .flow-box.guest { border-left-color: #0f3460; }
+    .flow-box.jwt { border-left-color: #16c79a; }
+    .flow-box.payment { border-left-color: #533483; }
+    .step-num {
+      display: inline-block;
+      width: 1.75rem;
+      height: 1.75rem;
+      line-height: 1.75rem;
+      text-align: center;
+      background: #e94560;
+      color: #fff;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-right: 0.5rem;
+    }
+    .flow-box.guest .step-num { background: #0f3460; }
+    .flow-box.jwt .step-num { background: #16c79a; }
+    .flow-box.payment .step-num { background: #533483; }
+    .api {
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.85rem;
+      background: #2d2d2d;
+      color: #eaeaea;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      margin: 0.5rem 0;
+      overflow-x: auto;
+    }
+    .api .method { color: #7ee787; }
+    .api .path { color: #79c0ff; }
+    .api .query { color: #d2a8ff; }
+    .label { font-weight: 600; color: #444; margin-top: 0.75rem; margin-bottom: 0.25rem; }
+    pre.body {
+      font-size: 0.8rem;
+      background: #f1f3f5;
+      padding: 0.75rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 0.25rem 0;
+      border: 1px solid #dee2e6;
+    }
+    .link-note {
+      background: #e7f5ff;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    .diagram {
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      overflow-x: auto;
+    }
+    .diagram pre { margin: 0; font-size: 0.8rem; line-height: 1.5; color: #333; }
+    .jwt-badge { background: #16c79a; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; }
+    .no-jwt { background: #6c757d; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.5rem; }
+    tr:nth-child(even) { background: #f8f9fa; }
+    th { background: #f1f3f5; }
+    code { background: #eee; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>OneBrik – Customer flow</h1>
+  <p class="subtitle">Cart → Address → Order → Payment (Razorpay). How everything links together.</p>
+
+  <h2>Flow diagram</h2>
+  <div class="diagram">
+    <pre>
+GUEST (no login)
+  Create Device          → deviceId
+  Get Cart?deviceId=...  → cartId
+  Get Items              → productId, variantId, price
+  Add Cart Item          → cart has items
+
+  User logs in (OTP or password)  →  JWT
+
+LOGGED IN (JWT)
+  Get Cart?deviceId=... + Auth    →  cart linked to customer
+  Get Addresses?deviceId=...      →  cart linked, addressId
+  Create Order { addressId }      →  orderId
+  Razorpay Create Order { orderId } → paymentId, razorpayOrderId, key
+  [Frontend: Razorpay Checkout]   →  user pays
+  Razorpay Verify                 →  Payment SUCCESS, Order confirmed
+  Get Order                       →  order + paymentStatus
+
+Links:  Cart &lt;--deviceId--&gt; Customer    Payment &lt;--orderId--&gt; Order
+    </pre>
+  </div>
+
+  <h2>Step 1 – Auth (get JWT)</h2>
+  <div class="flow-box jwt">
+    <span class="step-num">1</span>
+    <span class="jwt-badge">JWT</span>
+    <p>Customer logs in via OTP or password. You need the <strong>accessToken</strong> for steps 3–6.</p>
+    <div class="label">Send OTP</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/auth/customer/send-otp</span></div>
+    <pre class="body">{"email": "user@example.com", "purpose": "login"}</pre>
+    <div class="label">Verify OTP (get token)</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/auth/customer/verify-otp</span></div>
+    <pre class="body">{"email": "user@example.com", "otp": "123456", "purpose": "login"}</pre>
+    <p class="link-note">Response: <code>data.accessToken</code> → use as <code>Authorization: Bearer &lt;token&gt;</code></p>
+  </div>
+
+  <h2>Step 2 – Device &amp; Cart (guest, no JWT)</h2>
+  <div class="flow-box guest">
+    <span class="step-num">2</span>
+    <span class="no-jwt">No JWT</span>
+    <p>Create a device and get a cart by <strong>deviceId</strong>. Add items using <strong>productId</strong> and optional <strong>variantId</strong> + <strong>price</strong> from Get Items.</p>
+    <div class="label">Create Device</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/customer/device/create</span></div>
+    <pre class="body">{"deviceToken": "unique-token", "deviceType": "web"}</pre>
+    <p class="link-note">Response: <code>data._id</code> or <code>data.deviceId</code> → save as <strong>deviceId</strong>.</p>
+    <div class="label">Get Cart (by device)</div>
+    <div class="api"><span class="method">GET</span> <span class="path">/api/customer/cart?deviceId=&lt;deviceId&gt;</span></div>
+    <p class="link-note">Response: <code>data.cart._id</code> → <strong>cartId</strong>. <code>data.items[]</code> → cart items.</p>
+    <div class="label">Get Items (products + variants)</div>
+    <div class="api"><span class="method">GET</span> <span class="path">/api/customer/items?page=1&amp;limit=20</span></div>
+    <p class="link-note">Each item: <code>id</code> (productId), <code>variants[]</code> with <code>_id</code> (variantId), <code>salePrice</code>, <code>offerPrice</code>. Use <code>offerPrice ?? salePrice</code> as <strong>price</strong>.</p>
+    <div class="label">Add to Cart</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/customer/cart/:cartId/items</span></div>
+    <pre class="body">{
+  "productId": "&lt;from item.id&gt;",
+  "variantId": "&lt;optional, from item.variants[]._id&gt;",
+  "quantity": 2,
+  "price": 199
+}</pre>
+  </div>
+
+  <h2>Step 3 – Address (JWT + link cart)</h2>
+  <div class="flow-box jwt">
+    <span class="step-num">3</span>
+    <span class="jwt-badge">JWT</span>
+    <p>Send <strong>deviceId</strong> with the first address request so the guest cart is linked to the logged-in customer.</p>
+    <div class="label">Get Addresses (with deviceId → links cart)</div>
+    <div class="api"><span class="method">GET</span> <span class="path">/api/customer/address?deviceId=&lt;deviceId&gt;</span></div>
+    <p>Header: <code>Authorization: Bearer &lt;token&gt;</code></p>
+    <p class="link-note">Cart for this deviceId is now linked to the customer. Response: list of addresses → pick <strong>addressId</strong>.</p>
+    <div class="label">Create Address (with deviceId → links cart)</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/customer/address</span></div>
+    <pre class="body">{
+  "addressType": "home",
+  "fullName": "John Doe",
+  "mobileNumber": "9876543210",
+  "addressLine1": "123 Main St",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "postalCode": "400001",
+  "country": "India",
+  "deviceId": "&lt;deviceId&gt;"
+}</pre>
+    <p class="link-note">Include <code>deviceId</code> in body to link cart. Response: <code>data._id</code> → <strong>addressId</strong>.</p>
+  </div>
+
+  <h2>Step 4 – Order (JWT)</h2>
+  <div class="flow-box jwt">
+    <span class="step-num">4</span>
+    <span class="jwt-badge">JWT</span>
+    <p>Create order with <strong>addressId</strong>. Optionally send <strong>deviceId</strong> again to link cart if not done at address step.</p>
+    <div class="label">Create Order</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/customer/order</span></div>
+    <pre class="body">{
+  "addressId": "&lt;addressId&gt;",
+  "discountAmount": 0,
+  "shippingCharges": 0,
+  "notes": "",
+  "deviceId": "&lt;optional&gt;"
+}</pre>
+    <p class="link-note">Response: <code>data.order._id</code> → <strong>orderId</strong>. Order is linked to cart items and address.</p>
+  </div>
+
+  <h2>Step 5 – Payment Razorpay (JWT)</h2>
+  <div class="flow-box payment">
+    <span class="step-num">5</span>
+    <span class="jwt-badge">JWT</span>
+    <p>Create a Razorpay order for your <strong>orderId</strong>. Frontend opens Razorpay Checkout. After payment, verify so the backend updates Payment + Order status.</p>
+    <div class="label">Create Razorpay Order (links Payment to Order)</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/customer/payment/razorpay/create-order</span></div>
+    <pre class="body">{"orderId": "&lt;orderId&gt;"}</pre>
+    <p class="link-note">Response: <code>razorpayOrderId</code>, <code>key</code>, <code>amount</code> (paise), <code>paymentId</code>. Backend creates Payment with <code>orderId</code> + <code>razorpayOrderId</code>.</p>
+    <div class="label">Frontend: Razorpay Checkout</div>
+    <p>Use <code>key</code> and <code>razorpayOrderId</code> with Razorpay.js. On success you get <code>razorpay_order_id</code>, <code>razorpay_payment_id</code>, <code>razorpay_signature</code>.</p>
+    <div class="label">Verify Payment (updates Payment + Order)</div>
+    <div class="api"><span class="method">POST</span> <span class="path">/api/customer/payment/razorpay/verify</span></div>
+    <pre class="body">{
+  "razorpayOrderId": "order_xxx",
+  "razorpayPaymentId": "pay_xxx",
+  "razorpaySignature": "signature_from_checkout"
+}</pre>
+    <p class="link-note">Backend finds Payment by <code>razorpayOrderId</code>, verifies signature, sets payment SUCCESS and order <code>confirmed</code>.</p>
+  </div>
+
+  <h2>Razorpay testing – what you need</h2>
+  <div class="flow-box payment">
+    <p>To test payments without real money:</p>
+    <ul>
+      <li><strong>Test mode</strong> – In <a href="https://dashboard.razorpay.com" target="_blank" rel="noopener">Razorpay Dashboard</a>, switch to <strong>Test Mode</strong> (toggle top-left). Generate <strong>API Keys</strong> under Settings → API Keys. Use these only in test mode.</li>
+      <li><strong>Env vars</strong> – Your backend needs:
+        <pre class="body">RAZORPAY_KEY_ID=rzp_test_xxxxx
+RAZORPAY_KEY_SECRET=your_test_secret</pre>
+        Restart the server after setting these.
+      </li>
+      <li><strong>Test cards</strong> – Use Razorpay’s test cards (e.g. card number <code>4111 1111 1111 1111</code>). Any random CVV and any future expiry date. See <a href="https://razorpay.com/docs/payments/payments/test-card-details/" target="_blank" rel="noopener">Razorpay test card details</a> for more (Indian, international, EMI).</li>
+      <li><strong>OTP</strong> – When prompted: OTP <strong>&lt; 4 digits</strong> → payment fails; OTP <strong>4–10 digits</strong> → payment succeeds.</li>
+      <li><strong>Test UPI</strong> – Use <code>success@razorpay</code> for success, <code>failure@razorpay</code> for failure.</li>
+      <li><strong>Webhooks (optional)</strong> – For local testing of webhooks, use a tunnel (e.g. ngrok) and set the webhook URL in Dashboard.</li>
+    </ul>
+    <p class="link-note">No real money is charged with test keys. Do not use test cards in Live mode.</p>
+  </div>
+
+  <h2>Step 6 – Get Order / Payment status</h2>
+  <div class="flow-box jwt">
+    <span class="step-num">6</span>
+    <span class="jwt-badge">JWT</span>
+    <div class="label">Get Order (includes payment status)</div>
+    <div class="api"><span class="method">GET</span> <span class="path">/api/customer/order/:orderId</span></div>
+    <p class="link-note">Response: <code>paymentStatus</code>, <code>paymentGateway</code>, <code>transactionId</code>, <code>paymentDate</code>, <code>orderStatus</code>.</p>
+    <div class="label">Get Payment Status</div>
+    <div class="api"><span class="method">GET</span> <span class="path">/api/customer/payment/status/:paymentId</span></div>
+  </div>
+
+  <h2>How things link</h2>
+  <div class="flow-box">
+    <table>
+      <tr><th>Link</th><th>How</th></tr>
+      <tr><td>Cart ↔ Customer</td><td>Send <code>deviceId</code> on first Get Addresses, Create Address, or Create Order (with JWT). Guest cart for that device is merged to the customer.</td></tr>
+      <tr><td>Payment ↔ Order</td><td>Payment has <code>orderId</code>. Create Razorpay Order sends <code>orderId</code>; Verify updates that Payment and the Order (<code>orderStatus: confirmed</code>).</td></tr>
+      <tr><td>Product / Variant in Cart</td><td><code>productId</code> = product id from Get Items; <code>variantId</code> = optional, from <code>item.variants[]._id</code>; <code>price</code> = variant’s offerPrice or salePrice (or product minPrice if no variant).</td></tr>
+    </table>
+  </div>
+
+  <p style="margin-top: 2rem; color: #666; font-size: 0.9rem;">Base URL: <code>/api</code> (e.g. http://localhost:3001/api). Use the Postman collection in this folder for actual API calls.</p>
+</body>
+</html>

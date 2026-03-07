@@ -24,7 +24,8 @@ export enum Services {
     DELIVERYBOY="DELIVERYBOY",
     INVENTORY="INVENTORY",
     CUSTOMER="CUSTOMER",
-    AwsS3BucketService="AWS-S3-BUCKET"
+    AwsS3BucketService="AWS-S3-BUCKET",
+    PAYMENT_GATEWAY="PAYMENT_GATEWAY"
 }
 
 export enum Roles{

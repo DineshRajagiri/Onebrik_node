@@ -7,6 +7,8 @@ import { NotificationModule } from 'src/notification/notification.module';
 import { CommonModule } from 'src/common/common.module';
 import { Services } from 'src/utils/constants';
 import { entities } from 'src/utils/entities';
+import { AuthModule } from 'src/auth/auth.module';
+import { PaymentGatewayModule } from 'src/module/payment-gateway/payment-gateway.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { entities } from 'src/utils/entities';
     MongooseModule.forFeature(entities),
     NotificationModule,
     CommonModule,
+    AuthModule,
+    PaymentGatewayModule,
   ],
   controllers: [CustomerController],
   providers: [

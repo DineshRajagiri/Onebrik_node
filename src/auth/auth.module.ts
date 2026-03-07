@@ -13,6 +13,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from './guards/jwt.guard';
+import { OptionalJwtAuthGuard } from './guards/optional-jwt.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { MailModule } from 'src/mail/mail.module';
 
@@ -38,6 +39,8 @@ import { MailModule } from 'src/mail/mail.module';
   controllers: [AuthController],
   providers: [
     JwtStrategy,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, 
@@ -49,6 +52,8 @@ import { MailModule } from 'src/mail/mail.module';
   ],
   exports: [
     JwtStrategy,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
     {
       provide: Services.AUTH,
       useClass: AuthService,

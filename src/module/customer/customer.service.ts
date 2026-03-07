@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Device, DeviceDetails } from 'src/schema/device.schema';
@@ -19,8 +19,12 @@ import { CustomerRegisterDto, CustomerLoginDto } from './dto/customer-auth.dto';
 import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { CreatePaymentDto } from './dto/payment.dto';
 import { CreateOrderDto } from './dto/order.dto';
+import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
 import { PaymentStatus } from 'src/utils/constants';
 import { GetItemsDto } from './dto/get-items.dto';
+import { Services } from 'src/utils/constants';
+import { PaymentGatewayService } from 'src/module/payment-gateway/payment-gateway.service';
+import { GATEWAY_RAZORPAY } from 'src/module/payment-gateway/payment-gateway.interface';
 
 @Injectable()
 export class CustomerService {
@@ -35,6 +39,7 @@ export class CustomerService {
     @InjectModel(OrderItem.name) private readonly orderItemModel: Model<OrderItemDetails>,
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
     @InjectModel(productVariants.name) private readonly variantModel: Model<productVariantsDocument>,
+    @Inject(Services.PAYMENT_GATEWAY) private readonly paymentGatewayService: PaymentGatewayService,
   ) {}
 
   // ==============================
@@ -80,94 +85,26 @@ export class CustomerService {
 
   // ==============================
   // CART OPERATIONS
+  // Active = current cart in use. Keyed by deviceId (guest, no JWT) or customerId (after login).
   // ==============================
-  async activateCart(deviceId?: string, customerId?: string) {
-    try {
-      if (!deviceId && !customerId) {
-        throw new HttpException(
-          {
-            success: false,
-            message: 'Either deviceId or customerId is required',
-            statusCode: 400,
-            data: null,
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
 
-      // Check if active cart exists
-      const existingCart = await this.cartModel.findOne({
-        $or: [{ deviceId }, { customerId }],
-        isActive: true,
-        isDeleted: false,
-      });
-
-      if (existingCart) {
-        // Update cart totals
-        await this.updateCartTotals(existingCart._id);
-        const updatedCart = await this.cartModel
-          .findById(existingCart._id)
-          .populate('deviceId')
-          .populate('customerId');
-
-        return {
-          success: true,
-          message: 'Cart already active',
-          statusCode: 200,
-          data: updatedCart,
-        };
-      }
-
-      // Create new cart
-      const cartData: any = {
-        isActive: true,
-        status: 'active',
-        totalAmount: 0,
-        totalItems: 0,
-      };
-
-      if (customerId) {
-        cartData.customerId = customerId;
-      } else if (deviceId) {
-        cartData.deviceId = deviceId;
-      }
-
-      const cart = await this.cartModel.create(cartData);
-
-      // If customer logged in, update device cart to customer cart
-      if (customerId && deviceId) {
-        await this.cartModel.updateMany(
-          { deviceId, customerId: { $exists: false }, isActive: true },
-          { $set: { customerId, deviceId: null } },
-        );
-      }
-
-      const populatedCart = await this.cartModel
-        .findById(cart._id)
-        .populate('deviceId')
-        .populate('customerId');
-
-      return {
-        success: true,
-        message: 'Cart activated successfully',
-        statusCode: 201,
-        data: populatedCart,
-      };
-    } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: error.message || 'Failed to activate cart',
-          statusCode: 400,
-          data: null,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  /** Links guest cart(s) for deviceId to the logged-in customer. Call when customer hits address/order with deviceId. */
+  private async linkDeviceCartToCustomer(deviceId: string, customerId: string): Promise<void> {
+    if (!deviceId || !customerId) return;
+    await this.cartModel.updateMany(
+      { deviceId, isActive: true, isDeleted: false },
+      { $set: { customerId, deviceId: null } },
+    );
   }
 
   async getCart(deviceId?: string, customerId?: string) {
     try {
+      // When logged-in user sends deviceId: link guest cart to customer first, then use customer cart
+      if (customerId && deviceId) {
+        await this.linkDeviceCartToCustomer(deviceId, customerId);
+      }
+
+      // Active cart = current cart in use. Identified by deviceId (guest) OR customerId (logged in).
       const cart = await this.cartModel
         .findOne({
           $or: [{ deviceId }, { customerId }],
@@ -180,7 +117,7 @@ export class CustomerService {
       if (!cart) {
         return {
           success: true,
-          message: 'No active cart found',
+          message: 'No cart found for this device or account',
           statusCode: 200,
           data: null,
         };
@@ -579,8 +516,14 @@ export class CustomerService {
   // ==============================
   async createAddress(customerId: string, data: CreateAddressDto) {
     try {
+      // Link guest cart to customer when coming from checkout with deviceId
+      const { deviceId, ...addressData } = data;
+      if (deviceId) {
+        await this.linkDeviceCartToCustomer(deviceId, customerId);
+      }
+
       // If this is set as default, unset other defaults
-      if (data.isDefault) {
+      if (addressData.isDefault) {
         await this.addressModel.updateMany(
           { customerId, isDefault: true },
           { $set: { isDefault: false } },
@@ -589,7 +532,7 @@ export class CustomerService {
 
       const address = await this.addressModel.create({
         customerId,
-        ...data,
+        ...addressData,
       });
 
       return {
@@ -611,8 +554,12 @@ export class CustomerService {
     }
   }
 
-  async getAddresses(customerId: string) {
+  async getAddresses(customerId: string, deviceId?: string) {
     try {
+      if (deviceId) {
+        await this.linkDeviceCartToCustomer(deviceId, customerId);
+      }
+
       const addresses = await this.addressModel.find({
         customerId,
         isDeleted: false,
@@ -735,6 +682,12 @@ export class CustomerService {
   // ==============================
   async createOrder(customerId: string, data: CreateOrderDto) {
     try {
+      // Link guest cart to customer when coming from checkout with deviceId
+      const { deviceId, ...orderData } = data;
+      if (deviceId) {
+        await this.linkDeviceCartToCustomer(deviceId, customerId);
+      }
+
       // Get active cart
       const cart = await this.cartModel.findOne({
         customerId,
@@ -774,7 +727,7 @@ export class CustomerService {
 
       // Verify address
       const address = await this.addressModel.findOne({
-        _id: data.addressId,
+        _id: orderData.addressId,
         customerId,
         isDeleted: false,
       });
@@ -793,19 +746,19 @@ export class CustomerService {
 
       // Calculate totals
       const totalAmount = cart.totalAmount;
-      const discountAmount = data.discountAmount || 0;
-      const shippingCharges = data.shippingCharges || 0;
+      const discountAmount = orderData.discountAmount || 0;
+      const shippingCharges = orderData.shippingCharges || 0;
       const finalAmount = totalAmount - discountAmount + shippingCharges;
 
       // Create order
       const order = await this.orderModel.create({
         customerId,
-        addressId: data.addressId,
+        addressId: orderData.addressId,
         totalAmount,
         discountAmount,
         shippingCharges,
         finalAmount,
-        notes: data.notes,
+        notes: orderData.notes,
         orderStatus: 'pending',
       });
 
@@ -945,6 +898,11 @@ export class CustomerService {
         .populate('productId')
         .populate('variantId');
 
+      const payment = await this.paymentModel
+        .findOne({ orderId: order._id, customerId, isDeleted: false })
+        .select('paymentStatus paymentGateway transactionId paymentDate')
+        .lean();
+
       return {
         success: true,
         message: 'Order fetched successfully',
@@ -952,6 +910,10 @@ export class CustomerService {
         data: {
           order,
           items,
+          paymentStatus: payment?.paymentStatus ?? null,
+          paymentGateway: payment?.paymentGateway ?? null,
+          transactionId: payment?.transactionId ?? null,
+          paymentDate: payment?.paymentDate ?? null,
         },
       };
     } catch (error) {
@@ -970,6 +932,136 @@ export class CustomerService {
   // ==============================
   // PAYMENT OPERATIONS
   // ==============================
+  /** Create Razorpay order: uses payment-gateway module, creates Payment (PENDING) linked to Order, returns client payload. */
+  async createRazorpayOrder(customerId: string, data: CreateRazorpayOrderDto) {
+    const order = await this.orderModel.findOne({
+      _id: data.orderId,
+      customerId,
+      isDeleted: false,
+    });
+    if (!order) {
+      throw new HttpException(
+        { success: false, message: 'Order not found', statusCode: 404, data: null },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const gatewayResult = await this.paymentGatewayService.createOrder(GATEWAY_RAZORPAY, {
+      amount: order.finalAmount,
+      currency: 'INR',
+      receipt: `order_${data.orderId}`,
+    });
+
+    const payment = await this.paymentModel.create({
+      orderId: data.orderId,
+      customerId,
+      amount: order.finalAmount,
+      paymentMethod: 'razorpay',
+      paymentStatus: PaymentStatus.PENDING,
+      paymentGateway: GATEWAY_RAZORPAY,
+      razorpayOrderId: gatewayResult.gatewayOrderId, // link: gateway id → our Payment (and Payment.orderId → Order)
+    });
+
+    return {
+      success: true,
+      message: 'Razorpay order created',
+      statusCode: 201,
+      data: {
+        razorpayOrderId: gatewayResult.gatewayOrderId,
+        amount: gatewayResult.amount,
+        currency: gatewayResult.currency,
+        key: gatewayResult.key,
+        paymentId: payment._id.toString(),
+        orderId: data.orderId,
+      },
+    };
+  }
+
+  /** Verify Razorpay payment: uses payment-gateway module, then updates payment + order status. */
+  async verifyRazorpayPayment(customerId: string, data: VerifyRazorpayPaymentDto) {
+    const payment = await this.paymentModel.findOne({
+      razorpayOrderId: data.razorpayOrderId,
+      customerId,
+      isDeleted: false,
+    });
+    if (!payment) {
+      throw new HttpException(
+        { success: false, message: 'Payment record not found', statusCode: 404, data: null },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const verifyResult = await this.paymentGatewayService.verifySignature(GATEWAY_RAZORPAY, {
+      gatewayOrderId: data.razorpayOrderId,
+      gatewayPaymentId: data.razorpayPaymentId,
+      signature: data.razorpaySignature,
+    });
+
+    if (!verifyResult.success) {
+      await this.paymentModel.findByIdAndUpdate(payment._id, {
+        paymentStatus: PaymentStatus.FAILED,
+        failureReason: verifyResult.failureReason || 'Verification failed',
+      });
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Payment verification failed',
+          statusCode: 400,
+          data: { paymentStatus: PaymentStatus.FAILED },
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.paymentModel.findByIdAndUpdate(payment._id, {
+      paymentStatus: PaymentStatus.SUCCESS,
+      transactionId: verifyResult.transactionId,
+      paymentDate: new Date(),
+      failureReason: undefined,
+    });
+    await this.orderModel.findByIdAndUpdate(payment.orderId, { orderStatus: 'confirmed' }); // link: Payment.orderId → update Order
+
+    const updated = await this.paymentModel.findById(payment._id).lean();
+    return {
+      success: true,
+      message: 'Payment verified successfully',
+      statusCode: 200,
+      data: {
+        paymentStatus: PaymentStatus.SUCCESS,
+        payment: updated,
+        orderStatus: 'confirmed',
+      },
+    };
+  }
+
+  /** Get payment status by our payment id (for polling or order page). */
+  async getPaymentStatus(customerId: string, paymentId: string) {
+    const payment = await this.paymentModel
+      .findOne({ _id: paymentId, customerId, isDeleted: false })
+      .populate('orderId')
+      .lean();
+    if (!payment) {
+      throw new HttpException(
+        { success: false, message: 'Payment not found', statusCode: 404, data: null },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    return {
+      success: true,
+      message: 'Payment status fetched',
+      statusCode: 200,
+      data: {
+        paymentId: payment.paymentId,
+        paymentStatus: payment.paymentStatus,
+        orderId: payment.orderId,
+        amount: payment.amount,
+        paymentGateway: payment.paymentGateway,
+        transactionId: payment.transactionId,
+        paymentDate: payment.paymentDate,
+      },
+    };
+  }
+
   async createPayment(customerId: string, data: CreatePaymentDto) {
     try {
       // Verify order exists and belongs to customer

@@ -22,9 +22,11 @@ import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { CreatePaymentDto } from './dto/payment.dto';
 import { CreateOrderDto } from './dto/order.dto';
 import { GetItemsDto } from './dto/get-items.dto';
+import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
 import { Request } from 'express';
 import { Public } from 'src/decorators/public.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt.guard';
 
 // Simple guard to extract customer ID from token (you can enhance this)
 @Controller('customer')
@@ -53,17 +55,25 @@ export class CustomerController {
 
   // ==============================
   // CART ENDPOINTS
+  // Cart: guest by deviceId (no JWT). Logged in: link by passing deviceId on first address/order call.
   // ==============================
+  /** Logged-in user: get my cart (use after linking via address/order with deviceId). JWT required. */
   @UseGuards(JwtAuthGuard)
-  @Post('cart/activate')
-  async activateCart(
-    @Body() body: { deviceId?: string },
-    @Req() req: Request & { user?: { id: string } },
-  ) {
+  @Get('cart/me')
+  async getMyCart(@Req() req: Request & { user?: { id: string } }) {
     const customerId = req.user?.id;
-    return this.customerService.activateCart(body.deviceId, customerId);
+    if (!customerId) {
+      throw new HttpException(
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.customerService.getCart(undefined, customerId);
   }
 
+  /** With JWT + deviceId: link guest cart to account and return my cart. Without JWT: guest cart by deviceId. */
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('cart')
   async getCart(
     @Query('deviceId') deviceId: string | undefined,
@@ -74,8 +84,9 @@ export class CustomerController {
   }
 
   // ==============================
-  // CART ITEM ENDPOINTS
+  // CART ITEM ENDPOINTS (no JWT – use cartId from getCart)
   // ==============================
+  @Public()
   @Post('cart/:cartId/items')
   async addCartItem(
     @Param('cartId') cartId: string,
@@ -84,6 +95,7 @@ export class CustomerController {
     return this.customerService.addCartItem(cartId, body);
   }
 
+  @Public()
   @Put('cart/items/:itemId')
   async updateCartItem(
     @Param('itemId') itemId: string,
@@ -92,13 +104,15 @@ export class CustomerController {
     return this.customerService.updateCartItem(itemId, body);
   }
 
+  @Public()
   @Delete('cart/items/:itemId')
   async deleteCartItem(@Param('itemId') itemId: string) {
     return this.customerService.deleteCartItem(itemId);
   }
 
   // ==============================
-  // ADDRESS ENDPOINTS
+  // ADDRESS ENDPOINTS (JWT required)
+  // Optional deviceId links guest cart to customer when user hits address/order after login.
   // ==============================
   @Post('address')
   async createAddress(
@@ -121,7 +135,10 @@ export class CustomerController {
   }
 
   @Get('address')
-  async getAddresses(@Req() req: Request & { user?: { id: string } }) {
+  async getAddresses(
+    @Query('deviceId') deviceId: string | undefined,
+    @Req() req: Request & { user?: { id: string } },
+  ) {
     const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
@@ -134,7 +151,7 @@ export class CustomerController {
         HttpStatus.UNAUTHORIZED,
       );
     }
-    return this.customerService.getAddresses(customerId as string);
+    return this.customerService.getAddresses(customerId as string, deviceId);
   }
 
   @Put('address/:addressId')
@@ -247,7 +264,8 @@ export class CustomerController {
   }
 
   // ==============================
-  // PAYMENT ENDPOINTS
+  // PAYMENT ENDPOINTS (JWT required)
+  // Razorpay: create-order → client pays → verify. Use GET payment/status/:paymentId for status.
   // ==============================
   @Post('payment')
   async createPayment(
@@ -267,6 +285,54 @@ export class CustomerController {
       );
     }
     return this.customerService.createPayment(customerId as string, body);
+  }
+
+  /** Create Razorpay order for an order. Returns key + razorpayOrderId for client checkout. */
+  @Post('payment/razorpay/create-order')
+  async createRazorpayOrder(
+    @Body() body: CreateRazorpayOrderDto,
+    @Req() req: Request & { user?: { id: string } },
+  ) {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      throw new HttpException(
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.customerService.createRazorpayOrder(customerId as string, body);
+  }
+
+  /** Verify Razorpay payment after client checkout. Updates payment status and order status. */
+  @Post('payment/razorpay/verify')
+  async verifyRazorpayPayment(
+    @Body() body: VerifyRazorpayPaymentDto,
+    @Req() req: Request & { user?: { id: string } },
+  ) {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      throw new HttpException(
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.customerService.verifyRazorpayPayment(customerId as string, body);
+  }
+
+  /** Get payment status (PENDING | SUCCESS | FAILED). */
+  @Get('payment/status/:paymentId')
+  async getPaymentStatus(
+    @Param('paymentId') paymentId: string,
+    @Req() req: Request & { user?: { id: string } },
+  ) {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      throw new HttpException(
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.customerService.getPaymentStatus(customerId as string, paymentId);
   }
 }
 
