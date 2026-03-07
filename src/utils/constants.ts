@@ -3,6 +3,7 @@ import { AwsS3BucketService } from "src/common/services/aws-s3-bucket/aws-s3-buc
 
 export enum Services {
     AUTH = 'AUTH_SERVICE',
+    CUSTOMER_AUTH = 'CUSTOMER_AUTH_SERVICE',
     TABLE = "TABLE",
     RBAC = 'RBAC_SERVICE',
     SIDEBAR = 'SIDEBAR_SERVICE',

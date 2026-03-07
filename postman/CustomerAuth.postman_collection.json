@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "Customer Auth API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection of endpoints for the customer-auth controller."
+  },
+  "item": [
+    {
+      "name": "1. Login (Send OTP)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"customer@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/customer-auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["customer-auth", "login"]
+        },
+        "description": "Send OTP to customer email for login. Email is required."
+      }
+    },
+    {
+      "name": "2. Verify OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"customer@example.com\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/customer-auth/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["customer-auth", "verify"]
+        },
+        "description": "Verify OTP sent to customer email. Returns accessToken and refreshToken. Save tokens to collection variables."
+      }
+    },
+    {
+      "name": "3. Get Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/customer-auth/profile",
+          "host": ["{{baseUrl}}"],
+          "path": ["customer-auth", "profile"]
+        },
+        "description": "Get current customer profile. Requires JWT authentication (accessToken)."
+      }
+    },
+    {
+      "name": "4. Update Profile",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "name", "value": "John Doe", "type": "text" },
+            { "key": "mobileNumber", "value": "1234567890", "type": "text" },
+            { "key": "image", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/customer-auth/profile",
+          "host": ["{{baseUrl}}"],
+          "path": ["customer-auth", "profile"]
+        },
+        "description": "Update customer profile with optional name, mobileNumber, and image upload. Image is uploaded to AWS S3. Requires JWT authentication (accessToken)."
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" }
+  ]
+}

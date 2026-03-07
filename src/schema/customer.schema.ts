@@ -22,6 +22,10 @@ export class Customer extends commonDTO {
   @Prop()
   passwordHash: string;
 
+
+  @Prop()
+  profilePicture: string;
+
   @Prop({ type: String, ref: "Device" })
   deviceId: string;
 
