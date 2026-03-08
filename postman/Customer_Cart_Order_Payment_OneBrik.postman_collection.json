@@ -1,0 +1,459 @@
+{
+  "info": {
+    "name": "OneBrik - Customer Cart, Order & Payment (Razorpay)",
+    "description": "Full flow: Device → Cart (guest by deviceId) → Login → Address (links cart) → Order → Razorpay Payment. Use collection variables for base_url, token, deviceId, cartId, addressId, orderId, paymentId.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3001/api" },
+    { "key": "token", "value": "" },
+    { "key": "deviceId", "value": "" },
+    { "key": "cartId", "value": "" },
+    { "key": "cartItemId", "value": "" },
+    { "key": "addressId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "variantId", "value": "" },
+    { "key": "variantPrice", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0_Auth_Customer",
+      "description": "Get JWT for customer. Use send-otp → verify-otp (login) or signup flow.",
+      "item": [
+        {
+          "name": "Customer Send OTP (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["// OTP sent to email; use same email in verify-otp with OTP received"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"purpose\": \"login\"\n}"
+            },
+            "url": "{{base_url}}/auth/customer/send-otp",
+            "description": "Sends OTP to email. purpose: 'login' or 'signup'."
+          }
+        },
+        {
+          "name": "Customer Verify OTP (Login) - Save Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.accessToken) {",
+                  "  pm.collectionVariables.set('token', json.data.accessToken);",
+                  "  pm.environment.set('token', json.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"otp\": \"123456\",\n  \"purpose\": \"login\"\n}"
+            },
+            "url": "{{base_url}}/auth/customer/verify-otp",
+            "description": "Returns accessToken + refreshToken. Script saves accessToken to collection variable 'token'."
+          }
+        },
+        {
+          "name": "Customer Login (Password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.accessToken) {",
+                  "  pm.collectionVariables.set('token', json.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": "{{base_url}}/auth/customer/login",
+            "description": "Alternative: login with email + password. Saves accessToken."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1_Device_And_Cart",
+      "description": "No JWT. Create device → get cart by deviceId → get products (with variants) → add items. Cart needs productId, optional variantId, quantity, price (use variant's offerPrice/salePrice or product minPrice).",
+      "item": [
+        {
+          "name": "Create Device - Save deviceId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data._id) {",
+                  "  pm.collectionVariables.set('deviceId', json.data._id);",
+                  "} else if (json.data && json.data.deviceId) {",
+                  "  pm.collectionVariables.set('deviceId', json.data.deviceId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceToken\": \"unique-device-token-123\",\n  \"deviceType\": \"web\"\n}"
+            },
+            "url": "{{base_url}}/customer/device/create",
+            "description": "Creates device. Response may have _id (use as deviceId in this API). If your API returns deviceId string, set variable accordingly."
+          }
+        },
+        {
+          "name": "Get Cart (by deviceId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.cart && json.data.cart._id) {",
+                  "  pm.collectionVariables.set('cartId', json.data.cart._id);",
+                  "}",
+                  "if (json.data && json.data.items && json.data.items[0]) {",
+                  "  pm.collectionVariables.set('cartItemId', json.data.items[0]._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/cart?deviceId={{deviceId}}",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "cart"],
+              "query": [{"key": "deviceId", "value": "{{deviceId}}"}]
+            },
+            "description": "Guest cart. Optional: send Authorization Bearer {{token}} to link cart to customer. Script saves cartId and first cartItemId."
+          }
+        },
+        {
+          "name": "Get Items (Products with Variants) - Save productId, variantId, price",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var items = json.data && json.data.items;",
+                  "if (items && items.length > 0) {",
+                  "  var first = items[0];",
+                  "  pm.collectionVariables.set('productId', first.id);",
+                  "  if (first.variants && first.variants.length > 0) {",
+                  "    var v = first.variants[0];",
+                  "    pm.collectionVariables.set('variantId', v._id);",
+                  "    var p = v.offerPrice != null ? v.offerPrice : v.salePrice;",
+                  "    pm.collectionVariables.set('variantPrice', String(p));",
+                  "  } else {",
+                  "    pm.collectionVariables.set('variantId', '');",
+                  "    pm.collectionVariables.set('variantPrice', String(first.minPrice || first.maxPrice || 0));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/customer/items?page=1&limit=20",
+            "description": "Response: data.items[] each has id (productId), name, brand, minPrice, maxPrice, variants[] with _id (variantId), variantName, salePrice, offerPrice, stock. Run this first; script saves productId, variantId, variantPrice for Add Cart."
+          }
+        },
+        {
+          "name": "Add Cart Item (with variant)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantId\": \"{{variantId}}\",\n  \"quantity\": 2,\n  \"price\": {{variantPrice}}\n}"
+            },
+            "url": "{{base_url}}/customer/cart/{{cartId}}/items",
+            "description": "Use when product has variants. productId = item.id; variantId = item.variants[]._id; price = variant.offerPrice or salePrice. Run Get Items (Products with Variants) first to fill variables."
+          }
+        },
+        {
+          "name": "Add Cart Item (no variant)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"price\": {{variantPrice}}\n}"
+            },
+            "url": "{{base_url}}/customer/cart/{{cartId}}/items",
+            "description": "Omit variantId when product has no variants. price = item.minPrice. Variables set by Get Items (Products with Variants)."
+          }
+        },
+        {
+          "name": "Add Cart Item",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"price\": 199\n}"
+            },
+            "url": "{{base_url}}/customer/cart/{{cartId}}/items",
+            "description": "Simple: productId + quantity + price. For variant details use Get Items (Products with Variants) then Add Cart Item (with variant) or (no variant)."
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3,\n  \"price\": 199\n}"
+            },
+            "url": "{{base_url}}/customer/cart/items/{{cartItemId}}",
+            "description": "cartItemId from Get Cart response (items[]._id)."
+          }
+        },
+        {
+          "name": "Get Items (Products)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/customer/items",
+            "description": "Returns data.items[]: id (productId), name, brand, description, minPrice, maxPrice, variants[] (_id, variantName, salePrice, offerPrice, stock). Use id + variants[]._id + price for Add Cart."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2_Address_JWT",
+      "description": "JWT required. Pass deviceId to link guest cart to customer. Then create/get addresses.",
+      "item": [
+        {
+          "name": "Get Addresses (with deviceId - links cart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data[0] && json.data[0]._id) {",
+                  "  pm.collectionVariables.set('addressId', json.data[0]._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/customer/address?deviceId={{deviceId}}",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "address"],
+              "query": [{"key": "deviceId", "value": "{{deviceId}}"}]
+            },
+            "description": "Links guest cart to logged-in customer when deviceId is sent. Saves first addressId."
+          }
+        },
+        {
+          "name": "Create Address (with deviceId - links cart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data._id) {",
+                  "  pm.collectionVariables.set('addressId', json.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressType\": \"home\",\n  \"fullName\": \"John Doe\",\n  \"mobileNumber\": \"9876543210\",\n  \"addressLine1\": \"123 Main St\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"postalCode\": \"400001\",\n  \"country\": \"India\",\n  \"isDefault\": true,\n  \"deviceId\": \"{{deviceId}}\"\n}"
+            },
+            "url": "{{base_url}}/customer/address",
+            "description": "deviceId in body links guest cart to customer. Saves addressId."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3_Order_JWT",
+      "description": "JWT required. Create order (pass deviceId to link cart if not already linked). Order is linked to Payment later.",
+      "item": [
+        {
+          "name": "Create Order - Save orderId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.order && json.data.order._id) {",
+                  "  pm.collectionVariables.set('orderId', json.data.order._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressId\": \"{{addressId}}\",\n  \"discountAmount\": 0,\n  \"shippingCharges\": 0,\n  \"notes\": \"\",\n  \"deviceId\": \"{{deviceId}}\"\n}"
+            },
+            "url": "{{base_url}}/customer/order",
+            "description": "addressId required. deviceId optional (links cart if not done at address). Script saves order._id to orderId."
+          }
+        },
+        {
+          "name": "Get Order By Id",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/customer/order/{{orderId}}",
+            "description": "Returns order + items + paymentStatus, paymentGateway, transactionId, paymentDate."
+          }
+        },
+        {
+          "name": "Get Order History",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/customer/order/history?page=1&limit=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4_Payment_Razorpay_JWT",
+      "description": "JWT required. Create Razorpay order (links to our orderId) → client pays on Razorpay → verify.",
+      "item": [
+        {
+          "name": "Razorpay Create Order - Save paymentId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.paymentId) {",
+                  "  pm.collectionVariables.set('paymentId', json.data.paymentId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}"
+            },
+            "url": "{{base_url}}/customer/payment/razorpay/create-order",
+            "description": "Uses our orderId. Returns razorpayOrderId, key, amount (paise), paymentId. Use key + razorpayOrderId in Razorpay Checkout on frontend. Script saves paymentId."
+          }
+        },
+        {
+          "name": "Razorpay Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpayOrderId\": \"order_xxx_from_checkout\",\n  \"razorpayPaymentId\": \"pay_xxx_from_checkout\",\n  \"razorpaySignature\": \"signature_from_checkout\"\n}"
+            },
+            "url": "{{base_url}}/customer/payment/razorpay/verify",
+            "description": "Call after user completes Razorpay Checkout. Frontend gets razorpay_order_id, razorpay_payment_id, razorpay_signature from success handler."
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/customer/payment/status/{{paymentId}}",
+            "description": "Returns paymentStatus (PENDING | SUCCESS | FAILED), orderId, amount, paymentGateway, transactionId, paymentDate."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5_Order_With_Payment_Status",
+      "description": "After payment verify, order shows payment status.",
+      "item": [
+        {
+          "name": "Get Order (includes payment status)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/customer/order/{{orderId}}",
+            "description": "Response includes paymentStatus, paymentGateway, transactionId, paymentDate for the order."
+          }
+        }
+      ]
+    }
+  ]
+}

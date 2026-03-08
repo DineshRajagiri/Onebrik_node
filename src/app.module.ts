@@ -25,6 +25,7 @@ import { SuperAdminModule } from './module/superadmin/superadmin.module';
 import { MailModule } from './mail/mail.module';
 import { CustomerModule } from './module/customer/customer.module';
 import { CustomerPageModule } from './module/customer-page/customer-page.module';
+import { PaymentGatewayModule } from './module/payment-gateway/payment-gateway.module';
 import { CustomerAuthModule } from './customerAuth/customer-auth.module';
 
 @Module({
@@ -51,7 +52,8 @@ import { CustomerAuthModule } from './customerAuth/customer-auth.module';
     SidebarModule,
     MailModule,
     CustomerModule,
-    CustomerPageModule
+    CustomerPageModule,
+    PaymentGatewayModule,
   ],
   controllers: [AppController],
   providers: [AppService],

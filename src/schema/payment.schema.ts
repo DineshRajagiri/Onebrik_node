@@ -12,6 +12,7 @@ export class Payment extends commonDTO {
   @Prop()
   paymentId: string;
 
+  /** Links to our Order (order._id). One payment per order for gateway flow. */
   @Prop({ type: String, ref: "Order", required: true })
   orderId: string;
 
@@ -38,6 +39,10 @@ export class Payment extends commonDTO {
 
   @Prop()
   failureReason: string;
+
+  /** Gateway order id (e.g. Razorpay order_id). Used to find this Payment when client sends verify. */
+  @Prop()
+  razorpayOrderId: string;
 }
 
 export const PaymentSchemaFile = SchemaFactory.createForClass(Payment);

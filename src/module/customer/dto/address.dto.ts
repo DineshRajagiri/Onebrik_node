@@ -44,6 +44,11 @@ export class CreateAddressDto {
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
+
+  /** If sent, guest cart for this device is linked to the logged-in customer. */
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
 }
 
 export class UpdateAddressDto {
