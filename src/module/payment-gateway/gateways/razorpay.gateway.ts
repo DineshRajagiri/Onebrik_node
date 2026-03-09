@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import * as crypto from 'crypto';
-import Razorpay from 'razorpay';
+import Razorpay = require('razorpay');
 import {
   IPaymentGateway,
   CreateOrderGatewayParams,

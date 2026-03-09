@@ -44,7 +44,26 @@
       }
     },
     {
-      "name": "3. Get Profile",
+      "name": "3. Refresh Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/customer-auth/refresh",
+          "host": ["{{baseUrl}}"],
+          "path": ["customer-auth", "refresh"]
+        },
+        "description": "Refresh access token using refresh token. Returns new accessToken."
+      }
+    },
+    {
+      "name": "4. Get Profile",
       "request": {
         "method": "GET",
         "header": [
@@ -59,7 +78,7 @@
       }
     },
     {
-      "name": "4. Update Profile",
+      "name": "5. Update Profile",
       "request": {
         "method": "PATCH",
         "header": [
@@ -84,6 +103,7 @@
   ],
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000" },
-    { "key": "accessToken", "value": "" }
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" }
   ]
 }
