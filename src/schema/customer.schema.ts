@@ -10,13 +10,13 @@ export class Customer extends commonDTO {
   @Prop()
   customerId: string;
 
-  @Prop({ required: true })
+  @Prop()
   name: string;
 
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true })
+  @Prop()
   mobileNumber: string;
 
   @Prop()
@@ -28,6 +28,9 @@ export class Customer extends commonDTO {
 
   @Prop({ type: String, ref: "Device" })
   deviceId: string;
+
+  @Prop()
+  refreshToken: string;
 
   @Prop({ default: true })
   isEmailVerified: boolean;

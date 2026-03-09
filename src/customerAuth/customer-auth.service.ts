@@ -1,16 +1,19 @@
 import {
-  BadRequestException,
   Injectable,
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
+
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+
 import { Customer, CustomerDetails } from 'src/schema/customer.schema';
 import { Otp, OtpDocument } from 'src/schema/otp.schema';
+
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from 'src/mail/mail.service';
+
 import { UpdateCustomerProfileDto } from './DTO/update-customer-profile.dto';
 
 @Injectable()
@@ -26,7 +29,7 @@ export class CustomerAuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
-  ) { }
+  ) {}
 
   private readonly logger = new Logger(CustomerAuthService.name);
 
@@ -50,7 +53,7 @@ export class CustomerAuthService {
     await this.otpModel.create({
       email: normalizedEmail,
       otp,
-      purpose: 'login',   // internal only
+      purpose: 'login',
       expiresAt,
     });
 
@@ -59,14 +62,12 @@ export class CustomerAuthService {
     return {
       success: true,
       message: 'OTP sent to email',
-      data: {
-        email: normalizedEmail,
-      },
+      data: { email: normalizedEmail },
     };
   }
 
   // =========================
-  // VERIFY OTP (LOGIN / SIGNUP)
+  // VERIFY OTP
   // =========================
 
   async verifyOtp(email: string, otp: string) {
@@ -76,7 +77,7 @@ export class CustomerAuthService {
     const otpRecord = await this.otpModel.findOne({
       email: normalizedEmail,
       otp,
-      purpose: 'login',   // internal
+      purpose: 'login',
     });
 
     if (!otpRecord) {
@@ -100,6 +101,11 @@ export class CustomerAuthService {
 
     const tokens = await this.generateTokens(customer);
 
+    await this.customerModel.updateOne(
+      { _id: customer._id },
+      { refreshToken: tokens.refreshToken },
+    );
+
     await this.otpModel.deleteOne({ _id: otpRecord._id });
 
     return {
@@ -113,13 +119,14 @@ export class CustomerAuthService {
           customerId: customer.customerId,
           email: customer.email,
           name: customer.name,
+          profilePicture: customer.profilePicture,
         },
       },
     };
   }
 
   // =========================
-  // TOKEN GENERATION
+  // GENERATE TOKENS
   // =========================
 
   async generateTokens(customer: CustomerDetails) {
@@ -147,8 +154,48 @@ export class CustomerAuthService {
   }
 
   // =========================
+  // REFRESH TOKEN
+  // =========================
+
+  async refreshToken(refreshToken: string) {
+
+    try {
+
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      });
+
+      const customer = await this.customerModel.findOne({
+        _id: decoded.sub,
+        refreshToken,
+      });
+
+      if (!customer) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const tokens = await this.generateTokens(customer);
+
+      await this.customerModel.updateOne(
+        { _id: customer._id },
+        { refreshToken: tokens.refreshToken },
+      );
+
+      return {
+        success: true,
+        message: 'Token refreshed successfully',
+        data: tokens,
+      };
+
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  // =========================
   // GET PROFILE
   // =========================
+
   async getProfile(customerId: string) {
 
     const customer = await this.customerModel.findById(customerId);
@@ -164,10 +211,12 @@ export class CustomerAuthService {
         customerId: customer.customerId,
         email: customer.email,
         name: customer.name,
-        profilePicture: customer.profilePicture
+        mobileNumber: customer.mobileNumber,
+        profilePicture: customer.profilePicture,
       },
     };
   }
+
   // =========================
   // UPDATE PROFILE
   // =========================
@@ -175,32 +224,30 @@ export class CustomerAuthService {
   async upsertProfile(
     customerId: string,
     dto: UpdateCustomerProfileDto,
-    imageUrl?: string
+    imageUrl?: string,
   ) {
 
     const updateData: any = {};
 
-    if (dto.name) {
-      updateData.name = dto.name;
-    }
+    if (dto.name) updateData.name = dto.name;
 
-    if (dto.mobileNumber) {
-      updateData.mobileNumber = dto.mobileNumber;
-    }
+    if (dto.mobileNumber) updateData.mobileNumber = dto.mobileNumber;
 
-    if (imageUrl) {
-      updateData.profilePicture = imageUrl;
-    }
+    if (imageUrl) updateData.profilePicture = imageUrl;
 
     const customer = await this.customerModel.findByIdAndUpdate(
       customerId,
       { $set: updateData },
-      { new: true, upsert: true },
+      { new: true },
     );
+
+    if (!customer) {
+      throw new UnauthorizedException('Customer not found');
+    }
 
     return {
       success: true,
-      message: "Profile updated successfully",
+      message: 'Profile updated successfully',
       data: {
         id: customer._id,
         customerId: customer.customerId,
