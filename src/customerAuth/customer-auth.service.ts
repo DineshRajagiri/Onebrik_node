@@ -139,7 +139,7 @@ export class CustomerAuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
-      expiresIn: '1d',
+      expiresIn: '2m',
     });
 
     const refreshToken = this.jwtService.sign(
@@ -206,13 +206,12 @@ export class CustomerAuthService {
 
     return {
       success: true,
-      data: {
-        id: customer._id,
-        customerId: customer.customerId,
-        email: customer.email,
-        name: customer.name,
-        mobileNumber: customer.mobileNumber,
-        profilePicture: customer.profilePicture,
+      data: {id: customer._id ?? null,
+        customerId: customer.customerId ?? null,
+        email: customer.email ?? null,
+        name: customer.name ?? null,
+        mobileNumber: customer.mobileNumber ?? null,
+        profilePicture: customer.profilePicture ?? null
       },
     };
   }
