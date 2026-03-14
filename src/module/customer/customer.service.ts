@@ -99,29 +99,49 @@ export class CustomerService {
 
   async getCart(deviceId?: string, customerId?: string) {
     try {
+      console.log(deviceId ,"dec" , customerId ,"cus");
+      
       // When logged-in user sends deviceId: link guest cart to customer first, then use customer cart
       if (customerId && deviceId) {
         await this.linkDeviceCartToCustomer(deviceId, customerId);
       }
 
       // Active cart = current cart in use. Identified by deviceId (guest) OR customerId (logged in).
-      const cart = await this.cartModel
-        .findOne({
-          $or: [{ deviceId }, { customerId }],
+      let cart = await this.cartModel.findOne({
+        deviceId: deviceId || undefined,
+        customerId: customerId || undefined,
+        isActive: true,
+        isDeleted: false,
+      });
+
+      // If no active cart exists yet, create one automatically for this device/customer.
+      if (!cart) {
+        if (!deviceId && !customerId) {
+          throw new HttpException(
+            {
+              success: false,
+              message: 'deviceId or customerId is required to create cart',
+              statusCode: 400,
+              data: null,
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        cart = await this.cartModel.create({
+          deviceId: deviceId || undefined,
+          customerId: customerId || undefined,
           isActive: true,
           isDeleted: false,
-        })
+          totalAmount: 0,
+          totalItems: 0,
+        });
+      }
+
+      cart = await this.cartModel
+        .findById(cart._id)
         .populate('deviceId')
         .populate('customerId');
-
-      if (!cart) {
-        return {
-          success: true,
-          message: 'No cart found for this device or account',
-          statusCode: 200,
-          data: null,
-        };
-      }
 
       // Get cart items
       const cartItems = await this.cartItemModel
@@ -939,18 +959,22 @@ export class CustomerService {
       customerId,
       isDeleted: false,
     });
+    console.log(order);
     if (!order) {
       throw new HttpException(
         { success: false, message: 'Order not found', statusCode: 404, data: null },
         HttpStatus.NOT_FOUND,
       );
     }
+    console.log(GATEWAY_RAZORPAY);
+    
 
     const gatewayResult = await this.paymentGatewayService.createOrder(GATEWAY_RAZORPAY, {
       amount: order.finalAmount,
       currency: 'INR',
       receipt: `order_${data.orderId}`,
     });
+console.log(gatewayResult ,"gatewayResult");
 
     const payment = await this.paymentModel.create({
       orderId: data.orderId,
@@ -979,23 +1003,29 @@ export class CustomerService {
 
   /** Verify Razorpay payment: uses payment-gateway module, then updates payment + order status. */
   async verifyRazorpayPayment(customerId: string, data: VerifyRazorpayPaymentDto) {
+    console.log(data ,"data" , customerId ,"customerId");
+    
     const payment = await this.paymentModel.findOne({
       razorpayOrderId: data.razorpayOrderId,
       customerId,
       isDeleted: false,
     });
+    console.log(payment ,'payment');
+    
     if (!payment) {
       throw new HttpException(
         { success: false, message: 'Payment record not found', statusCode: 404, data: null },
         HttpStatus.NOT_FOUND,
       );
     }
+console.log(data ,"data" , payment.razorpayOrderId ,"payment.razorpayOrderId" ,GATEWAY_RAZORPAY);
 
     const verifyResult = await this.paymentGatewayService.verifySignature(GATEWAY_RAZORPAY, {
       gatewayOrderId: data.razorpayOrderId,
       gatewayPaymentId: data.razorpayPaymentId,
       signature: data.razorpaySignature,
     });
+console.log(verifyResult ,"verifyResultˇˇˇˇß");
 
     if (!verifyResult.success) {
       await this.paymentModel.findByIdAndUpdate(payment._id, {
