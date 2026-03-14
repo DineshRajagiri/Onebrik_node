@@ -139,7 +139,7 @@ export class CustomerAuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
-      expiresIn: '2m',
+      expiresIn: '30m',
     });
 
     const refreshToken = this.jwtService.sign(

@@ -35,12 +35,27 @@ export class RazorpayGatewayService implements IPaymentGateway {
       );
     }
     const instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
-    const order = await instance.orders.create({
-      amount: amountInPaise,
-      currency: params.currency || 'INR',
-      receipt: params.receipt,
-    });
-    return {
+    console.log(instance ,"in" ,params);
+let order;
+
+try {
+  order = await instance.orders.create({
+    amount: amountInPaise,
+    currency: params.currency || 'INR',
+    receipt: "bhushan",
+  });
+} catch (error) {
+  console.error('Razorpay Order Creation Failed:', error);
+
+  throw new HttpException(
+    error?.error?.description || 'Failed to create Razorpay order',
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+console.log(order, "order");
+    console.log(order, "order");
+    return {  
       gatewayOrderId: order.id,
       key: keyId,
       amount: amountInPaise,
