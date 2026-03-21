@@ -9,6 +9,7 @@ import { Services } from 'src/utils/constants';
 import { entities } from 'src/utils/entities';
 import { AuthModule } from 'src/auth/auth.module';
 import { PaymentGatewayModule } from 'src/module/payment-gateway/payment-gateway.module';
+import { AwsS3BucketService } from 'src/common/services/aws-s3-bucket/aws-s3-bucket.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { PaymentGatewayModule } from 'src/module/payment-gateway/payment-gateway
       provide: Services.CUSTOMER,
       useClass: CustomerService,
     },
-  ],
+   AwsS3BucketService],
   exports: [
     {
       provide: Services.CUSTOMER,

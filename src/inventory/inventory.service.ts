@@ -1735,7 +1735,6 @@ export class InventoryService {
     }
   }
 
-
   async getAllProductVariants(query: any) {
     try {
       const page = Number(query.page) > 0 ? Number(query.page) : 1;
@@ -1853,9 +1852,10 @@ export class InventoryService {
       );
     }
   }
+
   async getAllProducts(query: any) {
     try {
-      let { page = 1, limit = 10, search = "" } = query;
+      let { page = 1, limit = 10, search = "", topSelling, category } = query;
 
       page = Number(page) > 0 ? Number(page) : 1;
       limit = Number(limit) > 0 ? Number(limit) : 10;
@@ -1866,8 +1866,13 @@ export class InventoryService {
         isDeleted: false,
       };
 
-      if (search.trim()) {
+      // ✅ Combined search + category logic
+      const orConditions: any[] = [];
+
+      if (search?.trim()) {
         const searchRegex = new RegExp(search.trim(), "i");
+
+        orConditions.push({ productName: searchRegex });
 
         const matchedCategories = await this.inventoryCategoryModel
           .find({ categoryName: searchRegex })
@@ -1876,16 +1881,36 @@ export class InventoryService {
 
         const categoryIds = matchedCategories.map(c => c._id);
 
-        filter.$or = [
-          { productName: searchRegex },
-          ...(categoryIds.length
-            ? [
-              { mainCategoryId: { $in: categoryIds } },
-              { subCategoryId: { $in: categoryIds } },
-              { subChildCategoryId: { $in: categoryIds } },
-            ]
-            : []),
-        ];
+        if (categoryIds.length) {
+          orConditions.push(
+            { mainCategoryId: { $in: categoryIds } },
+            { subCategoryId: { $in: categoryIds } },
+            { subChildCategoryId: { $in: categoryIds } }
+          );
+        }
+      }
+
+      if (category?.trim()) {
+        const categoryRegex = new RegExp(category.trim(), "i");
+
+        const matchedCategories = await this.inventoryCategoryModel
+          .find({ categoryName: categoryRegex })
+          .select("_id")
+          .lean();
+
+        const categoryIds = matchedCategories.map(c => c._id);
+
+        if (categoryIds.length) {
+          orConditions.push(
+            { mainCategoryId: { $in: categoryIds } },
+            { subCategoryId: { $in: categoryIds } },
+            { subChildCategoryId: { $in: categoryIds } }
+          );
+        }
+      }
+
+      if (orConditions.length) {
+        filter.$or = orConditions;
       }
 
       const [products, total] = await Promise.all([
@@ -1894,9 +1919,7 @@ export class InventoryService {
           .populate("mainCategoryId", "categoryName level")
           .populate("subCategoryId", "categoryName level")
           .populate("subChildCategoryId", "categoryName level")
-          .skip(skip)
-          .limit(limit)
-          .sort({ createdAt: -1 })
+          .sort({ createdAt: -1 }) // default sorting
           .lean(),
 
         this.productModel.countDocuments(filter),
@@ -1947,7 +1970,7 @@ export class InventoryService {
         variantMap.get(key)!.push(v);
       });
 
-      const finalProducts = products.map(p => {
+      let finalProducts = products.map(p => {
         const productVariants = variantMap.get(String(p._id)) || [];
 
         const totalStock = productVariants.reduce(
@@ -2000,9 +2023,19 @@ export class InventoryService {
           })),
         };
       });
+
+      // 🔥 Top Selling: if param present → sort by quantity DESC
+      if (topSelling !== undefined) {
+        finalProducts = finalProducts.sort((a, b) => b.quantity - a.quantity);
+      }
+
+      // ✅ Pagination
+      const paginatedProducts = finalProducts.slice(skip, skip + limit);
+
       return {
         success: true,
-        products: finalProducts,
+        message: "Products fetched successfully",
+        data: paginatedProducts,
         pagination: {
           page,
           limit,
@@ -2124,7 +2157,6 @@ export class InventoryService {
   //     );
   //   }
   // }
-
 
   async getAllAttributeValues(query: any) {
     try {
