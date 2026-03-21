@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, Inject } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Device, DeviceDetails } from 'src/schema/device.schema';
@@ -25,6 +25,7 @@ import { GetItemsDto } from './dto/get-items.dto';
 import { Services } from 'src/utils/constants';
 import { PaymentGatewayService } from 'src/module/payment-gateway/payment-gateway.service';
 import { GATEWAY_RAZORPAY } from 'src/module/payment-gateway/payment-gateway.interface';
+import { Carousel, CarouselDocument } from 'src/schema/carousel.schema';
 
 @Injectable()
 export class CustomerService {
@@ -39,8 +40,9 @@ export class CustomerService {
     @InjectModel(OrderItem.name) private readonly orderItemModel: Model<OrderItemDetails>,
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
     @InjectModel(productVariants.name) private readonly variantModel: Model<productVariantsDocument>,
+    @InjectModel(Carousel.name) private readonly carouselModel: Model<CarouselDocument>,
     @Inject(Services.PAYMENT_GATEWAY) private readonly paymentGatewayService: PaymentGatewayService,
-  ) {}
+  ) { }
 
   // ==============================
   // DEVICE OPERATIONS
@@ -99,8 +101,8 @@ export class CustomerService {
 
   async getCart(deviceId?: string, customerId?: string) {
     try {
-      console.log(deviceId ,"dec" , customerId ,"cus");
-      
+      console.log(deviceId, "dec", customerId, "cus");
+
       // When logged-in user sends deviceId: link guest cart to customer first, then use customer cart
       if (customerId && deviceId) {
         await this.linkDeviceCartToCustomer(deviceId, customerId);
@@ -967,14 +969,14 @@ export class CustomerService {
       );
     }
     console.log(GATEWAY_RAZORPAY);
-    
+
 
     const gatewayResult = await this.paymentGatewayService.createOrder(GATEWAY_RAZORPAY, {
       amount: order.finalAmount,
       currency: 'INR',
       receipt: `order_${data.orderId}`,
     });
-console.log(gatewayResult ,"gatewayResult");
+    console.log(gatewayResult, "gatewayResult");
 
     const payment = await this.paymentModel.create({
       orderId: data.orderId,
@@ -1003,29 +1005,29 @@ console.log(gatewayResult ,"gatewayResult");
 
   /** Verify Razorpay payment: uses payment-gateway module, then updates payment + order status. */
   async verifyRazorpayPayment(customerId: string, data: VerifyRazorpayPaymentDto) {
-    console.log(data ,"data" , customerId ,"customerId");
-    
+    console.log(data, "data", customerId, "customerId");
+
     const payment = await this.paymentModel.findOne({
       razorpayOrderId: data.razorpayOrderId,
       customerId,
       isDeleted: false,
     });
-    console.log(payment ,'payment');
-    
+    console.log(payment, 'payment');
+
     if (!payment) {
       throw new HttpException(
         { success: false, message: 'Payment record not found', statusCode: 404, data: null },
         HttpStatus.NOT_FOUND,
       );
     }
-console.log(data ,"data" , payment.razorpayOrderId ,"payment.razorpayOrderId" ,GATEWAY_RAZORPAY);
+    console.log(data, "data", payment.razorpayOrderId, "payment.razorpayOrderId", GATEWAY_RAZORPAY);
 
     const verifyResult = await this.paymentGatewayService.verifySignature(GATEWAY_RAZORPAY, {
       gatewayOrderId: data.razorpayOrderId,
       gatewayPaymentId: data.razorpayPaymentId,
       signature: data.razorpaySignature,
     });
-console.log(verifyResult ,"verifyResultˇˇˇˇß");
+    console.log(verifyResult, "verifyResultˇˇˇˇß");
 
     if (!verifyResult.success) {
       await this.paymentModel.findByIdAndUpdate(payment._id, {
@@ -1330,169 +1332,241 @@ console.log(verifyResult ,"verifyResultˇˇˇˇß");
   // }
 
   async getItems(query: GetItemsDto) {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      mainCategoryId,
-      subCategoryId,
-      subChildCategoryId,
-      minPrice,
-      maxPrice,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-      inStock,
-    } = query;
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        search = '',
+        mainCategoryId,
+        subCategoryId,
+        subChildCategoryId,
+        minPrice,
+        maxPrice,
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+        inStock,
+      } = query;
 
-    const skip = (page - 1) * limit;
+      const skip = (page - 1) * limit;
 
-    /* -------------------- PRODUCT FILTER -------------------- */
-    const productFilter: any = {
-      isDeleted: false,
-      isActive: true,
-    };
+      /* -------------------- PRODUCT FILTER -------------------- */
+      const productFilter: any = {
+        isDeleted: false,
+        isActive: true,
+      };
 
-    if (search.trim()) {
-      productFilter.productName = { $regex: search.trim(), $options: 'i' };
-    }
+      if (search.trim()) {
+        productFilter.productName = { $regex: search.trim(), $options: 'i' };
+      }
 
-    if (mainCategoryId) productFilter.mainCategoryId = mainCategoryId;
-    if (subCategoryId) productFilter.subCategoryId = subCategoryId;
-    if (subChildCategoryId) productFilter.subChildCategoryId = subChildCategoryId;
+      if (mainCategoryId) productFilter.mainCategoryId = mainCategoryId;
+      if (subCategoryId) productFilter.subCategoryId = subCategoryId;
+      if (subChildCategoryId) productFilter.subChildCategoryId = subChildCategoryId;
 
-    /* -------------------- SORT -------------------- */
-    const sortOptions: any = {};
-    if (sortBy === 'name') {
-      sortOptions.productName = sortOrder === 'asc' ? 1 : -1;
-    } else {
-      sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
-    }
+      /* -------------------- SORT -------------------- */
+      const sortOptions: any = {};
+      if (sortBy === 'name') {
+        sortOptions.productName = sortOrder === 'asc' ? 1 : -1;
+      } else {
+        sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
+      }
 
-    /* -------------------- FETCH PRODUCTS -------------------- */
-    const products = await this.productModel
-      .find(productFilter)
-      .populate('mainCategoryId', 'categoryName')
-      .populate('subCategoryId', 'categoryName')
-      .populate('subChildCategoryId', 'categoryName')
-      .skip(skip)
-      .limit(limit)
-      .sort(sortOptions)
-      .lean();
+      /* -------------------- FETCH PRODUCTS -------------------- */
+      const products = await this.productModel
+        .find(productFilter)
+        .populate('mainCategoryId', 'categoryName')
+        .populate('subCategoryId', 'categoryName')
+        .populate('subChildCategoryId', 'categoryName')
+        .skip(skip)
+        .limit(limit)
+        .sort(sortOptions)
+        .lean();
 
-    if (!products.length) {
+      if (!products.length) {
+        return {
+          success: true,
+          message: 'Items fetched successfully',
+          statusCode: 200,
+          data: {
+            items: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+              totalPages: 0,
+            },
+          },
+        };
+      }
+
+      const productIds = products.map(p => p._id);
+
+      /* -------------------- FETCH VARIANTS (ONCE) -------------------- */
+      const variantFilter: any = {
+        productId: { $in: productIds },
+        isDeleted: false,
+        isActive: true,
+      };
+
+      if (inStock !== undefined) {
+        variantFilter.stock = inStock ? { $gt: 0 } : { $lte: 0 };
+      }
+
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        variantFilter.salePrice = {};
+        if (minPrice !== undefined) variantFilter.salePrice.$gte = minPrice;
+        if (maxPrice !== undefined) variantFilter.salePrice.$lte = maxPrice;
+      }
+
+      const variants = await this.variantModel.find(variantFilter).lean();
+
+      /* -------------------- GROUP VARIANTS -------------------- */
+      const variantMap = new Map<string, any[]>();
+      for (const v of variants) {
+        const key = String(v.productId);
+        if (!variantMap.has(key)) variantMap.set(key, []);
+        variantMap.get(key)!.push(v);
+      }
+
+      /* -------------------- FINAL RESPONSE SHAPE -------------------- */
+      const items = products.map(product => {
+        const productVariants = variantMap.get(String(product._id)) || [];
+
+        const prices = productVariants.map(v => v.offerPrice ?? v.salePrice);
+        const stocks = productVariants.map(v => Number(v.stock || 0));
+
+        return {
+          id: product._id,
+          name: product.productName,
+          brand: product.brand,
+          description: product.description,
+          about: product.about,
+          rating: product.rating,
+          discount: product.discount,
+          offer: product.offer,
+
+          image: null, // can be filled from default variant image later
+          colors: [], // derive later if needed
+
+          quantity: stocks.reduce((a, b) => a + b, 0),
+          isStock: stocks.some(s => s > 0),
+
+          minPrice: prices.length ? Math.min(...prices) : null,
+          maxPrice: prices.length ? Math.max(...prices) : null,
+
+          created: product.createdAt,
+
+          categories: {
+            main: (product.mainCategoryId as any)?.categoryName || null,
+            sub: (product.subCategoryId as any)?.categoryName || null,
+            child: (product.subChildCategoryId as any)?.categoryName || null,
+          },
+
+          variants: productVariants,
+        };
+      });
+
+      /* -------------------- TOTAL COUNT -------------------- */
+      const total = await this.productModel.countDocuments(productFilter);
+
       return {
         success: true,
         message: 'Items fetched successfully',
         statusCode: 200,
         data: {
-          items: [],
+          items,
           pagination: {
-            page,
-            limit,
-            total: 0,
-            totalPages: 0,
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / limit),
           },
         },
       };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message || 'Failed to fetch items',
+          statusCode: 400,
+          data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
+  }
 
-    const productIds = products.map(p => p._id);
 
-    /* -------------------- FETCH VARIANTS (ONCE) -------------------- */
-    const variantFilter: any = {
-      productId: { $in: productIds },
-      isDeleted: false,
-      isActive: true,
-    };
 
-    if (inStock !== undefined) {
-      variantFilter.stock = inStock ? { $gt: 0 } : { $lte: 0 };
-    }
+  async createCarouselImages(imageUrls: string[]) {
+    try {
+      const docs = imageUrls.map(url => ({
+        imageUrl: url,
+        isActive: true,
+        createdAt: new Date(),
+      }));
 
-    if (minPrice !== undefined || maxPrice !== undefined) {
-      variantFilter.salePrice = {};
-      if (minPrice !== undefined) variantFilter.salePrice.$gte = minPrice;
-      if (maxPrice !== undefined) variantFilter.salePrice.$lte = maxPrice;
-    }
-
-    const variants = await this.variantModel.find(variantFilter).lean();
-
-    /* -------------------- GROUP VARIANTS -------------------- */
-    const variantMap = new Map<string, any[]>();
-    for (const v of variants) {
-      const key = String(v.productId);
-      if (!variantMap.has(key)) variantMap.set(key, []);
-      variantMap.get(key)!.push(v);
-    }
-
-    /* -------------------- FINAL RESPONSE SHAPE -------------------- */
-    const items = products.map(product => {
-      const productVariants = variantMap.get(String(product._id)) || [];
-
-      const prices = productVariants.map(v => v.offerPrice ?? v.salePrice);
-      const stocks = productVariants.map(v => Number(v.stock || 0));
+      const created = await this.carouselModel.insertMany(docs);
 
       return {
-        id: product._id,
-        name: product.productName,
-        brand: product.brand,
-        description: product.description,
-        about: product.about,
-        rating: product.rating,
-        discount: product.discount,
-        offer: product.offer,
-
-        image: null, // can be filled from default variant image later
-        colors: [], // derive later if needed
-
-        quantity: stocks.reduce((a, b) => a + b, 0),
-        isStock: stocks.some(s => s > 0),
-
-        minPrice: prices.length ? Math.min(...prices) : null,
-        maxPrice: prices.length ? Math.max(...prices) : null,
-
-        created: product.createdAt,
-
-        categories: {
-          main: (product.mainCategoryId as any)?.categoryName || null,
-          sub: (product.subCategoryId as any)?.categoryName || null,
-          child: (product.subChildCategoryId as any)?.categoryName || null,
-        },
-
-        variants: productVariants,
+        success: true,
+        message: "Carousel images uploaded successfully",
+        data: created,
       };
-    });
 
-    /* -------------------- TOTAL COUNT -------------------- */
-    const total = await this.productModel.countDocuments(productFilter);
-
-    return {
-      success: true,
-      message: 'Items fetched successfully',
-      statusCode: 200,
-      data: {
-        items,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      },
-    };
-  } catch (error) {
-    throw new HttpException(
-      {
-        success: false,
-        message: error.message || 'Failed to fetch items',
-        statusCode: 400,
-        data: null,
-      },
-      HttpStatus.BAD_REQUEST,
-    );
+    } catch (err) {
+      console.error("Error in createCarouselImages:", err);
+      throw new HttpException(
+        "Failed to upload carousel images",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
-}
+
+  async getCarouselImages() {
+    try {
+      const data = await this.carouselModel
+        .find({ isActive: true })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return {
+        success: true,
+        data,
+      };
+
+    } catch (err) {
+      throw new HttpException(
+        "Failed to fetch carousel images",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async deleteCarousel(id: string) {
+    try {
+      const exists = await this.carouselModel.findById(id);
+
+      if (!exists) {
+        throw new NotFoundException("Carousel image not found");
+      }
+
+      await this.carouselModel.findByIdAndDelete(id);
+
+      return {
+        success: true,
+        message: "Carousel image deleted successfully",
+      };
+
+    } catch (err) {
+      throw err instanceof HttpException
+        ? err
+        : new HttpException(
+          "Failed to delete carousel image",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
 
 }
 

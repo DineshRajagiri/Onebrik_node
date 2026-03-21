@@ -27,5 +27,8 @@ export interface ICustomerService {
   verifyRazorpayPayment(customerId: string, data: VerifyRazorpayPaymentDto): Promise<any>;
   getPaymentStatus(customerId: string, paymentId: string): Promise<any>;
   getItems(query: GetItemsDto): Promise<any>;
+  createCarouselImages(imageUrls: string[]): Promise<any>;
+  getCarouselImages(): Promise<any>;
+  deleteCarousel(id: string): Promise<any>;
 }
 
