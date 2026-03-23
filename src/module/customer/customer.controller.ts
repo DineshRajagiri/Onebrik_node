@@ -1,20 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Param,
-  Post,
-  Put,
-  Query,
-  Req,
-  UploadedFiles,
-  UseGuards,
-  UseInterceptors,
+import {BadRequestException,Body,Controller,Delete,Get,HttpException,HttpStatus,Inject,Param,Post,Put,Query,Req,UploadedFiles,UseGuards,UseInterceptors,
 } from '@nestjs/common';
 import { Services } from 'src/utils/constants';
 import { ICustomerService } from './customer.interface';
@@ -40,7 +24,7 @@ export class CustomerController {
   constructor(
     @Inject(Services.CUSTOMER) private customerService: ICustomerService,
     private readonly awsS3BucketService: AwsS3BucketService,)
-  { }
+   { }
 
 // ==============================
 // PRODUCTS/ITEMS ENDPOINTS
