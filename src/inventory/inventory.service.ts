@@ -1673,9 +1673,13 @@ export class InventoryService {
 
   async getAllInventoryCategories(query: any) {
     try {
-      const { page, limit, skip } = this.paginate(query);
+      const page = Number(query.page) || 1;
+      const limit = query.limit ? Number(query.limit) : null;
+      const skip = limit ? (page - 1) * limit : 0;
+
       const search = query.search?.trim() || "";
       const level = query.level?.trim() || "";
+      const parentId = query.parentId?.trim() || "";
 
       const filter: any = {};
 
@@ -1683,27 +1687,25 @@ export class InventoryService {
         filter.categoryName = { $regex: search, $options: "i" };
       }
 
-      // 🎯 Filter by Level (MAIN / SUB / SUBCHILD)
       if (level) {
         filter.level = level;
       }
-      const parentId = query.parentId?.trim() || "";
 
       if (parentId) {
         filter.parentId = parentId;
       }
 
+      const total = await this.inventoryCategoryModel.countDocuments(filter);
 
-      const [list, total] = await Promise.all([
-        this.inventoryCategoryModel
-          .find(filter)
-          .populate("parentId", "categoryName level")
-          .skip(skip)
-          .limit(limit)
-          .lean(),
+      let queryBuilder = this.inventoryCategoryModel
+        .find(filter)
+        .populate("parentId", "categoryName level");
 
-        this.inventoryCategoryModel.countDocuments(filter),
-      ]);
+      if (limit) {
+        queryBuilder = queryBuilder.skip(skip).limit(limit);
+      }
+
+      const list = await queryBuilder.lean();
 
       const finalData = list.map(cat => ({
         _id: cat._id,
