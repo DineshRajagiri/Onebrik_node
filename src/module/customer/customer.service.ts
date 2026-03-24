@@ -26,6 +26,7 @@ import { Services } from 'src/utils/constants';
 import { PaymentGatewayService } from 'src/module/payment-gateway/payment-gateway.service';
 import { GATEWAY_RAZORPAY } from 'src/module/payment-gateway/payment-gateway.interface';
 import { Carousel, CarouselDocument } from 'src/schema/carousel.schema';
+import { VariantImages, VariantImagesDocument } from 'src/schema/variantImages.schema';
 
 @Injectable()
 export class CustomerService {
@@ -33,6 +34,7 @@ export class CustomerService {
     @InjectModel(Device.name) private readonly deviceModel: Model<DeviceDetails>,
     @InjectModel(Cart.name) private readonly cartModel: Model<CartDetails>,
     @InjectModel(CartItem.name) private readonly cartItemModel: Model<CartItemDetails>,
+    @InjectModel(VariantImages.name) private readonly variantImageModel: Model<VariantImagesDocument>,
     @InjectModel(Customer.name) private readonly customerModel: Model<CustomerDetails>,
     @InjectModel(CustomerAddress.name) private readonly addressModel: Model<CustomerAddressDetails>,
     @InjectModel(Payment.name) private readonly paymentModel: Model<PaymentDetails>,
@@ -103,12 +105,12 @@ export class CustomerService {
     try {
       console.log(deviceId, "dec", customerId, "cus");
 
-      // When logged-in user sends deviceId: link guest cart to customer first, then use customer cart
+      // 🔹 1. Link guest cart to customer (if both provided)
       if (customerId && deviceId) {
         await this.linkDeviceCartToCustomer(deviceId, customerId);
       }
 
-      // Active cart = current cart in use. Identified by deviceId (guest) OR customerId (logged in).
+      // 🔹 2. Find active cart
       let cart = await this.cartModel.findOne({
         deviceId: deviceId || undefined,
         customerId: customerId || undefined,
@@ -116,7 +118,7 @@ export class CustomerService {
         isDeleted: false,
       });
 
-      // If no active cart exists yet, create one automatically for this device/customer.
+      // 🔹 3. Create cart if not exists
       if (!cart) {
         if (!deviceId && !customerId) {
           throw new HttpException(
@@ -140,27 +142,54 @@ export class CustomerService {
         });
       }
 
+      // 🔹 4. Populate cart
       cart = await this.cartModel
         .findById(cart._id)
         .populate('deviceId')
         .populate('customerId');
 
-      // Get cart items
+      // 🔹 5. Get cart items
       const cartItems = await this.cartItemModel
         .find({ cartId: cart._id, isDeleted: false })
         .populate('productId')
         .populate('variantId');
 
-      // Update cart totals
+      // 🔹 6. Get all variantIds
+      const variantIds = cartItems
+        .map((item: any) => item.variantId?._id)
+        .filter(Boolean);
+
+      // 🔹 7. Fetch all variant images in ONE query (optimized)
+      const allImages = await this.variantImageModel.find({
+        productVariantId: { $in: variantIds },
+        isDeleted: false,
+      });
+
+      // 🔹 8. Map images to each cart item
+      const itemsWithImages = cartItems.map((item: any) => {
+        const images = allImages.filter(
+          (img) =>
+            img.productVariantId.toString() ===
+            item.variantId?._id.toString(),
+        );
+
+        return {
+          ...item.toObject(),
+          variantImages: images,
+        };
+      });
+
+      // 🔹 9. Update totals
       await this.updateCartTotals(cart._id);
 
+      // 🔹 10. Return response
       return {
         success: true,
         message: 'Cart fetched successfully',
         statusCode: 200,
         data: {
           cart,
-          items: cartItems,
+          items: itemsWithImages,
         },
       };
     } catch (error) {
