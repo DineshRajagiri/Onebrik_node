@@ -95,45 +95,112 @@ export class CustomerService {
   /** Links guest cart(s) for deviceId to the logged-in customer. Call when customer hits address/order with deviceId. */
   private async linkDeviceCartToCustomer(deviceId: string, customerId: string): Promise<void> {
     if (!deviceId || !customerId) return;
-    await this.cartModel.updateMany(
-      { deviceId, isActive: true, isDeleted: false },
-      { $set: { customerId, deviceId: null } },
-    );
-  }
 
-  async getCart(deviceId?: string, customerId?: string) {
-    try {
-      console.log(deviceId, "dec", customerId, "cus");
+    // 🔹 1. Get guest cart
+    const guestCart = await this.cartModel.findOne({
+      deviceId,
+      isActive: true,
+      isDeleted: false,
+    });
 
-      // 🔹 1. Link guest cart to customer (if both provided)
-      if (customerId && deviceId) {
-        await this.linkDeviceCartToCustomer(deviceId, customerId);
-      }
+    if (!guestCart) return;
 
-      // 🔹 2. Find active cart
-      let cart = await this.cartModel.findOne({
-        deviceId: deviceId || undefined,
-        customerId: customerId || undefined,
-        isActive: true,
+    // 🔹 2. Get user cart
+    const userCart = await this.cartModel.findOne({
+      customerId,
+      isActive: true,
+      isDeleted: false,
+    });
+
+    // ✅ CASE 1: User already has cart → MERGE
+    if (userCart) {
+      const guestItems = await this.cartItemModel.find({
+        cartId: guestCart._id,
         isDeleted: false,
       });
 
-      // 🔹 3. Create cart if not exists
-      if (!cart) {
-        if (!deviceId && !customerId) {
-          throw new HttpException(
-            {
-              success: false,
-              message: 'deviceId or customerId is required to create cart',
-              statusCode: 400,
-              data: null,
-            },
-            HttpStatus.BAD_REQUEST,
-          );
-        }
+      for (const item of guestItems) {
+        const existingItem = await this.cartItemModel.findOne({
+          cartId: userCart._id,
+          productId: item.productId,
+          variantId: item.variantId || null,
+          isDeleted: false,
+        });
 
+        if (existingItem) {
+          // merge quantity
+          existingItem.quantity += item.quantity;
+          existingItem.totalPrice = existingItem.quantity * existingItem.price;
+          await existingItem.save();
+        } else {
+          // move item to user cart
+          await this.cartItemModel.create({
+            cartId: userCart._id,
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            price: item.price,
+            totalPrice: item.totalPrice,
+          });
+        }
+      }
+
+      // delete guest cart
+      await this.cartModel.findByIdAndUpdate(guestCart._id, {
+        isDeleted: true,
+        isActive: false,
+      });
+
+    } else {
+      // ✅ CASE 2: No user cart → assign guest cart
+      await this.cartModel.findByIdAndUpdate(guestCart._id, {
+        customerId,
+        deviceId: null,
+      });
+    }
+  }
+  async getCart(deviceId?: string, customerId?: string) {
+    try {
+      console.log(deviceId, "deviceId", customerId, "customerId");
+
+      // 🔹 1. Link guest cart → customer (after login)
+      if (deviceId && customerId) {
+        await this.linkDeviceCartToCustomer(deviceId, customerId);
+      }
+
+      // 🔹 2. Find cart (FIXED LOGIC)
+      let cart;
+
+      if (customerId) {
+        // Logged-in user → always use customerId
+        cart = await this.cartModel.findOne({
+          customerId,
+          isActive: true,
+          isDeleted: false,
+        });
+      } else if (deviceId) {
+        // Guest user → use deviceId
+        cart = await this.cartModel.findOne({
+          deviceId,
+          isActive: true,
+          isDeleted: false,
+        });
+      } else {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'deviceId or customerId is required',
+            statusCode: 400,
+            data: null,
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 🔹 3. Create cart if not exists (FIXED)
+      if (!cart) {
         cart = await this.cartModel.create({
-          deviceId: deviceId || undefined,
+          deviceId: customerId ? undefined : deviceId,
           customerId: customerId || undefined,
           isActive: true,
           isDeleted: false,
@@ -147,25 +214,26 @@ export class CustomerService {
         .findById(cart._id)
         .populate('deviceId')
         .populate('customerId');
-
+      // 🔹 👉 ADD HERE
+      await this.updateCartTotals(cart._id);
       // 🔹 5. Get cart items
       const cartItems = await this.cartItemModel
         .find({ cartId: cart._id, isDeleted: false })
         .populate('productId')
         .populate('variantId');
 
-      // 🔹 6. Get all variantIds
+      // 🔹 6. Collect variant IDs
       const variantIds = cartItems
         .map((item: any) => item.variantId?._id)
         .filter(Boolean);
 
-      // 🔹 7. Fetch all variant images in ONE query (optimized)
+      // 🔹 7. Fetch images (optimized)
       const allImages = await this.variantImageModel.find({
         productVariantId: { $in: variantIds },
         isDeleted: false,
       });
 
-      // 🔹 8. Map images to each cart item
+      // 🔹 8. Attach images to items
       const itemsWithImages = cartItems.map((item: any) => {
         const images = allImages.filter(
           (img) =>
@@ -182,7 +250,7 @@ export class CustomerService {
       // 🔹 9. Update totals
       await this.updateCartTotals(cart._id);
 
-      // 🔹 10. Return response
+      // 🔹 10. Final response
       return {
         success: true,
         message: 'Cart fetched successfully',
@@ -192,6 +260,7 @@ export class CustomerService {
           items: itemsWithImages,
         },
       };
+
     } catch (error) {
       throw new HttpException(
         {
@@ -238,7 +307,7 @@ export class CustomerService {
         );
       }
 
-      // Verify product exists
+      // 🔹 Verify product exists
       const product = await this.productModel.findById(data.productId);
       if (!product) {
         throw new HttpException(
@@ -252,9 +321,12 @@ export class CustomerService {
         );
       }
 
-      // If variant provided, verify it exists
+      // 🔹 Get price from DB (IMPORTANT 🔥)
+      let price = 0;
+
       if (data.variantId) {
         const variant = await this.variantModel.findById(data.variantId);
+
         if (!variant || variant.productId !== data.productId) {
           throw new HttpException(
             {
@@ -266,9 +338,13 @@ export class CustomerService {
             HttpStatus.BAD_REQUEST,
           );
         }
+
+        price = variant.offerPrice ?? variant.salePrice ?? 0;
+      } else {
+        price = Number(product.price || 0);
       }
 
-      // Check if item already exists in cart
+      // 🔹 Check existing item
       const existingItem = await this.cartItemModel.findOne({
         cartId,
         productId: data.productId,
@@ -277,20 +353,24 @@ export class CustomerService {
       });
 
       if (existingItem) {
-        // Update quantity
+        // ✅ Update quantity
         existingItem.quantity += data.quantity;
-        existingItem.totalPrice = existingItem.price * existingItem.quantity;
+        existingItem.price = price; // update latest price
+        existingItem.totalPrice = price * existingItem.quantity;
         await existingItem.save();
       } else {
-        // Create new cart item
+        // ✅ Create new item
         await this.cartItemModel.create({
           cartId,
-          ...data,
-          totalPrice: data.price * data.quantity,
+          productId: data.productId,
+          variantId: data.variantId,
+          quantity: data.quantity,
+          price,
+          totalPrice: price * data.quantity,
         });
       }
 
-      // Update cart totals
+      // 🔹 Update totals
       await this.updateCartTotals(cartId);
 
       const cartItems = await this.cartItemModel
@@ -332,17 +412,19 @@ export class CustomerService {
         );
       }
 
+      // 🔹 Only allow quantity update
       if (data.quantity !== undefined) {
         item.quantity = data.quantity;
       }
-      if (data.price !== undefined) {
-        item.price = data.price;
-      }
 
+      // ❌ DO NOT allow price update
+
+      // 🔹 Recalculate total
       item.totalPrice = item.price * item.quantity;
+
       await item.save();
 
-      // Update cart totals
+      // 🔹 Update cart totals
       await this.updateCartTotals(item.cartId);
 
       return {
