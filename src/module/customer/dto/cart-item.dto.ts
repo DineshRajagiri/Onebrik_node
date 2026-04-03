@@ -14,9 +14,9 @@ export class CreateCartItemDto {
   @Min(1)
   quantity: number;
 
-  @IsNotEmpty()
-  @IsNumber()
-  price: number;
+  // @IsNotEmpty()
+  // @IsNumber()
+  // price: number;
 }
 
 export class UpdateCartItemDto {
@@ -25,9 +25,9 @@ export class UpdateCartItemDto {
   @Min(1)
   quantity?: number;
 
-  @IsOptional()
-  @IsNumber()
-  price?: number;
+  // @IsOptional()
+  // @IsNumber()
+  // price?: number;
 }
 
 
