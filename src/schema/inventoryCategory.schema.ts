@@ -15,9 +15,12 @@ export class inventoryCategory extends commonDTO {
     @Prop({ type: String, enum: ["MAIN", "SUB", "SUBCHILD"], required: true })
     level: string;
 
-
-    @Prop({ required: true })
+    // ✅ For Web (images)
+    @Prop({ required: false })
     imageUrl: string;
 
+    // ✅ For Mobile (icons)
+    @Prop({ required: false })
+    icon: string;
 }
 export const inventoryCategorySchemaFile = SchemaFactory.createForClass(inventoryCategory);
