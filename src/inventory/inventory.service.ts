@@ -268,6 +268,7 @@ export class InventoryService {
         level,
         parentId,
         imageUrl,
+        icon: dto.icon,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -281,6 +282,7 @@ export class InventoryService {
           level: created.level,
           parentId: created.parentId,
           parentName,
+          icon: created.icon,
           imageUrl: created.imageUrl,
           createdAt: created.createdAt,
           updatedAt: created.updatedAt,
@@ -1111,6 +1113,7 @@ export class InventoryService {
       categoryName: dto.categoryName,
       level: dto.level,
       parentId: dto.parentId || null,
+      icon: dto.icon,
       updatedAt: new Date(),
     };
 
@@ -1712,6 +1715,7 @@ export class InventoryService {
         categoryName: cat.categoryName,
         level: cat.level,
         imageUrl: cat.imageUrl || null,
+        icon: cat.icon || null,
         parentId: cat.parentId?._id || null,
         parentCategoryName: cat.parentId?.categoryName || null,
         parentCategoryLevel: cat.parentId?.level || null,

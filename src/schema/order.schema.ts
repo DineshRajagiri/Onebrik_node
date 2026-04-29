@@ -4,6 +4,7 @@ import { Document, Connection } from "mongoose";
 import { CounterDocument } from "./counter.schema";
 import { Customer } from "./customer.schema";
 import { CustomerAddress } from "./customerAddress.schema";
+import { OrderStatus, PaymentMethod } from "src/utils/constants";
 
 export type OrderDetails = Order & Document;
 
@@ -12,11 +13,24 @@ export class Order extends commonDTO {
   @Prop()
   orderId: string;
 
-  @Prop({ type: String, ref: "Customer", required: true })
+  @Prop({ type: String, ref: "Customer", required: true, index: true })
   customerId: string;
 
   @Prop({ type: String, ref: "CustomerAddress", required: true })
   addressId: string;
+
+  @Prop([
+    {
+      productId: { type: String, required: true },
+      quantity: { type: Number, required: true },
+      price: { type: Number, required: true },
+    },
+  ])
+  items: {
+    productId: string;
+    quantity: number;
+    price: number;
+  }[];
 
   @Prop({ required: true })
   totalAmount: number;
@@ -27,10 +41,10 @@ export class Order extends commonDTO {
   @Prop({ required: true })
   finalAmount: number;
 
-  @Prop({ default: 'pending' })
-  orderStatus: string; // 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  @Prop({ enum: OrderStatus, default: OrderStatus.PENDING })
+  orderStatus: OrderStatus;
 
-  @Prop()
+  @Prop({ default: Date.now })
   orderDate: Date;
 
   @Prop()
@@ -39,8 +53,11 @@ export class Order extends commonDTO {
   @Prop()
   notes: string;
 
-  @Prop()
+  @Prop({ default: 0 })
   shippingCharges: number;
+
+  @Prop({ enum: PaymentMethod, default: PaymentMethod.COD })
+  paymentMethod: PaymentMethod;
 }
 
 export const OrderSchemaFile = SchemaFactory.createForClass(Order);

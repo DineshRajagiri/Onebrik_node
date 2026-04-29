@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Device, DeviceDetails } from 'src/schema/device.schema';
@@ -20,13 +20,16 @@ import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { CreatePaymentDto } from './dto/payment.dto';
 import { CreateOrderDto } from './dto/order.dto';
 import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
-import { PaymentStatus } from 'src/utils/constants';
+import { PlaceCodOrderDto } from './dto/cod-order.dto';
+import { OrderStatus, PaymentMethod, PaymentStatus } from 'src/utils/constants';
 import { GetItemsDto } from './dto/get-items.dto';
 import { Services } from 'src/utils/constants';
 import { PaymentGatewayService } from 'src/module/payment-gateway/payment-gateway.service';
 import { GATEWAY_RAZORPAY } from 'src/module/payment-gateway/payment-gateway.interface';
 import { Carousel, CarouselDocument } from 'src/schema/carousel.schema';
 import { VariantImages, VariantImagesDocument } from 'src/schema/variantImages.schema';
+import { InjectConnection } from '@nestjs/mongoose';
+import mongoose, { Connection } from 'mongoose';
 
 @Injectable()
 export class CustomerService {
@@ -44,6 +47,8 @@ export class CustomerService {
     @InjectModel(productVariants.name) private readonly variantModel: Model<productVariantsDocument>,
     @InjectModel(Carousel.name) private readonly carouselModel: Model<CarouselDocument>,
     @Inject(Services.PAYMENT_GATEWAY) private readonly paymentGatewayService: PaymentGatewayService,
+    @InjectConnection() private readonly connection: Connection,
+
   ) { }
 
   // ==============================
@@ -815,6 +820,15 @@ export class CustomerService {
   // ==============================
   async createOrder(customerId: string, data: CreateOrderDto) {
     try {
+      // Ensure the customer exists
+      const customer = await this.customerModel.findOne({ _id: customerId, isDeleted: false });
+      if (!customer) {
+        throw new HttpException(
+          { success: false, message: 'Customer not found', statusCode: 404, data: null },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
       // Link guest cart to customer when coming from checkout with deviceId
       const { deviceId, ...orderData } = data;
       if (deviceId) {
@@ -945,6 +959,356 @@ export class CustomerService {
         },
         HttpStatus.BAD_REQUEST,
       );
+    }
+  }
+
+  // ==============================
+  // COD ORDER
+  // Creates order + payment (COD) in a single call. No gateway needed.
+  // Payment is immediately marked SUCCESS; order is confirmed.
+  // ==============================
+  // async placeCodOrder(customerId: string, data: PlaceCodOrderDto) {
+  //   try {
+  //     // Ensure the customer exists
+  //     const customer = await this.customerModel.findOne({ _id: customerId, isDeleted: false });
+  //     if (!customer) {
+  //       throw new HttpException(
+  //         { success: false, message: 'Customer not found', statusCode: 404, data: null },
+  //         HttpStatus.NOT_FOUND,
+  //       );
+  //     }
+
+  //     const { deviceId, ...orderData } = data;
+
+  //     if (deviceId) {
+  //       await this.linkDeviceCartToCustomer(deviceId, customerId);
+  //     }
+
+  //     // Get active cart
+  //     const cart = await this.cartModel.findOne({
+  //       customerId,
+  //       isActive: true,
+  //       isDeleted: false,
+  //     });
+
+  //     if (!cart) {
+  //       throw new HttpException(
+  //         { success: false, message: 'No active cart found', statusCode: 404, data: null },
+  //         HttpStatus.NOT_FOUND,
+  //       );
+  //     }
+
+  //     const cartItems = await this.cartItemModel
+  //       .find({ cartId: cart._id, isDeleted: false })
+  //       .populate('productId')
+  //       .populate('variantId');
+
+  //     if (cartItems.length === 0) {
+  //       throw new HttpException(
+  //         { success: false, message: 'Cart is empty', statusCode: 400, data: null },
+  //         HttpStatus.BAD_REQUEST,
+  //       );
+  //     }
+
+  //     const address = await this.addressModel.findOne({
+  //       _id: orderData.addressId,
+  //       customerId,
+  //       isDeleted: false,
+  //     });
+
+  //     if (!address) {
+  //       throw new HttpException(
+  //         { success: false, message: 'Address not found', statusCode: 404, data: null },
+  //         HttpStatus.NOT_FOUND,
+  //       );
+  //     }
+
+  //     const totalAmount = cart.totalAmount;
+  //     const discountAmount = orderData.discountAmount || 0;
+  //     const shippingCharges = orderData.shippingCharges || 0;
+  //     const finalAmount = totalAmount - discountAmount + shippingCharges;
+
+  //     // Create order with paymentMethod = 'cod' and status = 'confirmed'
+  //     const order = await this.orderModel.create({
+  //       customerId,
+  //       addressId: orderData.addressId,
+  //       totalAmount,
+  //       discountAmount,
+  //       shippingCharges,
+  //       finalAmount,
+  //       notes: orderData.notes,
+  //       orderStatus: 'confirmed',
+  //       paymentMethod: 'cod',
+  //     });
+
+  //     // Create order items
+  //     const orderItems = [];
+  //     for (const item of cartItems) {
+  //       const product = item.productId as any;
+  //       const variant = item.variantId as any;
+
+  //       const orderItem = await this.orderItemModel.create({
+  //         orderId: order._id,
+  //         productId: item.productId,
+  //         variantId: item.variantId,
+  //         quantity: item.quantity,
+  //         price: item.price,
+  //         totalPrice: item.totalPrice,
+  //         productName: product?.productName || '',
+  //         variantName: variant?.variantName || '',
+  //       });
+
+  //       orderItems.push(orderItem);
+  //     }
+
+  //     // Create payment record — COD is immediately SUCCESS (collected on delivery)
+  //     const payment = await this.paymentModel.create({
+  //       orderId: order._id,
+  //       customerId,
+  //       amount: finalAmount,
+  //       paymentMethod: 'cod',
+  //       paymentStatus: PaymentStatus.SUCCESS,
+  //       paymentGateway: null,
+  //       paymentDate: new Date(),
+  //     });
+
+  //     // Deactivate cart
+  //     await this.cartModel.findByIdAndUpdate(cart._id, {
+  //       isActive: false,
+  //       status: 'converted',
+  //     });
+
+  //     const populatedOrder = await this.orderModel
+  //       .findById(order._id)
+  //       .populate('customerId')
+  //       .populate('addressId');
+
+  //     return {
+  //       success: true,
+  //       message: 'COD order placed successfully',
+  //       statusCode: 201,
+  //       data: {
+  //         order: populatedOrder,
+  //         items: orderItems,
+  //         payment: {
+  //           paymentId: payment.paymentId,
+  //           paymentMethod: 'cod',
+  //           paymentStatus: PaymentStatus.SUCCESS,
+  //           amount: finalAmount,
+  //         },
+  //       },
+  //     };
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       {
+  //         success: false,
+  //         message: error.message || 'Failed to place COD order',
+  //         statusCode: 400,
+  //         data: null,
+  //       },
+  //       HttpStatus.BAD_REQUEST,
+  //     );
+  //   }
+  // }
+
+
+  async placeCodOrder(customerId: string, dto: PlaceCodOrderDto) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      // ✅ 1. Validate customer
+      const customer = await this.customerModel.findOne(
+        { _id: customerId, isDeleted: false },
+        null,
+        { session },
+      );
+
+      if (!customer) {
+        throw new NotFoundException('Customer not found');
+      }
+
+      const { deviceId } = dto;
+
+      // ✅ 2. Merge guest cart (if exists)
+      if (deviceId) {
+        await this.linkDeviceCartToCustomer(deviceId, customerId);
+      }
+
+      // ✅ 3. Get active cart
+      const cart = await this.cartModel.findOne(
+        {
+          customerId,
+          isActive: true,
+          isDeleted: false,
+        },
+        null,
+        { session },
+      );
+
+      if (!cart) {
+        throw new BadRequestException('No active cart found');
+      }
+
+      // 🔥 Prevent duplicate order
+      if (!cart.isActive) {
+        throw new BadRequestException('Cart already processed');
+      }
+
+      // ✅ 4. Get cart items
+      const cartItems = await this.cartItemModel
+        .find({ cartId: cart._id, isDeleted: false }, null, { session })
+        .populate('productId')
+        .populate('variantId');
+
+      if (!cartItems.length) {
+        throw new BadRequestException('Cart is empty');
+      }
+
+      // ✅ 5. Validate address
+      const address = await this.addressModel.findOne(
+        {
+          _id: dto.addressId,
+          customerId,
+          isDeleted: false,
+        },
+        null,
+        { session },
+      );
+
+      if (!address) {
+        throw new NotFoundException('Address not found');
+      }
+
+      // ✅ 6. Calculate total + validate stock
+      let totalAmount = 0;
+
+      const orderItemsPayload = [];
+
+      for (const item of cartItems) {
+        const product = item.productId as unknown as {
+          _id: string;
+          productName: string;
+          stock: number;
+        };
+
+        const variant = item.variantId as unknown as {
+          variantName: string;
+        };
+
+        // 🔥 STOCK VALIDATION
+        if (!product || product.stock < item.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for ${product?.productName || 'product'}`,
+          );
+        }
+
+        const totalPrice = item.price * item.quantity;
+        totalAmount += totalPrice;
+
+        orderItemsPayload.push({
+          productId: product._id,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice,
+          productName: product.productName || '',
+          variantName: variant?.variantName || '',
+        });
+      }
+
+      const discount = dto.discountAmount || 0;
+      const shipping = dto.shippingCharges || 0;
+
+      const finalAmount = totalAmount - discount + shipping;
+
+      if (finalAmount < 0) {
+        throw new BadRequestException('Invalid amount calculation');
+      }
+
+      // ✅ 7. Create order
+      const [order] = await this.orderModel.create(
+        [
+          {
+            customerId,
+            addressId: dto.addressId,
+            totalAmount,
+            discountAmount: discount,
+            shippingCharges: shipping,
+            finalAmount,
+            orderStatus: OrderStatus.CONFIRMED,  // COD = confirmed immediately
+            paymentMethod: PaymentMethod.COD,
+            notes: dto.notes,
+          },
+        ],
+        { session },
+      );
+
+      // ✅ 8. Create order items (bulk)
+      const orderItems = orderItemsPayload.map((item) => ({
+        ...item,
+        orderId: order._id,
+      }));
+
+      await this.orderItemModel.insertMany(orderItems, { session });
+
+      // ✅ 9. Create payment (COD = PENDING)
+      const [payment] = await this.paymentModel.create(
+        [
+          {
+            orderId: order._id,
+            customerId,
+            amount: finalAmount,
+            paymentMethod: PaymentMethod.COD,
+            paymentStatus: PaymentStatus.PENDING,
+            paymentDate: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      // ✅ 10. Reduce stock (PARALLEL + WITH SESSION)
+      await Promise.all(
+        cartItems.map((item) =>
+          this.productModel.updateOne(
+            { _id: item.productId },
+            { $inc: { stock: -item.quantity } },
+            { session },
+          ),
+        ),
+      );
+
+      // ✅ 11. Deactivate cart
+      await this.cartModel.findByIdAndUpdate(
+        cart._id,
+        {
+          isActive: false,
+          status: 'converted',
+        },
+        { session },
+      );
+
+      // ✅ 12. Commit transaction
+      await session.commitTransaction();
+
+      return {
+        success: true,
+        message: 'COD order placed successfully',
+        data: {
+          order,
+          items: orderItems,
+          payment,
+        },
+      };
+
+    } catch (error) {
+      await session.abortTransaction();
+
+      throw new InternalServerErrorException(
+        error.message || 'Failed to place COD order',
+      );
+    } finally {
+      session.endSession();
     }
   }
 

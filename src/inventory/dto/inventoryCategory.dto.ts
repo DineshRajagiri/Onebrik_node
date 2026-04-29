@@ -14,6 +14,10 @@ export class inventoryCategoryDTO {
     @IsNotEmpty()
     level: string;
 
+    @IsOptional()
+    @IsString()
+    icon?: string;
+
     // @IsNotEmpty()
     // imageUrl: string;
 }

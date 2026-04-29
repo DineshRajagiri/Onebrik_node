@@ -4,6 +4,7 @@ import { CustomerRegisterDto, CustomerLoginDto } from './dto/customer-auth.dto';
 import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { CreatePaymentDto } from './dto/payment.dto';
 import { CreateOrderDto } from './dto/order.dto';
+import { PlaceCodOrderDto } from './dto/cod-order.dto';
 import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
 import { GetItemsDto } from './dto/get-items.dto';
 
@@ -20,6 +21,7 @@ export interface ICustomerService {
   updateAddress(addressId: string, customerId: string, data: UpdateAddressDto): Promise<any>;
   deleteAddress(addressId: string, customerId: string): Promise<any>;
   createOrder(customerId: string, data: CreateOrderDto): Promise<any>;
+  placeCodOrder(customerId: string, data: PlaceCodOrderDto): Promise<any>;
   getOrderHistory(customerId: string, page?: number, limit?: number): Promise<any>;
   getOrderById(orderId: string, customerId: string): Promise<any>;
   createPayment(customerId: string, data: CreatePaymentDto): Promise<any>;
