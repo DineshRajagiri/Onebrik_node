@@ -98,4 +98,19 @@ export enum Roles{
     SUCCESS = 'SUCCESS',
   }
 
-  
+  // order.enums.ts
+
+export enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PROCESSING = 'processing',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled',
+}
+
+export enum PaymentMethod {
+  COD = 'cod',
+  ONLINE = 'online',
+  RAZORPAY = 'razorpay',
+}

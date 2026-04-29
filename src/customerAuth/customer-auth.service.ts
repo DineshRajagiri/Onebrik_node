@@ -1,7 +1,6 @@
 import {
   Injectable,
   UnauthorizedException,
-  Logger,
 } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/mongoose';
@@ -30,8 +29,6 @@ export class CustomerAuthService {
     private configService: ConfigService,
     private mailService: MailService,
   ) {}
-
-  private readonly logger = new Logger(CustomerAuthService.name);
 
   // =========================
   // SEND OTP
@@ -139,7 +136,7 @@ export class CustomerAuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
-      expiresIn: '2m',
+      expiresIn: '7m',
     });
 
     const refreshToken = this.jwtService.sign(

@@ -11,6 +11,7 @@ import { CreatePaymentDto } from './dto/payment.dto';
 import { CreateOrderDto } from './dto/order.dto';
 import { GetItemsDto } from './dto/get-items.dto';
 import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
+import { PlaceCodOrderDto } from './dto/cod-order.dto';
 import { Request } from 'express';
 import { Public } from 'src/decorators/public.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -197,16 +198,27 @@ export class CustomerController {
     const customerId = req.user?.id;
     if (!customerId) {
       throw new HttpException(
-        {
-          success: false,
-          message: 'Unauthorized',
-          statusCode: 401,
-          data: null,
-        },
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
         HttpStatus.UNAUTHORIZED,
       );
     }
     return this.customerService.createOrder(customerId as string, body);
+  }
+
+  /** Place a Cash on Delivery order. Creates order (confirmed) + payment (SUCCESS) in one call. */
+  @Post('order/cod')
+  async placeCodOrder(
+    @Body() body: PlaceCodOrderDto,
+    @Req() req: Request & { user?: { id: string } },
+  ) {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      throw new HttpException(
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.customerService.placeCodOrder(customerId as string, body);
   }
 
   @Get('order/history')
