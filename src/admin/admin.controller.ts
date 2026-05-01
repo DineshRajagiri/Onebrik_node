@@ -6,7 +6,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { BaseResponse } from 'src/common/DTO/base-response.dto';
 import { UploadInterceptor } from 'src/file/upload.interceptor';
