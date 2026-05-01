@@ -323,6 +323,11 @@ export class InventoryController {
         return this.service.getAllVariantAttributeValues(query);
     }
 
+    @Get('related/:productId')
+    async getRelatedProducts(@Param('productId') productId: string) {
+        return this.service.getRelatedProducts(productId);
+    }
+
     @Public()
     @Delete('deleteProduct/:id')
     async deleteProduct(@Param('id') id: string) {
