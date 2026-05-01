@@ -33,6 +33,8 @@ import { OrderItem, OrderItemSchemaFile } from "src/schema/orderItem.schema";
 import { SubCursor, SubCursorSchema } from "src/schema/subcursore.schema";
 import { Otp, OtpSchema } from "src/schema/otp.schema";
 import { Carousel, CarouselSchema } from "src/schema/carousel.schema";
+import { Wishlist, WishlistSchemaFile } from "src/schema/wishlist.schema";
+import { WishlistItem, WishlistItemSchemaFile } from "src/schema/wishlistItem.schema";
 
 
 
@@ -72,6 +74,8 @@ export const entities = [
     { name: SubCursor.name, schema: SubCursorSchema },
     { name: Otp.name, schema: OtpSchema },
     { name: Carousel.name, schema: CarouselSchema },
+    { name: Wishlist.name, schema: WishlistSchemaFile },
+    { name: WishlistItem.name, schema: WishlistItemSchemaFile },
     // { name: Permission.name,schema:permissionSchemaFile},
     // { name: PermissionsByAdmin.name,schema:PermissionsByAdminSchema},
     // { name: ModulePermission.name,schema:ModulePermission},

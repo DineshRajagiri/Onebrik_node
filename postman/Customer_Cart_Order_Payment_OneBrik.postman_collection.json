@@ -16,7 +16,9 @@
     { "key": "paymentId", "value": "" },
     { "key": "productId", "value": "" },
     { "key": "variantId", "value": "" },
-    { "key": "razorpayOrderId", "value": "" }
+    { "key": "razorpayOrderId", "value": "" },
+    { "key": "wishlistId", "value": "" },
+    { "key": "wishlistItemId", "value": "" }
   ],
   "item": [
     {
@@ -268,7 +270,140 @@
       ]
     },
     {
-      "name": "3 - Address (JWT required)",
+      "name": "3 - Wishlist (Guest + JWT)",
+      "description": "Same pattern as Cart. Guest by deviceId (no JWT). Logged-in by JWT. Passing deviceId with JWT merges guest wishlist into customer wishlist.",
+      "item": [
+        {
+          "name": "Get Wishlist (Guest) → Save wishlistId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.wishlist && json.data.wishlist._id) {",
+                  "  pm.collectionVariables.set('wishlistId', json.data.wishlist._id);",
+                  "}",
+                  "if (json.data && json.data.items && json.data.items[0]) {",
+                  "  pm.collectionVariables.set('wishlistItemId', json.data.items[0]._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customer/wishlist?deviceId={{deviceId}}",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "wishlist"],
+              "query": [{ "key": "deviceId", "value": "{{deviceId}}" }]
+            },
+            "description": "No JWT. Auto-creates wishlist if none exists. Saves wishlistId."
+          }
+        },
+        {
+          "name": "Get Wishlist (Logged-in, links guest) → Save wishlistId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.wishlist && json.data.wishlist._id) {",
+                  "  pm.collectionVariables.set('wishlistId', json.data.wishlist._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/customer/wishlist?deviceId={{deviceId}}",
+              "host": ["{{base_url}}"],
+              "path": ["customer", "wishlist"],
+              "query": [{ "key": "deviceId", "value": "{{deviceId}}" }]
+            },
+            "description": "JWT + deviceId → merges guest wishlist into customer wishlist. Saves wishlistId."
+          }
+        },
+        {
+          "name": "Get My Wishlist (JWT only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.wishlist && json.data.wishlist._id) {",
+                  "  pm.collectionVariables.set('wishlistId', json.data.wishlist._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/customer/wishlist/me",
+            "description": "JWT required. No deviceId needed. Returns customer wishlist with items + variant images."
+          }
+        },
+        {
+          "name": "Add Item to Wishlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data._id) {",
+                  "  pm.collectionVariables.set('wishlistItemId', json.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantId\": \"{{variantId}}\"\n}"
+            },
+            "url": "{{base_url}}/customer/wishlist/{{wishlistId}}/items",
+            "description": "No JWT. Uses wishlistId from Get Wishlist. variantId is optional. Duplicate is ignored (idempotent). Saves wishlistItemId."
+          }
+        },
+        {
+          "name": "Remove Item from Wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/customer/wishlist/items/{{wishlistItemId}}",
+            "description": "No JWT. Soft-deletes the item and updates totalItems count."
+          }
+        },
+        {
+          "name": "Clear Wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/customer/wishlist/{{wishlistId}}/clear",
+            "description": "No JWT. Soft-deletes all items in the wishlist."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Address (JWT required)",
       "description": "JWT required. Pass deviceId in body/query to link guest cart to logged-in customer.",
       "item": [
         {

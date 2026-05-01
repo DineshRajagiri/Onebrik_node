@@ -12,6 +12,7 @@ import { CreateOrderDto } from './dto/order.dto';
 import { GetItemsDto } from './dto/get-items.dto';
 import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
 import { PlaceCodOrderDto } from './dto/cod-order.dto';
+import { AddWishlistItemDto } from './dto/wishlist.dto';
 import { Request } from 'express';
 import { Public } from 'src/decorators/public.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -100,6 +101,66 @@ export class CustomerController {
   @Delete('cart/items/:itemId')
   async deleteCartItem(@Param('itemId') itemId: string) {
     return this.customerService.deleteCartItem(itemId);
+  }
+
+  // ==============================
+  // WISHLIST ENDPOINTS
+  // Same pattern as Cart: guest by deviceId (no JWT), logged-in by customerId (JWT).
+  // ==============================
+
+  /**
+   * Get or create wishlist.
+   * - No JWT + deviceId  → guest wishlist
+   * - JWT + deviceId     → links guest wishlist to account, returns customer wishlist
+   * - JWT only           → returns customer wishlist (GET /wishlist/me)
+   */
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get('wishlist')
+  async getWishlist(
+    @Query('deviceId') deviceId: string | undefined,
+    @Req() req: Request & { user?: { id: string } },
+  ) {
+    const customerId = req.user?.id;
+    return this.customerService.getWishlist(deviceId, customerId);
+  }
+
+  /** Logged-in only — get my wishlist without passing deviceId. */
+  @UseGuards(JwtAuthGuard)
+  @Get('wishlist/me')
+  async getMyWishlist(@Req() req: Request & { user?: { id: string } }) {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      throw new HttpException(
+        { success: false, message: 'Unauthorized', statusCode: 401, data: null },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.customerService.getWishlist(undefined, customerId);
+  }
+
+  /** Add a product (+ optional variant) to the wishlist. No JWT — uses wishlistId from getWishlist. */
+  @Public()
+  @Post('wishlist/:wishlistId/items')
+  async addWishlistItem(
+    @Param('wishlistId') wishlistId: string,
+    @Body() body: AddWishlistItemDto,
+  ) {
+    return this.customerService.addWishlistItem(wishlistId, body);
+  }
+
+  /** Remove a single item from the wishlist by its item _id. No JWT. */
+  @Public()
+  @Delete('wishlist/items/:itemId')
+  async removeWishlistItem(@Param('itemId') itemId: string) {
+    return this.customerService.removeWishlistItem(itemId);
+  }
+
+  /** Clear all items from a wishlist. No JWT. */
+  @Public()
+  @Delete('wishlist/:wishlistId/clear')
+  async clearWishlist(@Param('wishlistId') wishlistId: string) {
+    return this.customerService.clearWishlist(wishlistId);
   }
 
   // ==============================

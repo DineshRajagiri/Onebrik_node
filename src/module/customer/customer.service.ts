@@ -21,6 +21,7 @@ import { CreatePaymentDto } from './dto/payment.dto';
 import { CreateOrderDto } from './dto/order.dto';
 import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
 import { PlaceCodOrderDto } from './dto/cod-order.dto';
+import { AddWishlistItemDto } from './dto/wishlist.dto';
 import { OrderStatus, PaymentMethod, PaymentStatus } from 'src/utils/constants';
 import { GetItemsDto } from './dto/get-items.dto';
 import { Services } from 'src/utils/constants';
@@ -28,6 +29,8 @@ import { PaymentGatewayService } from 'src/module/payment-gateway/payment-gatewa
 import { GATEWAY_RAZORPAY } from 'src/module/payment-gateway/payment-gateway.interface';
 import { Carousel, CarouselDocument } from 'src/schema/carousel.schema';
 import { VariantImages, VariantImagesDocument } from 'src/schema/variantImages.schema';
+import { Wishlist, WishlistDetails } from 'src/schema/wishlist.schema';
+import { WishlistItem, WishlistItemDetails } from 'src/schema/wishlistItem.schema';
 import { InjectConnection } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
 
@@ -46,6 +49,8 @@ export class CustomerService {
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
     @InjectModel(productVariants.name) private readonly variantModel: Model<productVariantsDocument>,
     @InjectModel(Carousel.name) private readonly carouselModel: Model<CarouselDocument>,
+    @InjectModel(Wishlist.name) private readonly wishlistModel: Model<WishlistDetails>,
+    @InjectModel(WishlistItem.name) private readonly wishlistItemModel: Model<WishlistItemDetails>,
     @Inject(Services.PAYMENT_GATEWAY) private readonly paymentGatewayService: PaymentGatewayService,
     @InjectConnection() private readonly connection: Connection,
 
@@ -1635,6 +1640,267 @@ export class CustomerService {
           statusCode: 400,
           data: null,
         },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  // ==============================
+  // WISHLIST OPERATIONS
+  // Same pattern as Cart: guest by deviceId, logged-in by customerId.
+  // linkDeviceWishlistToCustomer merges on login.
+  // ==============================
+
+  private async linkDeviceWishlistToCustomer(deviceId: string, customerId: string): Promise<void> {
+    if (!deviceId || !customerId) return;
+
+    const guestWishlist = await this.wishlistModel.findOne({
+      deviceId,
+      isDeleted: false,
+    });
+
+    if (!guestWishlist) return;
+
+    const userWishlist = await this.wishlistModel.findOne({
+      customerId,
+      isDeleted: false,
+    });
+
+    if (userWishlist) {
+      // CASE 1: Customer already has a wishlist → merge guest items in
+      const guestItems = await this.wishlistItemModel.find({
+        wishlistId: guestWishlist._id,
+        isDeleted: false,
+      });
+
+      for (const item of guestItems) {
+        const exists = await this.wishlistItemModel.findOne({
+          wishlistId: userWishlist._id,
+          productId: item.productId,
+          variantId: item.variantId || null,
+          isDeleted: false,
+        });
+
+        if (!exists) {
+          await this.wishlistItemModel.create({
+            wishlistId: userWishlist._id,
+            productId: item.productId,
+            variantId: item.variantId,
+          });
+        }
+        // duplicate → skip (wishlist doesn't stack quantities)
+      }
+
+      // soft-delete guest wishlist and its items
+      await this.wishlistItemModel.updateMany(
+        { wishlistId: guestWishlist._id },
+        { isDeleted: true },
+      );
+      await this.wishlistModel.findByIdAndUpdate(guestWishlist._id, { isDeleted: true });
+    } else {
+      // CASE 2: No customer wishlist → reassign guest wishlist
+      await this.wishlistModel.findByIdAndUpdate(guestWishlist._id, {
+        customerId,
+        deviceId: null,
+      });
+    }
+  }
+
+  private async updateWishlistTotalItems(wishlistId: string): Promise<void> {
+    const count = await this.wishlistItemModel.countDocuments({
+      wishlistId,
+      isDeleted: false,
+    });
+    await this.wishlistModel.findByIdAndUpdate(wishlistId, { totalItems: count });
+  }
+
+  /** Get or create wishlist. Pass deviceId for guest, customerId (from JWT) for logged-in. */
+  async getWishlist(deviceId?: string, customerId?: string) {
+    try {
+      // Link guest wishlist to customer if both are present
+      if (deviceId && customerId) {
+        await this.linkDeviceWishlistToCustomer(deviceId, customerId);
+      }
+
+      let wishlist: any;
+
+      if (customerId) {
+        wishlist = await this.wishlistModel.findOne({ customerId, isDeleted: false });
+      } else if (deviceId) {
+        wishlist = await this.wishlistModel.findOne({ deviceId, isDeleted: false });
+      } else {
+        throw new HttpException(
+          { success: false, message: 'deviceId or auth token is required', statusCode: 400, data: null },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Auto-create if not found
+      if (!wishlist) {
+        wishlist = await this.wishlistModel.create({
+          deviceId: customerId ? undefined : deviceId,
+          customerId: customerId || undefined,
+          totalItems: 0,
+        });
+      }
+
+      const items = await this.wishlistItemModel
+        .find({ wishlistId: wishlist._id, isDeleted: false })
+        .populate('productId')
+        .populate('variantId');
+
+      // Attach variant images
+      const variantIds = items.map((i: any) => i.variantId?._id).filter(Boolean);
+      const allImages = await this.variantImageModel.find({
+        productVariantId: { $in: variantIds },
+        isDeleted: false,
+      });
+
+      const itemsWithImages = items.map((item: any) => {
+        const images = allImages.filter(
+          (img) => img.productVariantId.toString() === item.variantId?._id?.toString(),
+        );
+        return { ...item.toObject(), variantImages: images };
+      });
+
+      await this.updateWishlistTotalItems(wishlist._id);
+
+      return {
+        success: true,
+        message: 'Wishlist fetched successfully',
+        statusCode: 200,
+        data: { wishlist, items: itemsWithImages },
+      };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, message: error.message || 'Failed to fetch wishlist', statusCode: 400, data: null },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /** Add a product (+ optional variant) to the wishlist. Idempotent — duplicate is ignored. */
+  async addWishlistItem(wishlistId: string, data: AddWishlistItemDto) {
+    try {
+      const wishlist = await this.wishlistModel.findOne({ _id: wishlistId, isDeleted: false });
+      if (!wishlist) {
+        throw new HttpException(
+          { success: false, message: 'Wishlist not found', statusCode: 404, data: null },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const product = await this.productModel.findById(data.productId);
+      if (!product) {
+        throw new HttpException(
+          { success: false, message: 'Product not found', statusCode: 404, data: null },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (data.variantId) {
+        const variant = await this.variantModel.findById(data.variantId);
+        if (!variant || variant.productId !== data.productId) {
+          throw new HttpException(
+            { success: false, message: 'Invalid variant for this product', statusCode: 400, data: null },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      // Idempotent — if already in wishlist, just return current state
+      const existing = await this.wishlistItemModel.findOne({
+        wishlistId,
+        productId: data.productId,
+        variantId: data.variantId || null,
+        isDeleted: false,
+      });
+
+      if (existing) {
+        return {
+          success: true,
+          message: 'Item already in wishlist',
+          statusCode: 200,
+          data: existing,
+        };
+      }
+
+      const item = await this.wishlistItemModel.create({
+        wishlistId,
+        productId: data.productId,
+        variantId: data.variantId || null,
+      });
+
+      await this.updateWishlistTotalItems(wishlistId);
+
+      return {
+        success: true,
+        message: 'Item added to wishlist',
+        statusCode: 201,
+        data: item,
+      };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, message: error.message || 'Failed to add item to wishlist', statusCode: 400, data: null },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /** Remove a single item from the wishlist by wishlistItemId. */
+  async removeWishlistItem(itemId: string) {
+    try {
+      const item = await this.wishlistItemModel.findOne({ _id: itemId, isDeleted: false });
+      if (!item) {
+        throw new HttpException(
+          { success: false, message: 'Wishlist item not found', statusCode: 404, data: null },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.wishlistItemModel.findByIdAndUpdate(itemId, { isDeleted: true });
+      await this.updateWishlistTotalItems(item.wishlistId);
+
+      return {
+        success: true,
+        message: 'Item removed from wishlist',
+        statusCode: 200,
+        data: null,
+      };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, message: error.message || 'Failed to remove wishlist item', statusCode: 400, data: null },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /** Clear all items from a wishlist. */
+  async clearWishlist(wishlistId: string) {
+    try {
+      const wishlist = await this.wishlistModel.findOne({ _id: wishlistId, isDeleted: false });
+      if (!wishlist) {
+        throw new HttpException(
+          { success: false, message: 'Wishlist not found', statusCode: 404, data: null },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.wishlistItemModel.updateMany(
+        { wishlistId, isDeleted: false },
+        { isDeleted: true },
+      );
+      await this.wishlistModel.findByIdAndUpdate(wishlistId, { totalItems: 0 });
+
+      return {
+        success: true,
+        message: 'Wishlist cleared',
+        statusCode: 200,
+        data: null,
+      };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, message: error.message || 'Failed to clear wishlist', statusCode: 400, data: null },
         HttpStatus.BAD_REQUEST,
       );
     }

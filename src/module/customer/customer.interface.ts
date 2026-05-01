@@ -7,6 +7,7 @@ import { CreateOrderDto } from './dto/order.dto';
 import { PlaceCodOrderDto } from './dto/cod-order.dto';
 import { CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/razorpay.dto';
 import { GetItemsDto } from './dto/get-items.dto';
+import { AddWishlistItemDto } from './dto/wishlist.dto';
 
 export interface ICustomerService {
   createDevice(data: CreateDeviceDto): Promise<any>;
@@ -29,6 +30,12 @@ export interface ICustomerService {
   verifyRazorpayPayment(customerId: string, data: VerifyRazorpayPaymentDto): Promise<any>;
   getPaymentStatus(customerId: string, paymentId: string): Promise<any>;
   getItems(query: GetItemsDto): Promise<any>;
+  // Wishlist
+  getWishlist(deviceId?: string, customerId?: string): Promise<any>;
+  addWishlistItem(wishlistId: string, data: AddWishlistItemDto): Promise<any>;
+  removeWishlistItem(itemId: string): Promise<any>;
+  clearWishlist(wishlistId: string): Promise<any>;
+  // Carousel
   createCarouselImages(imageUrls: string[]): Promise<any>;
   getCarouselImages(): Promise<any>;
   deleteCarousel(id: string): Promise<any>;
