@@ -2327,6 +2327,128 @@ export class InventoryService {
     }
   }
 
+  async getRelatedProducts(productId: string) {
+    try {
+      const product = await this.productModel.findById(productId).lean();
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      const limit = 10;
+
+      let related: any[] = [];
+
+      // 🥇 Level 1 → subChildCategory + brand
+      related = await this.productModel.find({
+        _id: { $ne: productId },
+        subChildCategoryId: product.subChildCategoryId,
+        brand: product.brand,
+        isActive: true,
+        isDeleted: false,
+      }).limit(limit).lean();
+
+      // 🥈 Level 2 → subCategory + brand
+      if (related.length < limit) {
+        const more = await this.productModel.find({
+          _id: { $ne: productId, $nin: related.map(p => p._id) },
+          subCategoryId: product.subCategoryId,
+          brand: product.brand,
+          isActive: true,
+          isDeleted: false,
+        }).limit(limit - related.length).lean();
+
+        related = [...related, ...more];
+      }
+
+      // 🥉 Level 3 → mainCategory
+      if (related.length < limit) {
+        const more = await this.productModel.find({
+          _id: { $ne: productId, $nin: related.map(p => p._id) },
+          mainCategoryId: product.mainCategoryId,
+          isActive: true,
+          isDeleted: false,
+        }).limit(limit - related.length).lean();
+
+        related = [...related, ...more];
+      }
+
+      // 👉 Fetch variants
+      const productIds = related.map(p => p._id);
+
+      const variants = await this.productVarientsModel.find({
+        productId: { $in: productIds },
+        isActive: true,
+        isDeleted: false,
+      }).lean();
+
+      const variantIds = variants.map(v => v._id);
+
+      const images = await this.variantImageModel.find({
+        productVariantId: { $in: variantIds },
+      }).lean();
+
+      // Map images
+      const imageMap = new Map<string, string[]>();
+      images.forEach(img => {
+        const key = String(img.productVariantId);
+        if (!imageMap.has(key)) imageMap.set(key, []);
+        imageMap.get(key)!.push(img.imageUrl);
+      });
+
+      // Map variants
+      const variantMap = new Map<string, any[]>();
+      variants.forEach(v => {
+        const key = String(v.productId);
+        if (!variantMap.has(key)) variantMap.set(key, []);
+        variantMap.get(key)!.push(v);
+      });
+
+      // Final format
+      const finalData = related.map(p => {
+        const productVariants = variantMap.get(String(p._id)) || [];
+
+        const totalStock = productVariants.reduce(
+          (sum, v) => sum + Number(v.stock || 0),
+          0
+        );
+
+        return {
+          id: p._id,
+          name: p.productName,
+          brand: p.brand,
+          description: p.description,
+          rating: p.rating || 0,
+          quantity: totalStock,
+          isStock: totalStock > 0,
+
+          variants: productVariants.map(v => ({
+            variantId: v._id,
+            variantName: v.variantName,
+            stock: Number(v.stock),
+            salePrice: v.salePrice,
+            offerPrice: v.offerPrice,
+            images: imageMap.get(String(v._id)) || [],
+          })),
+        };
+      });
+
+      return {
+        success: true,
+        message: 'Related products fetched successfully',
+        data: finalData,
+      };
+
+    } catch (err) {
+      console.error('Error in getRelatedProducts:', err);
+
+      throw new HttpException(
+        err.message || 'Failed to fetch related products',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 
 
 

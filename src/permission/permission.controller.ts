@@ -7,30 +7,10 @@ import { Services } from 'src/utils/constants';
 import { GetPermissionsDto, UpsertPermissionsDto, UpsertPermissionsForRoleDto } from './DTO/bulk-update-permission-role.dto';
 import { CreateAppModuleDto } from './DTO/create-module.dto';
 import { IPermissionService } from './permission';
-import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
 import { UpsertModuleDto } from './DTO/upsert-module.dto';
 import { UpsertSubModuleDto } from './DTO/upsert-sub-module.dto';
 import { UpsertSubModuleChildDto } from './DTO/upsert-submodule-child-dto';
-import { get } from 'mongoose';
 
-// Safe wrapper for documentation - errors won't affect the API
-const SafePermissionTags = SafeSwaggerClassDecorator(() => {
-  const { PermissionTags } = require('../doc/permission/permission.swagger');
-  return PermissionTags;
-});
-
-const SafePermissionDecorators = {
-  createModule: SafeSwaggerDecorator(() => {
-    const { PermissionDecorators } = require('../doc/permission/permission.swagger');
-    return PermissionDecorators.createModule;
-  }),
-  bulkUpdatePermissionRole: SafeSwaggerDecorator(() => {
-    const { PermissionDecorators } = require('../doc/permission/permission.swagger');
-    return PermissionDecorators.bulkUpdatePermissionRole;
-  })
-};
-
-@SafePermissionTags
 @Controller('permission')
 export class PermissionController {
 
@@ -50,9 +30,7 @@ export class PermissionController {
   }
 
   @Public()
-  @Public()
   @Post('upsertModule')
-  @SafePermissionDecorators.createModule
   async upsertModule(@Body() dto: UpsertModuleDto) {
     const result = await this.service.upsertModule(dto);
     return result;

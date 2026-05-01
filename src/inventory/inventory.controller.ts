@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { Services } from 'src/utils/constants';
 import { IInventoryService, PaginationQuery } from './inventory';
 import { Public } from 'src/decorators/public.decorator';
@@ -7,61 +7,12 @@ import { attributesValuesDTO } from './dto/attributesValues.dto';
 import { inventoryCategoryDTO } from './dto/inventoryCategory.dto';
 import { productDTO } from './dto/products.dto';
 import { productVariantsDTO } from './dto/productVariants.dto';
-import { VariantImagesDTO } from './dto/variantImages.dto';
 import { VariantAttributeValuesDTO } from './dto/variantAttributeValues.dto';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage, memoryStorage } from 'multer';
-import { Request } from 'express';
+import { memoryStorage } from 'multer';
 import { CreateFullProductDTO } from './dto/createFullProduct.dto';
-import { SafeSwaggerClassDecorator, SafeSwaggerDecorator } from 'src/common/decorators/safe-swagger.decorator';
 import { AwsS3BucketService } from 'src/common/services/aws-s3-bucket/aws-s3-bucket.service';
 
-// Safe wrapper for documentation - errors won't affect the API
-const SafeInventoryTags = SafeSwaggerClassDecorator(() => {
-    const { InventoryTags } = require('../doc/inventory/inventory.swagger');
-    return InventoryTags;
-});
-
-const SafeInventoryDecorators = {
-    createAttribute: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.createAttribute;
-    }),
-    createAttributeValue: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.createAttributeValue;
-    }),
-    createInventoryCategory: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.createInventoryCategory;
-    }),
-    createVariantImages: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.createVariantImages;
-    }),
-    createFullProduct: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.createFullProduct;
-    }),
-    getAllProducts: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.getAllProducts;
-    }),
-    getProductById: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.getProductById;
-    }),
-    updateFullProduct: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.updateFullProduct;
-    }),
-    deleteProduct: SafeSwaggerDecorator(() => {
-        const { InventoryDecorators } = require('../doc/inventory/inventory.swagger');
-        return InventoryDecorators.deleteProduct;
-    })
-};
-
-@SafeInventoryTags
 @Controller('inventory')
 export class InventoryController {
     constructor(@Inject(Services.INVENTORY) private service: IInventoryService,
@@ -69,14 +20,12 @@ export class InventoryController {
 
     @Public()
     @Post('createAttribute')
-    @SafeInventoryDecorators.createAttribute
     async createAttribute(@Body() dto: attributesDTO) {
         return await this.service.createAttribute(dto);
     }
 
     @Public()
     @Post('createAttributevalue')
-    @SafeInventoryDecorators.createAttributeValue
     async createAttributeValue(@Body() dto: attributesValuesDTO) {
         return await this.service.createAttributeValue(dto);
     }
@@ -117,7 +66,6 @@ export class InventoryController {
 
     @Public()
     @Post('createVariantImages')
-    @SafeInventoryDecorators.createVariantImages
     @UseInterceptors(
         FilesInterceptor('images', 10, {
             storage: memoryStorage(),
@@ -170,7 +118,6 @@ export class InventoryController {
 
     @Public()
     @Post("createProducts")
-    @SafeInventoryDecorators.createFullProduct
     async createFullProduct(@Body() dto: CreateFullProductDTO) {
         return this.service.createFullProduct(dto);
     }
@@ -229,7 +176,6 @@ export class InventoryController {
 
     @Public()
     @Put('updateProduct/:id')
-    @SafeInventoryDecorators.updateFullProduct
     async updateFullProduct(@Param('id') id: string, @Body() dto: CreateFullProductDTO) {
         return this.service.updateFullProduct(id, dto);
     }
@@ -307,7 +253,6 @@ export class InventoryController {
 
     @Public()
     @Get('getProductById/:id')
-    @SafeInventoryDecorators.getProductById
     async getProductById(@Param('id') id: string) {
         return this.service.getProductById(id);
     }
@@ -350,7 +295,6 @@ export class InventoryController {
 
     @Public()
     @Get("getAllProducts")
-    @SafeInventoryDecorators.getAllProducts
     async getAllProducts(@Query() query: PaginationQuery) {
         return this.service.getAllProducts(query);
     }
@@ -379,9 +323,13 @@ export class InventoryController {
         return this.service.getAllVariantAttributeValues(query);
     }
 
+    @Get('related/:productId')
+    async getRelatedProducts(@Param('productId') productId: string) {
+        return this.service.getRelatedProducts(productId);
+    }
+
     @Public()
     @Delete('deleteProduct/:id')
-    @SafeInventoryDecorators.deleteProduct
     async deleteProduct(@Param('id') id: string) {
         return this.service.deleteProduct(id);
     }

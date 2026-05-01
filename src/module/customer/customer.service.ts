@@ -1333,7 +1333,7 @@ export class CustomerService {
         isDeleted: false,
       });
 
-      // Get order items for each order
+      // Get order items + images for each order
       const ordersWithItems = await Promise.all(
         orders.map(async (order) => {
           const items = await this.orderItemModel
@@ -1341,10 +1341,30 @@ export class CustomerService {
             .populate('productId')
             .populate('variantId');
 
-          return {
-            order,
-            items,
-          };
+          // Collect all variantIds in this order
+          const variantIds = items
+            .map((i: any) => i.variantId?._id)
+            .filter(Boolean);
+
+          // Batch-fetch all images for these variants in one query
+          const images = variantIds.length
+            ? await this.variantImageModel.find({
+                productVariantId: { $in: variantIds },
+                isDeleted: false,
+              })
+            : [];
+
+          // Attach images to each item
+          const itemsWithImages = items.map((item: any) => {
+            const variantImages = images.filter(
+              (img) =>
+                img.productVariantId?.toString() ===
+                item.variantId?._id?.toString(),
+            );
+            return { ...item.toObject(), variantImages };
+          });
+
+          return { order, items: itemsWithImages };
         }),
       );
 
@@ -1400,6 +1420,27 @@ export class CustomerService {
         .populate('productId')
         .populate('variantId');
 
+      // Batch-fetch variant images
+      const variantIds = items
+        .map((i: any) => i.variantId?._id)
+        .filter(Boolean);
+
+      const images = variantIds.length
+        ? await this.variantImageModel.find({
+            productVariantId: { $in: variantIds },
+            isDeleted: false,
+          })
+        : [];
+
+      const itemsWithImages = items.map((item: any) => {
+        const variantImages = images.filter(
+          (img) =>
+            img.productVariantId?.toString() ===
+            item.variantId?._id?.toString(),
+        );
+        return { ...item.toObject(), variantImages };
+      });
+
       const payment = await this.paymentModel
         .findOne({ orderId: order._id, customerId, isDeleted: false })
         .select('paymentStatus paymentGateway transactionId paymentDate')
@@ -1411,7 +1452,7 @@ export class CustomerService {
         statusCode: 200,
         data: {
           order,
-          items,
+          items: itemsWithImages,
           paymentStatus: payment?.paymentStatus ?? null,
           paymentGateway: payment?.paymentGateway ?? null,
           transactionId: payment?.transactionId ?? null,
