@@ -78,4 +78,5 @@ export interface IInventoryService {
     deleteVariantImage(id: string): Promise<any>;
 
     searchProducts(query: string, page?: number, perPage?: number): Promise<any>;
+    syncAllProductsToTypesense(): Promise<any>;
 }
