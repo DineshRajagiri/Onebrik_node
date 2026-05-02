@@ -27,10 +27,12 @@ import { CustomerModule } from './module/customer/customer.module';
 import { CustomerPageModule } from './module/customer-page/customer-page.module';
 import { PaymentGatewayModule } from './module/payment-gateway/payment-gateway.module';
 import { CustomerAuthModule } from './customerAuth/customer-auth.module';
+import { TypesenseModule } from './typesense/typesense.module';
 
 @Module({
   imports: [
     CustomerAuthModule,
+    TypesenseModule,
     SuperAdminModule,
     CoreModule,
     AuthModule,

@@ -76,4 +76,6 @@ export interface IInventoryService {
     deleteProductVariant(id: string): Promise<any>;
     deleteVariantAttributeValue(id: string): Promise<any>;
     deleteVariantImage(id: string): Promise<any>;
+
+    searchProducts(query: string, page?: number, perPage?: number): Promise<any>;
 }

@@ -16,6 +16,7 @@ import { inventoryCategoryDTO } from './dto/inventoryCategory.dto';
 import { VariantAttributeValuesDTO } from './dto/variantAttributeValues.dto';
 import { VariantImagesDTO } from './dto/variantImages.dto';
 import { CreateFullProductDTO } from './dto/createFullProduct.dto';
+import { TypesenseService } from 'src/typesense/typesense.service';
 
 @Injectable()
 export class InventoryService {
@@ -27,6 +28,7 @@ export class InventoryService {
     @InjectModel(productVariants.name) private productVarientsModel: Model<productVariantsDocument>,
     @InjectModel(VariantAttributeValues.name) private variantAttributeValuesModel: Model<VariantAttributeValues>,
     @InjectModel(VariantImages.name) private variantImageModel: Model<VariantImagesDocument>,
+    private readonly typesenseService: TypesenseService,
   ) { }
 
   private paginate(query: any) {
@@ -814,6 +816,17 @@ export class InventoryService {
       ]);
 
 
+      // Sync to Typesense (fire-and-forget — never blocks the response)
+      this.typesenseService.upsertProduct({
+        id: product._id.toString(),
+        name: product.productName,
+        brand: product.brand || '',
+        category: product.mainCategoryId?.toString() || '',
+        description: product.description || '',
+        price: parseFloat(product.price as any) || 0,
+        isActive: true,
+      });
+
       return {
         success: true,
         message: "Product created successfully",
@@ -841,8 +854,6 @@ export class InventoryService {
         );
     }
   }
-
-
 
 
 
@@ -1464,6 +1475,21 @@ export class InventoryService {
           ? this.variantImageModel.insertMany(imageDocs)
           : [],
       ]);
+
+      // Sync updated product to Typesense
+      const updatedProduct = await this.productModel.findById(productId).lean();
+      if (updatedProduct) {
+        this.typesenseService.upsertProduct({
+          id: updatedProduct._id.toString(),
+          name: updatedProduct.productName,
+          brand: updatedProduct.brand || '',
+          category: updatedProduct.mainCategoryId?.toString() || '',
+          description: updatedProduct.description || '',
+          price: parseFloat(updatedProduct.price as any) || 0,
+          isActive: true,
+        });
+      }
+
       return {
         success: true,
         message: "Product updated successfully",
@@ -2995,6 +3021,9 @@ export class InventoryService {
 
       await this.productModel.findByIdAndDelete(id);
 
+      // Remove from Typesense
+      this.typesenseService.deleteProduct(id);
+
       return {
         success: true,
         message: 'Product deleted successfully',
@@ -3100,5 +3129,38 @@ export class InventoryService {
     }
   }
 
+  // ==============================
+  // SEARCH (Typesense)
+  // ==============================
+  async searchProducts(query: string, page = 1, perPage = 20) {
+    try {
+      const result = await this.typesenseService.searchProducts(query, {
+        page,
+        perPage,
+      });
 
+      return {
+        success: true,
+        message: 'Search results fetched successfully',
+        data: {
+          hits: result.hits?.map((hit: any) => ({
+            id: hit.document.id,
+            name: hit.document.name,
+            brand: hit.document.brand,
+            category: hit.document.category,
+            description: hit.document.description,
+            price: hit.document.price,
+          })) ?? [],
+          total: result.found,
+          page: result.page,
+          perPage,
+        },
+      };
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Search failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
