@@ -3139,18 +3139,93 @@ export class InventoryService {
         perPage,
       });
 
+      const hits = result.hits ?? [];
+
+      if (hits.length === 0) {
+        return {
+          success: true,
+          message: 'Search results fetched successfully',
+          data: { hits: [], total: result.found, page: result.page, perPage },
+        };
+      }
+
+      // Extract product IDs from Typesense hits
+      const productIds = hits.map((hit: any) => hit.document.id);
+
+      // Batch-fetch variants for all matched products
+      const variants = await this.productVarientsModel
+        .find({ productId: { $in: productIds }, isDeleted: false, isActive: true })
+        .lean();
+
+      const variantIds = variants.map((v) => v._id.toString());
+
+      // Batch-fetch images for all variants
+      const images = await this.variantImageModel
+        .find({ productVariantId: { $in: variantIds }, isDeleted: false })
+        .lean();
+
+      // Batch-fetch attribute values for all variants
+      const attributeValues = await this.variantAttributeValuesModel
+        .find({ productVariantId: { $in: variantIds } })
+        .populate('attributeId', 'attributename')
+        .populate('attributeValuesId', 'value')
+        .lean();
+
+      // Group by productId
+      const variantsByProduct = new Map<string, any[]>();
+      for (const variant of variants) {
+        const pid = variant.productId.toString();
+        if (!variantsByProduct.has(pid)) variantsByProduct.set(pid, []);
+
+        const variantImages = images.filter(
+          (img) => img.productVariantId?.toString() === variant._id.toString(),
+        );
+
+        const variantAttrs = attributeValues.filter(
+          (av) => av.productVariantId?.toString() === variant._id.toString(),
+        );
+
+        variantsByProduct.get(pid)!.push({
+          _id: variant._id,
+          variantName: variant.variantName,
+          salePrice: variant.salePrice,
+          offerPrice: variant.offerPrice,
+          stock: variant.stock,
+          variantSku: variant.variantSku,
+          images: variantImages.map((img) => img.imageUrl),
+          attributes: variantAttrs.map((av: any) => ({
+            attribute: av.attributeId?.attributename || '',
+            value: av.attributeValuesId?.value || '',
+          })),
+        });
+      }
+
+      // Build enriched response
+      const enrichedHits = hits.map((hit: any) => {
+        const doc = hit.document;
+        const productVariants = variantsByProduct.get(doc.id) || [];
+
+        // First image across all variants as the primary thumbnail
+        const thumbnail = productVariants
+          .flatMap((v) => v.images)
+          .find(Boolean) || null;
+
+        return {
+          id: doc.id,
+          name: doc.name,
+          brand: doc.brand,
+          description: doc.description,
+          price: doc.price,
+          thumbnail,
+          variants: productVariants,
+        };
+      });
+
       return {
         success: true,
         message: 'Search results fetched successfully',
         data: {
-          hits: result.hits?.map((hit: any) => ({
-            id: hit.document.id,
-            name: hit.document.name,
-            brand: hit.document.brand,
-            category: hit.document.category,
-            description: hit.document.description,
-            price: hit.document.price,
-          })) ?? [],
+          hits: enrichedHits,
           total: result.found,
           page: result.page,
           perPage,
