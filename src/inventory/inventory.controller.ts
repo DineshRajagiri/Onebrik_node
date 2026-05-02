@@ -369,4 +369,17 @@ export class InventoryController {
     async deleteVariantImage(@Param('id') id: string) {
         return this.service.deleteVariantImage(id);
     }
+
+    // ==============================
+    // SEARCH
+    // ==============================
+    @Public()
+    @Get('search')
+    async searchProducts(
+        @Query('q') q: string,
+        @Query('page') page?: number,
+        @Query('perPage') perPage?: number,
+    ) {
+        return this.service.searchProducts(q || '*', Number(page) || 1, Number(perPage) || 20);
+    }
 }
