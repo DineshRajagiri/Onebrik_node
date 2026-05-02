@@ -382,4 +382,11 @@ export class InventoryController {
     ) {
         return this.service.searchProducts(q || '*', Number(page) || 1, Number(perPage) || 20);
     }
+
+    /** One-time bulk sync — call this once to index all existing products into Typesense. */
+    @Public()
+    @Post('search/sync')
+    async syncAllProductsToTypesense() {
+        return this.service.syncAllProductsToTypesense();
+    }
 }

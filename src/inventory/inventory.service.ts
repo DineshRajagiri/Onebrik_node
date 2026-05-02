@@ -3163,4 +3163,44 @@ export class InventoryService {
       );
     }
   }
+
+  /** One-time bulk sync — pushes all existing MongoDB products into Typesense. */
+  async syncAllProductsToTypesense() {
+    try {
+      const products = await this.productModel
+        .find({ isDeleted: false })
+        .lean();
+
+      let synced = 0;
+      let failed = 0;
+
+      for (const product of products) {
+        try {
+          await this.typesenseService.upsertProduct({
+            id: product._id.toString(),
+            name: product.productName || '',
+            brand: product.brand || '',
+            category: product.mainCategoryId?.toString() || '',
+            description: product.description || '',
+            price: parseFloat(product.price as any) || 0,
+            isActive: product.isActive ?? true,
+          });
+          synced++;
+        } catch {
+          failed++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Sync complete. ${synced} synced, ${failed} failed out of ${products.length} total.`,
+        data: { total: products.length, synced, failed },
+      };
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Sync failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
