@@ -389,4 +389,18 @@ export class InventoryController {
     async syncAllProductsToTypesense() {
         return this.service.syncAllProductsToTypesense();
     }
+
+    // ==============================
+    // FILTERS
+    // ==============================
+    /**
+     * Get available filters for a category.
+     * Query params: mainCategoryId, subCategoryId, subChildCategoryId
+     * Returns: brands[], attributes[{name, values[]}], priceRange{min, max}
+     */
+    @Public()
+    @Get('filters')
+    async getFiltersByCategory(@Query() query: any) {
+        return this.service.getFiltersByCategory(query);
+    }
 }

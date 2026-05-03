@@ -79,4 +79,5 @@ export interface IInventoryService {
 
     searchProducts(query: string, page?: number, perPage?: number): Promise<any>;
     syncAllProductsToTypesense(): Promise<any>;
+    getFiltersByCategory(query: any): Promise<any>;
 }
