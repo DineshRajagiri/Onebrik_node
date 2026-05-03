@@ -171,7 +171,6 @@ export class CustomerService {
   }
   async getCart(deviceId?: string, customerId?: string) {
     try {
-      console.log(deviceId, "deviceId", customerId, "customerId");
 
       // 🔹 1. Link guest cart → customer (after login)
       if (deviceId && customerId) {
