@@ -1887,7 +1887,10 @@ export class InventoryService {
 
   async getAllProducts(query: any) {
     try {
-      let { page = 1, limit = 10, search = "", topSelling, category } = query;
+      let { page = 1, limit = 10, search = "", topSelling, category,
+            mainCategoryId, subCategoryId, subChildCategoryId,
+            brand, minPrice, maxPrice,
+            ...attributeFilters } = query;
 
       page = Number(page) > 0 ? Number(page) : 1;
       limit = Number(limit) > 0 ? Number(limit) : 10;
@@ -1898,21 +1901,24 @@ export class InventoryService {
         isDeleted: false,
       };
 
-      // ✅ Combined search + category logic
+      // ── Category ID filters (direct) ──────────────────────────────
+      if (mainCategoryId) filter.mainCategoryId = mainCategoryId;
+      if (subCategoryId) filter.subCategoryId = subCategoryId;
+      if (subChildCategoryId) filter.subChildCategoryId = subChildCategoryId;
+
+      // ── Brand filter ──────────────────────────────────────────────
+      if (brand) filter.brand = new RegExp(brand.trim(), 'i');
+
+      // ── Search + category-name search ─────────────────────────────
       const orConditions: any[] = [];
 
       if (search?.trim()) {
         const searchRegex = new RegExp(search.trim(), "i");
-
         orConditions.push({ productName: searchRegex });
 
         const matchedCategories = await this.inventoryCategoryModel
-          .find({ categoryName: searchRegex })
-          .select("_id")
-          .lean();
-
+          .find({ categoryName: searchRegex }).select("_id").lean();
         const categoryIds = matchedCategories.map(c => c._id);
-
         if (categoryIds.length) {
           orConditions.push(
             { mainCategoryId: { $in: categoryIds } },
@@ -1924,14 +1930,9 @@ export class InventoryService {
 
       if (category?.trim()) {
         const categoryRegex = new RegExp(category.trim(), "i");
-
         const matchedCategories = await this.inventoryCategoryModel
-          .find({ categoryName: categoryRegex })
-          .select("_id")
-          .lean();
-
+          .find({ categoryName: categoryRegex }).select("_id").lean();
         const categoryIds = matchedCategories.map(c => c._id);
-
         if (categoryIds.length) {
           orConditions.push(
             { mainCategoryId: { $in: categoryIds } },
@@ -1941,8 +1942,88 @@ export class InventoryService {
         }
       }
 
-      if (orConditions.length) {
-        filter.$or = orConditions;
+      if (orConditions.length) filter.$or = orConditions;
+
+      // ── Attribute filters (e.g. ?color=White&size=10kg) ───────────
+      // Any query param that isn't a known param is treated as an attribute filter
+      const knownParams = new Set([
+        'page','limit','search','topSelling','category',
+        'mainCategoryId','subCategoryId','subChildCategoryId',
+        'brand','minPrice','maxPrice',
+      ]);
+
+      const attrQueries = Object.entries(attributeFilters).filter(
+        ([key]) => !knownParams.has(key)
+      );
+
+      if (attrQueries.length > 0) {
+        // For each attribute filter, find matching productIds
+        let restrictedProductIds: Set<string> | null = null;
+
+        for (const [attrName, attrValue] of attrQueries) {
+          if (!attrValue) continue;
+
+          // Find attribute values matching the value string
+          const matchingValues = await this.attributesValuesModel
+            .find({ value: new RegExp(String(attrValue).trim(), 'i') })
+            .select('_id').lean();
+
+          const attrValueIds = matchingValues.map(v => v._id);
+          if (!attrValueIds.length) {
+            // No match → no products can satisfy this filter
+            restrictedProductIds = new Set();
+            break;
+          }
+
+          // Find variants that have this attribute value
+          const variantMatches = await this.variantAttributeValuesModel
+            .find({ attributeValuesId: { $in: attrValueIds } })
+            .select('productVariantId').lean();
+
+          const variantIds = variantMatches.map(v => v.productVariantId);
+
+          // Find products for those variants
+          const productIds = await this.productVarientsModel
+            .find({ _id: { $in: variantIds } })
+            .distinct('productId');
+
+          const matchSet = new Set(productIds.map(String));
+
+          if (restrictedProductIds === null) {
+            restrictedProductIds = matchSet;
+          } else {
+            // AND logic — intersect
+            for (const id of restrictedProductIds) {
+              if (!matchSet.has(id)) restrictedProductIds.delete(id);
+            }
+          }
+        }
+
+        if (restrictedProductIds !== null) {
+          filter._id = { $in: Array.from(restrictedProductIds) };
+        }
+      }
+
+      // ── Price range filter (applied on variants) ──────────────────
+      let priceFilteredProductIds: string[] | null = null;
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        const priceFilter: any = {};
+        if (minPrice !== undefined) priceFilter.$gte = Number(minPrice);
+        if (maxPrice !== undefined) priceFilter.$lte = Number(maxPrice);
+
+        const priceVariants = await this.productVarientsModel
+          .find({ offerPrice: priceFilter, isDeleted: false })
+          .distinct('productId');
+
+        priceFilteredProductIds = priceVariants.map(String);
+
+        // Merge with existing _id filter if present
+        if (filter._id) {
+          const existing = new Set(filter._id.$in.map(String));
+          filter._id = { $in: priceFilteredProductIds.filter(id => existing.has(id)) };
+        } else {
+          filter._id = { $in: priceFilteredProductIds };
+        }
       }
 
       const [products, total] = await Promise.all([
@@ -1951,20 +2032,15 @@ export class InventoryService {
           .populate("mainCategoryId", "categoryName level")
           .populate("subCategoryId", "categoryName level")
           .populate("subChildCategoryId", "categoryName level")
-          .sort({ createdAt: -1 }) // default sorting
+          .sort({ createdAt: -1 })
           .lean(),
-
         this.productModel.countDocuments(filter),
       ]);
 
       const productIds = products.map(p => p._id);
 
       const variants = await this.productVarientsModel
-        .find({
-          productId: { $in: productIds },
-          isActive: true,
-          isDeleted: false,
-        })
+        .find({ productId: { $in: productIds }, isDeleted: false })
         .lean();
 
       const variantIds = variants.map(v => v._id);
@@ -1975,7 +2051,6 @@ export class InventoryService {
           .populate("attributeId", "attributename")
           .populate("attributeValuesId", "value")
           .lean(),
-
         this.variantImageModel
           .find({ productVariantId: { $in: variantIds } })
           .lean(),
@@ -2004,11 +2079,7 @@ export class InventoryService {
 
       let finalProducts = products.map(p => {
         const productVariants = variantMap.get(String(p._id)) || [];
-
-        const totalStock = productVariants.reduce(
-          (sum, v) => sum + Number(v.stock || 0),
-          0
-        );
+        const totalStock = productVariants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
 
         return {
           id: p._id,
@@ -2023,21 +2094,9 @@ export class InventoryService {
           quantity: totalStock,
           isStock: totalStock > 0,
           inventoryCategories: [
-            p.mainCategoryId && {
-              id: p.mainCategoryId._id,
-              name: p.mainCategoryId.categoryName,
-              level: "MAIN",
-            },
-            p.subCategoryId && {
-              id: p.subCategoryId._id,
-              name: p.subCategoryId.categoryName,
-              level: "SUB",
-            },
-            p.subChildCategoryId && {
-              id: p.subChildCategoryId._id,
-              name: p.subChildCategoryId.categoryName,
-              level: "SUBCHILD",
-            },
+            p.mainCategoryId && { id: (p.mainCategoryId as any)._id, name: (p.mainCategoryId as any).categoryName, level: "MAIN" },
+            p.subCategoryId && { id: (p.subCategoryId as any)._id, name: (p.subCategoryId as any).categoryName, level: "SUB" },
+            p.subChildCategoryId && { id: (p.subChildCategoryId as any)._id, name: (p.subChildCategoryId as any).categoryName, level: "SUBCHILD" },
           ].filter(Boolean),
           variants: productVariants.map(v => ({
             variantId: v._id,
@@ -2056,32 +2115,89 @@ export class InventoryService {
         };
       });
 
-      // 🔥 Top Selling: if param present → sort by quantity DESC
       if (topSelling !== undefined) {
         finalProducts = finalProducts.sort((a, b) => b.quantity - a.quantity);
       }
 
-      // ✅ Pagination
       const paginatedProducts = finalProducts.slice(skip, skip + limit);
 
       return {
         success: true,
         message: "Products fetched successfully",
         data: paginatedProducts,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       };
 
     } catch (err) {
-      console.error("Error in getAllFullProductsDetails:", err);
-      throw new HttpException(
-        "Failed to fetch products",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      console.error("Error in getAllProducts:", err);
+      throw new HttpException("Failed to fetch products", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // ==============================
+  // FILTERS
+  // ==============================
+  async getFiltersByCategory(query: any) {
+    try {
+      const { mainCategoryId, subCategoryId, subChildCategoryId } = query;
+
+      const filter: any = { isActive: true, isDeleted: false };
+      if (mainCategoryId) filter.mainCategoryId = mainCategoryId;
+      if (subCategoryId) filter.subCategoryId = subCategoryId;
+      if (subChildCategoryId) filter.subChildCategoryId = subChildCategoryId;
+
+      // 1. Products in this category
+      const products = await this.productModel
+        .find(filter).select('_id brand').lean();
+
+      const productIds = products.map(p => p._id);
+
+      // 2. Variants for those products
+      const variants = await this.productVarientsModel
+        .find({ productId: { $in: productIds }, isDeleted: false })
+        .select('_id salePrice offerPrice').lean();
+
+      const variantIds = variants.map(v => v._id);
+
+      // 3. Attribute values for those variants
+      const attrs = await this.variantAttributeValuesModel
+        .find({ productVariantId: { $in: variantIds } })
+        .populate('attributeId', 'attributename')
+        .populate('attributeValuesId', 'value')
+        .lean();
+
+      // 4. Build attribute map
+      const attributeMap: Record<string, Set<string>> = {};
+      attrs.forEach((a: any) => {
+        const attrName = a.attributeId?.attributename;
+        const value = a.attributeValuesId?.value;
+        if (!attrName || !value) return;
+        if (!attributeMap[attrName]) attributeMap[attrName] = new Set();
+        attributeMap[attrName].add(value);
+      });
+
+      const attributes = Object.keys(attributeMap).map(key => ({
+        name: key,
+        values: Array.from(attributeMap[key]),
+      }));
+
+      // 5. Brands
+      const brands = [...new Set(products.map(p => p.brand).filter(Boolean))];
+
+      // 6. Price range
+      const prices = variants.flatMap(v => [v.salePrice, v.offerPrice]).filter(Boolean);
+      const priceRange = prices.length
+        ? { min: Math.min(...prices), max: Math.max(...prices) }
+        : null;
+
+      return {
+        success: true,
+        message: 'Filters fetched successfully',
+        data: { brands, attributes, priceRange },
+      };
+    } catch (err) {
+      console.error('Error in getFiltersByCategory:', err);
+      throw new HttpException('Failed to fetch filters', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
