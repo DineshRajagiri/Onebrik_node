@@ -37,4 +37,4 @@ export class Menu {
 }
 
 export const MenuSchema = SchemaFactory.createForClass(Menu);
-MenuSchema.index({ key: 1 }, { unique: true });
+// index already defined via unique:true on @Prop — no need to repeat here
