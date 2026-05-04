@@ -3,11 +3,21 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import passport from 'passport';
 import * as dotenv from 'dotenv';
+import * as mongoose from 'mongoose';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import * as express from 'express';
 import { join } from 'path';
 
 dotenv.config();
+
+// Remove __v from all Mongoose documents globally
+mongoose.set('toJSON', {
+  virtuals: true,
+  transform: (_doc, ret) => {
+    delete ret.__v;
+    return ret;
+  },
+});
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });

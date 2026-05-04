@@ -1789,18 +1789,49 @@ export class CustomerService {
         .populate('productId')
         .populate('variantId');
 
-      // Attach variant images
+      // Batch-fetch variant images — same as cart
       const variantIds = items.map((i: any) => i.variantId?._id).filter(Boolean);
       const allImages = await this.variantImageModel.find({
         productVariantId: { $in: variantIds },
         isDeleted: false,
       });
 
+      // Shape each item the same way as cart items
       const itemsWithImages = items.map((item: any) => {
-        const images = allImages.filter(
-          (img) => img.productVariantId.toString() === item.variantId?._id?.toString(),
-        );
-        return { ...item.toObject(), variantImages: images };
+        const product = item.productId;
+        const variant = item.variantId;
+
+        const variantImages = allImages
+          .filter((img) => img.productVariantId?.toString() === variant?._id?.toString())
+          .map((img) => img.imageUrl);
+
+        return {
+          _id: item._id,
+          wishlistId: item.wishlistId,
+          product: product ? {
+            _id: product._id,
+            productName: product.productName,
+            brand: product.brand,
+            description: product.description,
+            about: product.about,
+            rating: product.rating,
+            discount: product.discount,
+            offer: product.offer,
+            price: product.price,
+            mainCategoryId: product.mainCategoryId,
+            subCategoryId: product.subCategoryId,
+            subChildCategoryId: product.subChildCategoryId,
+          } : null,
+          variant: variant ? {
+            _id: variant._id,
+            variantName: variant.variantName,
+            salePrice: variant.salePrice,
+            offerPrice: variant.offerPrice,
+            stock: variant.stock,
+            variantSku: variant.variantSku,
+          } : null,
+          variantImages,
+        };
       });
 
       await this.updateWishlistTotalItems(wishlist._id);
@@ -1809,7 +1840,15 @@ export class CustomerService {
         success: true,
         message: 'Wishlist fetched successfully',
         statusCode: 200,
-        data: { wishlist, items: itemsWithImages },
+        data: {
+          wishlist: {
+            _id: wishlist._id,
+            totalItems: wishlist.totalItems,
+            deviceId: wishlist.deviceId,
+            customerId: wishlist.customerId,
+          },
+          items: itemsWithImages,
+        },
       };
     } catch (error) {
       throw new HttpException(
