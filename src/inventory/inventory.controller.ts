@@ -323,6 +323,7 @@ export class InventoryController {
         return this.service.getAllVariantAttributeValues(query);
     }
 
+    @Public()
     @Get('getRelated/:productId')
     async getRelatedProducts(@Param('productId') productId: string) {
         return this.service.getRelatedProducts(productId);
