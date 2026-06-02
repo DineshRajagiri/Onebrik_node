@@ -13,7 +13,7 @@ export class Customer extends commonDTO {
   @Prop()
   name: string;
 
-  @Prop({ required: true, unique: true })
+  // @Prop({ required: true, unique: true })
   email: string;
 
   @Prop()

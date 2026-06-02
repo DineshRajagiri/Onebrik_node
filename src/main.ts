@@ -1,3 +1,4 @@
+import './config/redis/redis.provider';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
@@ -7,6 +8,9 @@ import * as mongoose from 'mongoose';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import * as express from 'express';
 import { join } from 'path';
+import { SmsService } from './common/services/sms/sms.service';
+
+
 
 dotenv.config();
 
@@ -14,12 +18,13 @@ dotenv.config();
 mongoose.set('toJSON', {
   virtuals: true,
   transform: (_doc, ret) => {
-    delete ret.__v;
+    delete ret.__v; 
     return ret;
   },
 });
 
 async function bootstrap() {
+
   const app = await NestFactory.create(AppModule, { cors: true });
   const logger = new Logger('Bootstrap');
 
