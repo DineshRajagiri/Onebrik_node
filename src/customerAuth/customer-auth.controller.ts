@@ -1,4 +1,4 @@
-import {Body,Controller,Get,Inject,Patch,Post,Req,UploadedFile,UseGuards,UseInterceptors,} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors, } from '@nestjs/common';
 import { Public } from 'src/decorators/public.decorator';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomerLoginDto } from './DTO/customer-login.dto';
@@ -18,7 +18,7 @@ export class CustomerAuthController {
     private readonly customerService: CustomerAuthService,
 
     private readonly awsS3BucketService: AwsS3BucketService,
-  ) {}
+  ) { }
 
   // =========================
   // SEND OTP
@@ -99,4 +99,15 @@ export class CustomerAuthController {
       imageUrl,
     );
   }
+
+  @Post('msg91-login')
+  @Public()
+  async msg91Login(
+    @Body('accessToken') accessToken: string,
+    @Body('mobileNumber') mobileNumber?: string,
+  ) {
+    return this.customerService.msg91Login(accessToken, mobileNumber);
+  }
+
+  
 }

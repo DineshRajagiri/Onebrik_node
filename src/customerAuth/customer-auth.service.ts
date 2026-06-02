@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { MailService } from 'src/mail/mail.service';
 
 import { UpdateCustomerProfileDto } from './DTO/update-customer-profile.dto';
+import { SmsService } from 'src/common/services/sms/sms.service';
 
 @Injectable()
 export class CustomerAuthService {
@@ -28,7 +29,8 @@ export class CustomerAuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
-  ) {}
+    private readonly smsService: SmsService,
+  ) { }
 
   // =========================
   // SEND OTP
@@ -130,7 +132,8 @@ export class CustomerAuthService {
 
     const payload = {
       sub: customer._id.toString(),
-      email: customer.email,
+      email: customer.email || null,
+      mobileNumber: customer.mobileNumber || null,
       role: 'customer',
     };
 
@@ -203,7 +206,8 @@ export class CustomerAuthService {
 
     return {
       success: true,
-      data: {id: customer._id ?? null,
+      data: {
+        id: customer._id ?? null,
         customerId: customer.customerId ?? null,
         email: customer.email ?? null,
         name: customer.name ?? null,
@@ -254,4 +258,77 @@ export class CustomerAuthService {
       },
     };
   }
+
+
+  async msg91Login(accessToken: string, mobileNumberFromClient?: string) {
+
+    const result = await this.smsService.verifyAccessToken(accessToken);
+
+    console.log(result);
+
+    const mobileNumber = mobileNumberFromClient || result?.mobile;
+
+    // If we still don't have a mobile number, surface a clear error
+    if (!mobileNumber) {
+      const requestId = result?.requestId || result?.requestID || result?.request_id;
+      const companyId = result?.companyId || result?.companyID || result?.company_id;
+
+      if (requestId) {
+        throw new UnauthorizedException(
+          `MSG91 token decoded but mobile not available. requestId=${requestId} companyId=${companyId}`,
+        );
+      }
+
+      throw new UnauthorizedException('Unable to resolve mobile from MSG91 token');
+    }
+
+    let customer = await this.customerModel.findOne({ mobileNumber });
+
+    if (!customer) {
+
+      customer =
+        await this.customerModel.create({
+          mobileNumber,
+          isMobileVerified: true,
+        });
+
+    }
+
+    const tokens =
+      await this.generateTokens(customer);
+
+    await this.customerModel.updateOne(
+      { _id: customer._id },
+      {
+        refreshToken:
+          tokens.refreshToken,
+      },
+    );
+
+    return {
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken:
+          tokens.accessToken,
+        refreshToken:
+          tokens.refreshToken,
+        customer: {
+          id: customer._id,
+          customerId:
+            customer.customerId,
+          mobileNumber:
+            customer.mobileNumber,
+          name:
+            customer.name,
+          profilePicture:
+            customer.profilePicture,
+        },
+      },
+    };
+  }
+
+  
+
+  
 }

@@ -25,4 +25,7 @@ export interface ICustomerService {
         data: { id: string; customerId: string; email: string; name?: string; mobileNumber?: string; profilePicture?: string; };
     }>;
 
+    sendOtpMobile(mobileNumber: string)
+    verifyOtpMobile(mobileNumber: string, otp: string)
+
 }
